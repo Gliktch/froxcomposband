@@ -64,7 +64,99 @@ static int _magic_eater_label_slot(unsigned char label)
     return -1;
 }
 
-static void _magic_eater_calculate_labels(object_type *list, bool allow_inscriptions)
+static int _magic_eater_device_cmd(int tval)
+{
+    switch (tval)
+    {
+    case TV_WAND: return 'a';
+    case TV_STAFF: return 'u';
+    case TV_ROD: return 'z';
+    }
+    return 0;
+}
+
+static unsigned char _magic_eater_obj_label(object_type *o_ptr, int tval, int entry_cmd)
+{
+    int           save_cmd = command_cmd;
+    int           device_cmd = _magic_eater_device_cmd(tval);
+    unsigned char label = '\0';
+
+    if (entry_cmd)
+    {
+        command_cmd = entry_cmd;
+        label = obj_label(o_ptr);
+        if (label)
+        {
+            command_cmd = save_cmd;
+            return label;
+        }
+    }
+
+    if (device_cmd && device_cmd != entry_cmd)
+    {
+        command_cmd = device_cmd;
+        label = obj_label(o_ptr);
+    }
+
+    command_cmd = save_cmd;
+    return label;
+}
+
+static bool _magic_eater_confirm_choice(object_type *o_ptr, int entry_cmd, int tval)
+{
+    char name[MAX_NLEN], prompt[MAX_NLEN + 20];
+    cptr insc, pos;
+    int  tab_cmd = _magic_eater_device_cmd(tval);
+    int  ct = 0;
+
+    if (!o_ptr->inscription) return TRUE;
+    if (!entry_cmd && !tab_cmd) return TRUE;
+
+    insc = quark_str(o_ptr->inscription);
+    for (pos = strchr(insc, '!');
+            pos && *pos;
+            pos = strchr(pos + 1, '!'))
+    {
+        bool matched = FALSE;
+
+        for (;;)
+        {
+            pos++;
+            if (!*pos) return TRUE;
+            else if (*pos == entry_cmd || *pos == tab_cmd || *pos == '*')
+            {
+                matched = TRUE;
+            }
+            else if (!isalpha(*pos))
+            {
+                if (matched)
+                {
+                    if (!ct++)
+                    {
+                        object_desc(name, o_ptr, OD_COLOR_CODED);
+                        sprintf(prompt, "Really choose %s? ", name);
+                    }
+                    if (!get_check(prompt)) return FALSE;
+                }
+
+                if (*pos == '!') { pos--; break; }
+                else if (*pos == '?')
+                {
+                    while ((*(pos++)) && (isdigit(*pos)))
+                    {
+                    }
+                    if (!*pos) return TRUE;
+                    else if (*pos == '!') { pos--; break; }
+                    else if (isalpha(*pos)) pos--;
+                }
+                else break;
+            }
+        }
+    }
+    return TRUE;
+}
+
+static void _magic_eater_calculate_labels(object_type *list, bool allow_inscriptions, int entry_cmd)
 {
     int slot;
     
@@ -82,11 +174,7 @@ static void _magic_eater_calculate_labels(object_type *list, bool allow_inscript
         object_type *o_ptr = list + slot;
         if (o_ptr)
         {
-            unsigned char label = obj_label(o_ptr);
-            if (label == 'X' || label == 'W' || label == 'S' || label == 'R' || label == 'Z')
-            {
-                label = tolower(label);
-            }
+            unsigned char label = _magic_eater_obj_label(o_ptr, o_ptr->tval, entry_cmd);
             if (label)
             {
                 /* override this label if in use ... */
@@ -192,6 +280,7 @@ static object_type *_choose(cptr verb, int tval, int options)
     bool         exchange = FALSE;
     bool	      inscribe = FALSE;
     int          slot1 = _INVALID_SLOT, slot2 = _INVALID_SLOT;
+    int          entry_cmd = command_cmd;
 
     if ((options & _ALLOW_SWITCH) && REPEAT_PULL(&cmd))
     {
@@ -204,8 +293,8 @@ static object_type *_choose(cptr verb, int tval, int options)
 
         if (REPEAT_PULL(&cmd))
         {
-            _magic_eater_calculate_labels(_which_list(which_tval), TRUE);
-            slot = _magic_eater_label_slot(tolower((unsigned char)cmd));
+            _magic_eater_calculate_labels(_which_list(which_tval), TRUE, entry_cmd);
+            slot = _magic_eater_label_slot((unsigned char)cmd);
             if (0 <= slot && slot < _MAX_SLOTS)
                 return _which_obj(which_tval, slot);
         }
@@ -232,23 +321,18 @@ static object_type *_choose(cptr verb, int tval, int options)
             string_printf(prompt, "%s which %s", inscribe ? "Inscribe" : verb, _which_name(which_tval));
             if (options & _ALLOW_SWITCH)
             {
-                switch (which_tval)
-                {
-                case TV_WAND: string_append_s(prompt, " [Press 'S' for Staves, 'R' for Rods"); break;
-                case TV_STAFF: string_append_s(prompt, " [Press 'W' for Wands, 'R' for Rods"); break;
-                case TV_ROD: string_append_s(prompt, " [Press 'W' for Wands, 'S' for Staves"); break;
-                }
+                string_append_s(prompt, " [Press '/' to Cycle Type");
                 if (options & _ALLOW_EXCHANGE)
-                    string_append_s(prompt, ", 'X' to Exchange");
+                    string_append_s(prompt, ", '\\' to Exchange");
                 if (options & _ALLOW_INSCRIBE)
-                    string_append_s(prompt, ", 'Z' to Inscribe");
+                    string_append_s(prompt, ", '{' to Inscribe");
                 string_append_s(prompt, "]:");
             }
             else
                 string_append_c(prompt, ':');
         }
         prt(string_buffer(prompt), 0, 0);
-        _magic_eater_calculate_labels(_which_list(which_tval), ((strpos("Use", verb) == 1) && (!inscribe)));
+        _magic_eater_calculate_labels(_which_list(which_tval), TRUE, entry_cmd);
         _display(_which_list(which_tval), display);
 
         cmd = inkey_special(FALSE);
@@ -258,7 +342,16 @@ static object_type *_choose(cptr verb, int tval, int options)
 
         if ((options & _ALLOW_SWITCH) && (_magic_eater_label_slot((unsigned char)cmd) == -1))
         {
-            if (cmd == 'w' || cmd == 'W')
+            if (cmd == '/')
+            {
+                if (which_tval == TV_WAND)
+                    which_tval = TV_STAFF;
+                else if (which_tval == TV_STAFF)
+                    which_tval = TV_ROD;
+                else
+                    which_tval = TV_WAND;
+            }
+            else if (cmd == 'w' || cmd == 'W')
                 which_tval = TV_WAND;
             else if (cmd == 's' || cmd == 'S')
                 which_tval = TV_STAFF;
@@ -268,7 +361,7 @@ static object_type *_choose(cptr verb, int tval, int options)
 
         if (options & _ALLOW_EXCHANGE)
         {
-            if (!exchange && (cmd == 'x' || cmd == 'X'))
+            if (!exchange && (cmd == '\\' || ((cmd == 'x' || cmd == 'X') && _magic_eater_label_slot((unsigned char)cmd) == -1)))
             {
                 exchange = TRUE;
                 slot1 = slot2 = _INVALID_SLOT;
@@ -277,7 +370,7 @@ static object_type *_choose(cptr verb, int tval, int options)
 
         if (options & _ALLOW_INSCRIBE)
         {
-            if (!inscribe && (cmd == 'Z')) inscribe = TRUE;
+            if (!inscribe && (cmd == '{' || (cmd == 'Z' && _magic_eater_label_slot((unsigned char)cmd) == -1))) inscribe = TRUE;
         }
 
         if (_magic_eater_label_slot((unsigned char)cmd) > -1)
@@ -325,8 +418,14 @@ static object_type *_choose(cptr verb, int tval, int options)
                 object_type *o_ptr = _which_obj(which_tval, slot);
                 if (o_ptr->k_idx || (options & _ALLOW_EMPTY))
                 {
-                    result = o_ptr;
-                    done = TRUE;
+                    if (o_ptr->k_idx && strpos("Use", verb) == 1 && !_magic_eater_confirm_choice(o_ptr, entry_cmd, which_tval))
+                    {
+                    }
+                    else
+                    {
+                        result = o_ptr;
+                        done = TRUE;
+                    }
                 }
             }
         }

@@ -493,6 +493,7 @@ static bool _create(obj_ptr obj, int k_idx, int lvl, u32b mode)
     if (k_info[k_idx].tval != TV_DRAG_ARMOR) _discount(obj);
 
     obj_make_pile(obj);
+    obj_enforce_ammo_pile_floor(obj, 10);
     return TRUE;
 }
 
@@ -723,6 +724,7 @@ static bool _weapon_create(obj_ptr obj, u32b mode)
             obj->to_d = 0;
         }
         obj->number -= (obj->number / 3);
+        obj_enforce_ammo_pile_floor(obj, 10);
     }
 	if (obj->to_a < 0 || obj->to_h < 0)
 	{

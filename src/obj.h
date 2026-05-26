@@ -34,6 +34,7 @@ extern void    obj_release(obj_ptr obj, int options);
 extern void    gear_notice_id(obj_ptr obj);
 extern void    gear_notice_enchant(obj_ptr obj);
 extern void    obj_make_pile(obj_ptr obj);
+extern void    obj_enforce_ammo_pile_floor(obj_ptr obj, int min_amt);
 
 /* Commands (Top Level User Interface) */
 extern void obj_destroy_ui(void);

@@ -3770,6 +3770,7 @@ static bool _make_object_aux(object_type *j_ptr, u32b mode)
        object_prep() since artifacts should never spawn multiple copies. Ego ammo
        should, but other egos (e.g. lights) should not. */
     obj_make_pile(j_ptr);
+    obj_enforce_ammo_pile_floor(j_ptr, 10);
 
     obj_level = k_info[j_ptr->k_idx].level;
     if (object_is_fixed_artifact(j_ptr)) obj_level = a_info[j_ptr->name1].level;

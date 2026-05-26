@@ -103,6 +103,27 @@ void obj_make_pile(obj_ptr obj)
     }
 }
 
+void obj_enforce_ammo_pile_floor(obj_ptr obj, int min_amt)
+{
+    int old_amt;
+
+    if (!obj) return;
+    if (min_amt <= 1) return;
+    if (!obj_is_ammo(obj)) return;
+    if (object_is_artifact(obj)) return;
+    if (obj->number >= min_amt) return;
+
+    old_amt = obj->number;
+    obj->number = min_amt;
+
+    if (!store_hack)
+    {
+        k_info[obj->k_idx].counts.generated += min_amt - old_amt;
+        if (obj->name2)
+            e_info[obj->name2].counts.generated += min_amt - old_amt;
+    }
+}
+
 static void _destroy(obj_ptr obj);
 
 void obj_release(obj_ptr obj, int options)

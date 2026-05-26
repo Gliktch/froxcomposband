@@ -2615,6 +2615,7 @@ void scales_mut(int cmd, variant *res)
     case SPELL_GAIN_MUT:
         msg_print("Your skin turns into black scales!");
         mut_lose(MUT_STEEL_SKIN);
+        mut_lose(MUT_WARTS);
         break;
     case SPELL_LOSE_MUT:
         msg_print("Your scales vanish!");
@@ -3269,6 +3270,7 @@ void warts_mut(int cmd, variant *res)
     case SPELL_GAIN_MUT:
         msg_print("Disgusting warts appear everywhere on you!");
         mut_lose(MUT_STEEL_SKIN);
+        mut_lose(MUT_SCALES);
         break;
     case SPELL_LOSE_MUT:
         msg_print("Your warts disappear!");
@@ -3519,4 +3521,3 @@ void wraith_mut(int cmd, variant *res)
         break;
     }
 }
-

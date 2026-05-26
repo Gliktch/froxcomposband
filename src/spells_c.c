@@ -575,6 +575,9 @@ void crusade_spell(int cmd, variant *res)
         var_set_bool(res, TRUE);
         break;
     }
+    case SPELL_FLAGS:
+        var_set_int(res, PWR_AFRAID);
+        break;
     default:
         default_spell(cmd, res);
         break;

@@ -415,7 +415,7 @@ I:23:11:0
 W:5:0:0:50:50
 A:5/1
 P:0:1d9:0:0:0
-F:SHOW_MODS | RIDING | TOWN
+F:SHOW_MODS | RIDING | THROWING | TOWN
 D:A light, somewhat curved blade that can be used to thrust or slash; familiar
 D:to horseman and duelists alike.
 

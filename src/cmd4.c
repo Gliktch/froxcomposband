@@ -4447,6 +4447,7 @@ static void do_cmd_knowledge_artifacts(void)
             else
                 attr = tval_to_attr[forge.tval % 128];
 
+            Term_erase(max + 3, 6 + i, 255);
             c_prt(attr, name, 6 + i, max + 3);
         }
 
@@ -5681,6 +5682,9 @@ static void display_monster_list(int col, int row, int per_page, s16b mon_idx[],
         if (attr == TERM_WHITE && (r_ptr->flagsx & RFX_SUPPRESS))
             attr = TERM_L_DARK;
 
+        /* Clear stale text from previous selections before repainting this row */
+        Term_erase(col, row + i, 255);
+
         /* Display the name */
         c_prt(attr, (r_name + r_ptr->name), row + i, col);
 
@@ -6150,6 +6154,9 @@ static void display_object_list(int col, int row, int per_page, int object_idx[]
 
         attr = ((i + object_top == object_cur) ? cursor : attr);
 
+        /* Clear stale text from previous selections before repainting this row */
+        Term_erase(col, row + i, 255);
+
         if (!k_ptr->flavor || (!visual_only && k_ptr->aware))
         {
             /* Tidy name */
@@ -6448,6 +6455,7 @@ static void do_cmd_knowledge_egos(void)
                 name,
                 e_ptr->counts.found, e_ptr->counts.bought, e_ptr->counts.destroyed
             );
+            Term_erase(max + 3, 6 + i, 255);
             c_prt(attr, buf, 6 + i, max + 3);
         }
         /* Total Line? */
@@ -6828,6 +6836,9 @@ static void display_feature_list(int col, int row, int per_page, int *feat_idx,
 
         /* Choose a color */
         attr = ((i + feat_top == feat_cur) ? TERM_L_BLUE : TERM_WHITE);
+
+        /* Clear stale text from previous selections before repainting this row */
+        Term_erase(col, row_i, 255);
 
         /* Display the name */
         c_prt(attr, f_name + f_ptr->name, row_i, col);

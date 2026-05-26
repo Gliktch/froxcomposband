@@ -3851,6 +3851,7 @@ bool hates_cold(object_type *o_ptr)
 int set_acid_destroy(object_type *o_ptr)
 {
     u32b flgs[OF_ARRAY_SIZE];
+    if (object_is_(o_ptr, TV_SCROLL, SV_SCROLL_INVEN_PROT)) return (FALSE);
     if (!hates_acid(o_ptr)) return (FALSE);
     obj_flags(o_ptr, flgs);
     if (have_flag(flgs, OF_IGNORE_ACID)) return (FALSE);
@@ -3864,6 +3865,7 @@ int set_acid_destroy(object_type *o_ptr)
 int set_elec_destroy(object_type *o_ptr)
 {
     u32b flgs[OF_ARRAY_SIZE];
+    if (object_is_(o_ptr, TV_SCROLL, SV_SCROLL_INVEN_PROT)) return (FALSE);
     if (!hates_elec(o_ptr)) return (FALSE);
     obj_flags(o_ptr, flgs);
     if (have_flag(flgs, OF_IGNORE_ELEC)) return (FALSE);
@@ -3877,6 +3879,7 @@ int set_elec_destroy(object_type *o_ptr)
 int set_fire_destroy(object_type *o_ptr)
 {
     u32b flgs[OF_ARRAY_SIZE];
+    if (object_is_(o_ptr, TV_SCROLL, SV_SCROLL_INVEN_PROT)) return (FALSE);
     if (!hates_fire(o_ptr)) return (FALSE);
     obj_flags(o_ptr, flgs);
     if (have_flag(flgs, OF_IGNORE_FIRE)) return (FALSE);
@@ -3890,6 +3893,7 @@ int set_fire_destroy(object_type *o_ptr)
 int set_cold_destroy(object_type *o_ptr)
 {
     u32b flgs[OF_ARRAY_SIZE];
+    if (object_is_(o_ptr, TV_SCROLL, SV_SCROLL_INVEN_PROT)) return (FALSE);
     if (!hates_cold(o_ptr)) return (FALSE);
     obj_flags(o_ptr, flgs);
     if (have_flag(flgs, OF_IGNORE_COLD)) return (FALSE);

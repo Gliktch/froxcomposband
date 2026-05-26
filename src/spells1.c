@@ -1605,6 +1605,7 @@ static bool project_o(int who, int r, int y, int x, int dam, int typ)
 
         /* Check for artifact */
         if (object_is_artifact(o_ptr)) is_art = TRUE;
+        else if (object_is_(o_ptr, TV_SCROLL, SV_SCROLL_INVEN_PROT)) is_art = TRUE;
         else if (o_ptr->name2 == EGO_AMMO_ENDURANCE) is_art = TRUE; /* lazy */
 
         /* Analyze the type */
@@ -3915,5 +3916,4 @@ bool binding_field( int dam )
 
     return TRUE;
 }
-
 

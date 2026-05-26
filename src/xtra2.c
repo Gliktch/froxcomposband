@@ -4336,8 +4336,7 @@ static int target_set_aux(int y, int x, int mode, cptr info)
                 else if (m_ptr->smart & (1U << SM_CLONED))
                     strcat(out_val, "(Clone) ");
             }
-            if (display_distance)
-                sprintf(out_val + strlen(out_val), "(Rng %d) ", m_ptr->cdis);
+            sprintf(out_val + strlen(out_val), "(Rng %d) ", m_ptr->cdis);
             sprintf(out_val + strlen(out_val), "[r,%s%s]", x_info, info);
 
             prt(out_val, 0, 0);
@@ -4590,7 +4589,7 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             else sprintf(f_idx_str, "%d", c_ptr->feat);
             sprintf(out_val, "%s%s%s%s [%s] %x %s %d %d %d %d (%d,%d)", s1, s2, s3, name, info, c_ptr->info, f_idx_str, c_ptr->dist, c_ptr->cost, c_ptr->when, c_ptr->special, y, x);
         }
-        else if (display_distance)
+        else
         {
             /* Note: c_ptr->dist != m_ptr->cdis. The cave distance is not the range as diagonals count as 1, not 1.5
                Use distance calculation from update_mon, which sets m_ptr->cdis.*/
@@ -4599,8 +4598,6 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             int d  = (dy > dx) ? (dy + (dx>>1)) : (dx + (dy>>1));
             sprintf(out_val, "%s%s%s%s [%s] (Rng %d)", s1, s2, s3, name, info, d);
         }
-        else
-            sprintf(out_val, "%s%s%s%s [%s]", s1, s2, s3, name, info);
 
         prt(out_val, 0, 0);
         move_cursor_relative(y, x);

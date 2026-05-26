@@ -37,6 +37,7 @@ int     path_pos;
 int     break_chance;
 bool    come_back; /* BOOMERANG: if (back_chance > 30) ... */
 bool    fail_catch;/* BOOMERANG: if (back_chance <= 37) ... */
+bool    did_collide; /* A monster or wall intercepted the throw */
 int     dam;
 
 /* Hooks for Customization */

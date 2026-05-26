@@ -252,6 +252,8 @@ bool _hit_mon(py_throw_ptr context, int m_idx)
     int           ac = mon_ac(m_ptr);
     bool          visible = m_ptr->ml;
 
+    context->did_collide = TRUE;
+
     if (test_hit_fire(context->skill - (context->path_pos + 1), ac, m_ptr->ml))
     {
         bool fear = FALSE;
@@ -369,11 +371,28 @@ bool _hit_mon(py_throw_ptr context, int m_idx)
         if (!(context->type & THROW_BOOMERANG))
             context->break_chance = breakage_chance(context->obj);
     }
+    else
+    {
+        if (context->obj->tval != TV_POTION)
+            msg_print("You don't seem to hit anything.");
+        else if (visible)
+        {
+            char m_name[80];
+            monster_desc(m_name, m_ptr, 0);
+            if (strchr("phoOPTtky", r_ptr->d_char) && one_in_(3))
+                msg_format("%^s tries to catch the %s, but fumbles it.", m_name, context->obj_name);
+            else
+                msg_format("The %s glances off %s and lands intact.", context->obj_name, m_name);
+        }
+        else
+            msg_print("You hear a small -plink-.");
+    }
     return TRUE;
 }
 
 bool _hit_wall(py_throw_ptr context)
 {
+    context->did_collide = TRUE;
     if (!(context->type & THROW_BOOMERANG))
         context->break_chance = breakage_chance(context->obj);
     return TRUE;
@@ -381,7 +400,10 @@ bool _hit_wall(py_throw_ptr context)
 
 void _throw(py_throw_ptr context)
 {
+    bool hit_something = FALSE;
+
     assert(context->path_ct);
+    context->did_collide = FALSE;
     for (context->path_pos = 0; ; context->path_pos++)
     {
         int x = GRID_X(context->path[context->path_pos]);
@@ -391,13 +413,18 @@ void _throw(py_throw_ptr context)
 
         if (cave[y][x].m_idx)
         {
-            if (_hit_mon(context, cave[y][x].m_idx)) break;
+            if (_hit_mon(context, cave[y][x].m_idx))
+            {
+                hit_something = TRUE;
+                break;
+            }
         }
 
         if (!cave_have_flag_bold(y, x, FF_PROJECT))
         {
             if (_hit_wall(context)) 
             {
+                hit_something = TRUE;
                 /* Drop on the previous square to avoid objects flying through walls.
                  * It's possible the previous square isn't actually part of the path,
                  * in which case we need to improvise */
@@ -409,7 +436,13 @@ void _throw(py_throw_ptr context)
 
         /* careful ... leave path_pos on the last processed square
          * so we can drop the object if needed */
-        if (context->path_pos == context->path_ct - 1) break;
+        if (context->path_pos == context->path_ct - 1)
+        {
+            if (!hit_something
+             && !(context->obj->tval == TV_POTION && !context->did_collide))
+                msg_print("You don't seem to hit anything.");
+            break;
+        }
     }
     if ((player_is_ninja) && (context->obj->tval == TV_SPIKE))
         stats_on_use(context->obj, 1);
@@ -469,8 +502,11 @@ void _return(py_throw_ptr context)
                 context->obj->number--;
                 obj_release(context->obj, OBJ_RELEASE_QUIET);
             }
-            /* potions shatter with effects if they hit a wall or monster */
-            else if (context->obj->tval == TV_POTION && randint0(100) < context->break_chance)
+            /* potions shatter with effects if they hit a wall or monster,
+             * or when they land unobstructed at the end of their path */
+            else if (context->obj->tval == TV_POTION
+                  && ((randint0(100) < context->break_chance)
+                   || !context->did_collide))
             {
                 msg_format("The %s shatters!", context->obj_name);
                 obj_dec_number(context->obj, 1, TRUE); /* Do this first - otherwise the effect could potentially re-shatter the same object again... */

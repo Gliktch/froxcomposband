@@ -4088,6 +4088,20 @@ bool rustproof(void)
  * Also used when sacrificing a worn piece of equipment.
  */
 
+static void _downgrade_blast_curse(u32b *flags)
+{
+    if (*flags & OFC_PERMA_CURSE)
+    {
+        *flags &= ~OFC_PERMA_CURSE;
+        *flags |= (OFC_HEAVY_CURSE | OFC_CURSED);
+    }
+    else if (*flags & OFC_HEAVY_CURSE)
+    {
+        *flags &= ~OFC_HEAVY_CURSE;
+        *flags |= OFC_CURSED;
+    }
+}
+
 void blast_object(object_type *o_ptr)
 {
     bool is_armor = object_is_armour(o_ptr);
@@ -4096,6 +4110,9 @@ void blast_object(object_type *o_ptr)
 
     if (have_flag(o_ptr->flags, OF_NO_REMOVE))
         return;
+
+    _downgrade_blast_curse(&o_ptr->curse_flags);
+    _downgrade_blast_curse(&o_ptr->known_curse_flags);
 
     o_ptr->name1 = 0;
     o_ptr->name2 = EGO_SPECIAL_BLASTED;

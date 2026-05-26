@@ -751,15 +751,14 @@ static cptr _do_potion(int sval, int mode)
         if (info) return format("dur d%d+%d", _potion_power(25), _potion_power(15));
         if (cast)
         {
-            if (!p_ptr->fast)
+            int roll = _potion_power(randint1(25) + 15);
+            int dur = roll;
+            if (p_ptr->fast)
             {
-                int dur = _potion_power(randint1(25) + 15);
-                if (set_fast(dur, FALSE)) device_noticed = TRUE;
+                int bonus = (p_ptr->pclass == CLASS_MAULER) ? 10 : 5;
+                dur = MAX(p_ptr->fast + bonus, roll + MIN(p_ptr->fast, bonus));
             }
-            else if (p_ptr->pclass == CLASS_MAULER)
-                set_fast(p_ptr->fast + 10, FALSE);
-            else
-                set_fast(p_ptr->fast + 5, FALSE);
+            if (set_fast(dur, FALSE)) device_noticed = TRUE;
         }
         break;
     case SV_POTION_THERMAL:

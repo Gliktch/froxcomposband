@@ -821,6 +821,20 @@ static int _mon_list_comp(_mon_list_info_ptr left, _mon_list_info_ptr right)
     return 0;
 }
 
+static bool _mon_list_has_race(_mon_list_ptr list, int r_idx)
+{
+    int i;
+
+    for (i = 0; i < vec_length(list->list); i++)
+    {
+        _mon_list_info_ptr info_ptr = vec_get(list->list, i);
+        assert(info_ptr);
+        if (info_ptr->subgroup != _SUBGROUP_DATA) continue;
+        if (info_ptr->r_idx == r_idx) return TRUE;
+    }
+    return FALSE;
+}
+
 static _mon_list_ptr _create_monster_list(int mode)
 {
     int              i;
@@ -970,7 +984,7 @@ static _mon_list_ptr _create_monster_list(int mode)
     /* Hack: Auto track the first monster on the list
      * if the old track is either missing, or stale. */
     if ( !p_ptr->monster_race_idx
-      || !int_map_find(map, -p_ptr->monster_race_idx) )
+      || !_mon_list_has_race(result, p_ptr->monster_race_idx) )
     {
         /* If there is a valid target, it should already be tracking,
          * but let's double check */

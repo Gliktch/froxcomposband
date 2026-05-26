@@ -714,7 +714,7 @@ static void wild_magic(int spell)
  */
 static int _force_handler(obj_prompt_context_ptr context, int cmd)
 {
-    if (cmd == 'F')
+    if (cmd == 'F' || cmd == 'p')
         return OP_CMD_DISMISS;
     return OP_CMD_SKIPPED;
 }
@@ -743,9 +743,9 @@ static obj_ptr _get_spellbook(int mode)
     sprintf(msg, "%s which book%s?",
         mode == _CAST ? "Use" : "Browse",
         p_ptr->pclass == CLASS_FORCETRAINER ?
-            " (<color:keypress>F</color> for the Force)" : p_ptr->pclass == CLASS_NINJA_LAWYER ?
-            " (<color:keypress>N</color> for Ninjutsu)" : ((politician_is_magic) && (p_ptr->lev >= POLITICIAN_FIRST_SPELL)) ?
-            " (<color:keypress>P</color> for Politics)" : "");
+            " (<color:keypress>F</color> or <color:keypress>p</color> for the Force)" : p_ptr->pclass == CLASS_NINJA_LAWYER ?
+            " (<color:keypress>N</color> or <color:keypress>n</color> for Ninjutsu)" : ((politician_is_magic) && (p_ptr->lev >= POLITICIAN_FIRST_SPELL)) ?
+            " (<color:keypress>P</color> or <color:keypress>p</color> for Politics)" : "");
 
     prompt.prompt = msg;
     prompt.error = "You have no books that you can read.";

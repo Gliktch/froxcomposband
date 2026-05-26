@@ -530,9 +530,19 @@ char obj_label(obj_ptr obj)
                 return *insc;
             }
         }
-        /* @3 uses '3' as a label for *any* command */
+        /* @3 or @*h uses that label for *any* command */
         else if ('0' <= *insc && *insc <= '9')
             return *insc;
+        else if (*insc == '*')
+        {
+            insc++;
+            if ( ('a' <= *insc && *insc <= 'z')
+              || ('A' <= *insc && *insc <= 'Z')
+              || ('0' <= *insc && *insc <= '9') )
+            {
+                return *insc;
+            }
+        }
     }
     return '\0';
 }

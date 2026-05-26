@@ -1588,6 +1588,7 @@ static void _list_monsters_aux(_mon_list_ptr list, rect_t display_rect, int mode
         {
             int  search = cmd;
             int  i;
+            bool found = FALSE;
 
             for (i = pos + 1; i != pos; )
             {
@@ -1619,6 +1620,7 @@ static void _list_monsters_aux(_mon_list_ptr list, rect_t display_rect, int mode
                     if (c == search)
                     {
                         pos = i;
+                        found = TRUE;
                         handled = TRUE;
                         break;
                     }
@@ -1626,6 +1628,13 @@ static void _list_monsters_aux(_mon_list_ptr list, rect_t display_rect, int mode
                 i++;
                 if (i >= page_size)
                     i = 0;
+            }
+
+            if (!found)
+            {
+                pos = 0;
+                redraw = TRUE;
+                handled = TRUE;
             }
         }
 
@@ -2255,7 +2264,15 @@ void do_cmd_list_objects(void)
                     }
                 }
 
-                if (!found && quick_messages)
+                if (islower(cmd))
+                {
+                    if (!found)
+                    {
+                        pos = 0;
+                        redraw = TRUE;
+                    }
+                }
+                else if (quick_messages)
                     done = TRUE;
             }}
         }

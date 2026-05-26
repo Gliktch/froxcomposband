@@ -220,6 +220,10 @@ bool object_is_rare(object_type *o_ptr)
             o_ptr->sval == SV_ABUNAI_MIZUGI) return TRUE;
         break;
 
+    case TV_HARD_ARMOR:
+        if (o_ptr->sval == SV_ADAMANTITE_PLATE_MAIL) return TRUE;
+        break;
+
     case TV_DRAG_ARMOR:
         return TRUE;
 

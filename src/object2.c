@@ -4087,6 +4087,65 @@ void place_gold(int y, int x)
  * the object can combine, stack, or be placed. Artifacts will try very
  * hard to be placed, including "teleporting" to a useful grid if needed.
  */
+static bool _find_adjacent_ammo_stack_drop(object_type *j_ptr, int y, int x, int *py, int *px)
+{
+    int dy, dx;
+    int best_score = -1;
+    int best_count = 0;
+    int by = 0, bx = 0;
+
+    if (!obj_is_ammo(j_ptr)) return FALSE;
+
+    for (dy = -1; dy <= 1; dy++)
+    {
+        for (dx = -1; dx <= 1; dx++)
+        {
+            int d;
+            int k = 0;
+            int score;
+            int ty = y + dy;
+            int tx = x + dx;
+            bool comb = FALSE;
+            s16b this_o_idx, next_o_idx = 0;
+            cave_type *c_ptr;
+
+            if (!dy && !dx) continue;
+            if (!in_bounds(ty, tx)) continue;
+            if (!projectable(y, x, ty, tx)) continue;
+
+            c_ptr = &cave[ty][tx];
+            if (!cave_drop_bold(ty, tx)) continue;
+
+            for (this_o_idx = c_ptr->o_idx; this_o_idx; this_o_idx = next_o_idx)
+            {
+                object_type *o_ptr = &o_list[this_o_idx];
+                next_o_idx = o_ptr->next_o_idx;
+                if (obj_can_combine(o_ptr, j_ptr, INV_FLOOR)) comb = TRUE;
+                k++;
+            }
+
+            if (!comb) continue;
+
+            d = dy * dy + dx * dx;
+            score = 1000 - (d + k * 5);
+
+            if (score < best_score) continue;
+            if (score > best_score) best_count = 0;
+            if ((++best_count >= 2) && !one_in_(best_count)) continue;
+
+            best_score = score;
+            by = ty;
+            bx = tx;
+        }
+    }
+
+    if (best_score < 0) return FALSE;
+
+    *py = by;
+    *px = bx;
+    return TRUE;
+}
+
 s16b drop_near(object_type *j_ptr, int chance, int y, int x)
 {
     int i, k, d, s;
@@ -4166,9 +4225,13 @@ s16b drop_near(object_type *j_ptr, int chance, int y, int x)
     /* Paranoia */
     if ((drop_near_stack_hack) && (!player_bold(by, bx))) drop_near_stack_hack = FALSE;
 
+    /* For ammo, prefer an adjacent combinable pile before forcing the exact square. */
+    if (drop_near_stack_hack && player_bold(by, bx) && _find_adjacent_ammo_stack_drop(j_ptr, y, x, &by, &bx))
+        flag = TRUE;
+
     /* Strongly prefer exact square if drop_near_stack_hack is on, otherwise
      * look for good locations nearby */
-    if ((!drop_near_stack_hack) || (!in_bounds(y, x)) || (!cave_drop_bold(y, x)))
+    if (!flag && ((!drop_near_stack_hack) || (!in_bounds(y, x)) || (!cave_drop_bold(y, x))))
     {
         /* Scan local grids */
         for (dy = -3; dy <= 3; dy++)

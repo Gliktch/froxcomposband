@@ -16,6 +16,26 @@
 
 static bool do_cmd_bash_aux(int y, int x, int dir);
 
+static bool _entrance_guardian_alive(int dungeon_idx)
+{
+    return d_info[dungeon_idx].initial_guardian
+        && !(dungeon_flags[dungeon_idx] & DUNGEON_NO_GUARDIAN);
+}
+
+static bool _stair_collapse_roll(int dungeon_idx)
+{
+    if (!_entrance_guardian_alive(dungeon_idx))
+        return one_in_(14);
+
+    if (p_ptr->max_plv < 25)
+        return FALSE;
+
+    if (p_ptr->max_plv >= 35)
+        return one_in_(14);
+
+    return randint0(140) < (p_ptr->max_plv - 25);
+}
+
 /*
  * Go up one level
  */
@@ -229,11 +249,11 @@ void do_cmd_go_down(void)
             {
                 /* Create a way back ... maybe */
                 if ( p_ptr->enter_dungeon
+                  && max_dlv[target_dungeon] > 0
                   && down_num >= 20
                   && !wacky_rooms
                   && !(d_info[dungeon_type].flags1 & DF1_RANDOM)
-                  && !(d_info[dungeon_type].initial_guardian && !(dungeon_flags[dungeon_type] & DUNGEON_NO_GUARDIAN))
-                  && one_in_(14) )
+                  && _stair_collapse_roll(target_dungeon) )
                 {
                     /* Hack:  No stair scum */
                     msg_print("The stairs collapse behind you! You are trapped!!");

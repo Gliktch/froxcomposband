@@ -3871,10 +3871,12 @@ static void _dispatch_command(int old_now_turn)
                      p_ptr->pclass == CLASS_WARLOCK ||
                      p_ptr->pclass == CLASS_PSION ||
                      p_ptr->pclass == CLASS_BLOOD_KNIGHT ||
+                     p_ptr->pclass == CLASS_DISCIPLE ||
                      p_ptr->pclass == CLASS_MINDCRAFTER ||
                      p_ptr->pclass == CLASS_MIRROR_MASTER ||
                      p_ptr->pclass == CLASS_MONSTER ||
                      p_ptr->pclass == CLASS_NINJA ||
+                     p_ptr->pclass == CLASS_POLITICIAN ||
                      p_ptr->pclass == CLASS_RUNE_KNIGHT ||
                      p_ptr->pclass == CLASS_WILD_TALENT ||
                      p_ptr->pclass == CLASS_WEAPONMASTER ||

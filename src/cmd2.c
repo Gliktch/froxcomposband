@@ -693,6 +693,10 @@ static bool do_cmd_open_chest(int y, int x, s16b o_idx)
 
         /* Let the Chest drop items */
         chest_death(FALSE, y, x, o_idx);
+
+        /* End-of-turn handle_stuff misses this refresh in these flows. */
+        p_ptr->window |= PW_OBJECT_LIST;
+        window_stuff();
     }
 
     water_mana_action(FALSE, 10);

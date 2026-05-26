@@ -5735,10 +5735,6 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
         case '<':
             if (expand_list && temp_n)
             {
-                int dx, dy;
-                int cx = map_rect.cy / 2;
-                int cy = map_rect.cx / 2;
-
                 n++;
 
                 while(n < temp_n)    /* Skip stairs which have different distance */
@@ -5774,9 +5770,24 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
                     y = temp_y[n];
                     x = temp_x[n];
 
-                    dy = 2 * (y - cy) / map_rect.cy;
-                    dx = 2 * (x - cx) / map_rect.cx;
-                    if (dy || dx) viewport_scroll(dy, dx);
+                    while (!cave_xy_is_visible(x, y))
+                    {
+                        int dx = 0;
+                        int dy = 0;
+
+                        if (x < viewport_origin.x)
+                            dx = -1;
+                        else if (x >= viewport_origin.x + map_rect.cx)
+                            dx = 1;
+
+                        if (y < viewport_origin.y)
+                            dy = -1;
+                        else if (y >= viewport_origin.y + map_rect.cy)
+                            dy = 1;
+
+                        if (!(dy || dx)) break;
+                        if (!viewport_scroll(dy, dx)) break;
+                    }
                 }
             }
             break;

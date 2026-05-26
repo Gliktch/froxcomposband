@@ -975,6 +975,13 @@ bool detect_traps(int range, bool known)
 
     if (music_singing(MUSIC_DETECT) && p_ptr->magic_num1[2] > 0) detect = FALSE;
 
+    /* Clear any stale unsafe-grid glyphs after a known area scan. */
+    if (known && view_unsafe_grids)
+    {
+        p_ptr->redraw |= PR_MAP;
+        p_ptr->window |= PW_OVERHEAD;
+    }
+
     /* Avoid spoiling, but mark grids as safe if the effect is obvious */ 
     if (detect && !known) detect_feat_flag(range, FF_TRAP, TRUE);
 

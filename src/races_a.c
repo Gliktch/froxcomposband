@@ -730,6 +730,11 @@ void jump_spell(int cmd, variant *res)
             msg_print("You can't see that location.");
             return;
         }
+        if (!projectable(py, px, y, x))
+        {
+            msg_print("You can't leap through that!");
+            return;
+        }
         if (!cave_player_teleportable_bold(y, x, 0L))
         {
             msg_print("You can't leap there!");

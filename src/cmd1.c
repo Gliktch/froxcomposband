@@ -1395,7 +1395,6 @@ static void innate_attacks(s16b m_idx, bool *fear, bool *mdeath, int mode)
     bool            is_gaze = FALSE;
 
     if ((MON_CSLEEP(m_ptr)) && (m_ptr->ml)) sleep_hit = TRUE;
-    set_monster_csleep(m_idx, 0);
 
     monster_desc(m_name_subject, m_ptr, MD_PRON_VISIBLE);
     monster_desc(m_name_object, m_ptr, MD_PRON_VISIBLE | MD_OBJECTIVE);
@@ -1411,6 +1410,8 @@ static void innate_attacks(s16b m_idx, bool *fear, bool *mdeath, int mode)
             return;
         }
     }
+
+    set_monster_csleep(m_idx, 0);
 
     /* Flavor ... Allow Ninjas and Rogues to backstab after metamorphosis */
     if (mut_present(MUT_DRACONIAN_METAMORPHOSIS))
@@ -2218,8 +2219,6 @@ static bool py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
         mode = ROGUE_ASSASSINATE;
     }
 
-    /* Wake up monster */
-    set_monster_csleep(c_ptr->m_idx, 0);
     monster_desc(m_name_subject, m_ptr, MD_PRON_VISIBLE);
     monster_desc(m_name_object, m_ptr, MD_PRON_VISIBLE | MD_OBJECTIVE);
 
@@ -2305,13 +2304,14 @@ static bool py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
             }
         }
 
+        set_monster_csleep(c_ptr->m_idx, 0);
+
 		/* If we just challenged we don't attack */
 		if (duelist_challenge)
 		{
 			int m_idx = c_ptr->m_idx;
 			p_ptr->duelist_target_idx = c_ptr->m_idx;
 			msg_format("You challenge %s to a duel!", duelist_current_challenge());
-			set_monster_csleep(m_idx, 0);
 			set_hostile(&m_list[m_idx]);
 			p_ptr->redraw |= PR_STATUS;
 			break;

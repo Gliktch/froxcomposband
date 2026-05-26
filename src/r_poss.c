@@ -376,7 +376,6 @@ void possessor_attack(point_t where, bool *fear, bool *mdeath, int mode)
     if (!foe) return;
     if (no_melee_check()) return;
 
-    set_monster_csleep(foe->id, 0);
     monster_desc(m_name_subject, foe, MD_PRON_VISIBLE);
     monster_desc(m_name_object, foe, MD_PRON_VISIBLE | MD_OBJECTIVE);
 
@@ -409,6 +408,8 @@ void possessor_attack(point_t where, bool *fear, bool *mdeath, int mode)
                 cmsg_format(TERM_VIOLET, "There is something scary in your way!");
             return;
         }
+
+        set_monster_csleep(foe->id, 0);
 
         skill = p_ptr->skills.thn + (p_ptr->to_h_m * BTH_PLUS_ADJ);
         skill += blow->power;

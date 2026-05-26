@@ -2690,7 +2690,7 @@ void clear_from(int row)
  * RETURN accepts the current buffer contents and returns TRUE.
  *
  */
-bool askfor_aux(char *buf, int len, bool numpad_cursor)
+static bool _askfor_aux(char *buf, int len, bool numpad_cursor, bool edit_default)
 {
     int y, x;
     int pos = 0;
@@ -2719,6 +2719,12 @@ bool askfor_aux(char *buf, int len, bool numpad_cursor)
 
     /* Paranoia -- Clip the default entry */
     buf[len] = '\0';
+
+    if (edit_default && buf[0])
+    {
+        pos = strlen(buf);
+        color = TERM_WHITE;
+    }
 
 
     /* Process input */
@@ -2890,6 +2896,11 @@ bool askfor_aux(char *buf, int len, bool numpad_cursor)
     } /* while (TRUE) */
 }
 
+bool askfor_aux(char *buf, int len, bool numpad_cursor)
+{
+    return _askfor_aux(buf, len, numpad_cursor, FALSE);
+}
+
 
 /*
  * Get some string input at the cursor location.
@@ -2899,6 +2910,11 @@ bool askfor_aux(char *buf, int len, bool numpad_cursor)
 bool askfor(char *buf, int len)
 {
     return askfor_aux(buf, len, TRUE);
+}
+
+bool askfor_edit(char *buf, int len)
+{
+    return _askfor_aux(buf, len, TRUE, TRUE);
 }
 
 

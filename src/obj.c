@@ -976,7 +976,7 @@ static int _inscriber(obj_prompt_context_ptr context, int cmd)
         doc_printf(context->doc, "Inscription: ");
         Term_load();
         doc_sync_menu(context->doc);
-        if (askfor(insc, 80))
+        if (askfor_edit(insc, 80))
             obj->inscription = quark_add(insc);
         return OP_CMD_HANDLED;
     }

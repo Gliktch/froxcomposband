@@ -316,7 +316,7 @@ static object_type *_choose(cptr verb, int tval, int options)
                     strcpy(insc, "");
 
                 prt("Inscription: ", 0, 0);
-                if (askfor(insc, 80))
+                if (askfor_edit(insc, 80))
                     o_ptr->inscription = quark_add(insc);
                 inscribe = FALSE;
             }

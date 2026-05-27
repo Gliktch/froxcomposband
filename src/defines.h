@@ -2501,6 +2501,7 @@ enum {
 #define OD_SINGULAR         0x00000800  /* pretend obj->number = 1 */
 #define OD_SHOW_DEVICE_INFO 0x00001000
 #define OD_BLACK_CURSES     0x00002000  /* show cursed items as black */
+#define OD_ITEM_MARKERS     0x00004000  /* prepend list-style item markers */
 
 #define OD_LORE (OD_NAME_ONLY | OD_OMIT_PREFIX | OD_COLOR_CODED)
 

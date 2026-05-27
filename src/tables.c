@@ -2589,6 +2589,9 @@ option_type option_info[] =
     { &show_item_graph,             TRUE,  OPT_PAGE_LIST, 2, 0,
     "show_item_graph",              "Show item graphics in object listings" },
 
+    { &show_item_markers,           FALSE, OPT_PAGE_LIST, 2, 1,
+    "show_item_markers",            "Show item-state markers in object listings" },
+
     { &shops_mark_unseen,           FALSE, OPT_PAGE_LIST, 0, 31,
     "shops_mark_unseen",            "Indicate unknown flavors in shop inventories" },
 

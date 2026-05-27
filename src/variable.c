@@ -276,6 +276,7 @@ bool describe_slots;    /* Show equipment slot descriptions */
 bool show_weights;    /* Show weights in object listings */
 bool show_discounts;
 bool show_item_graph;    /* Show items graphics */
+bool show_item_markers; /* Show item-state markers in object listings */
 bool shops_mark_unseen;    /* Indicate unseen flavors in shop inventories */
 bool equippy_chars;    /* Display 'equippy' chars */
 bool display_food_bar;

@@ -2426,7 +2426,7 @@ static void _display_inv(doc_ptr doc, shop_ptr shop, slot_t top, int page_size)
             if (next && obj_cmp(obj, next) > 0)
                 label_color = 'r';
 
-            object_desc(name, obj, OD_COLOR_CODED);
+            object_desc(name, obj, OD_COLOR_CODED | (show_item_markers ? OD_ITEM_MARKERS : 0));
 
             doc_printf(doc, " <color:%c>%c</color>) ", label_color, slot_label(slot - top + 1));
             if (show_item_graph)

@@ -1520,6 +1520,31 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
     if (o_ptr->marked & OM_WORN)
         t = object_desc_str(t, "<<Worn>> ");
 
+    if (mode & OD_ITEM_MARKERS)
+    {
+        bool unknown_unsensed = !object_is_known(o_ptr) && !(o_ptr->ident & IDENT_SENSE);
+        bool known_curse = object_is_cursed(o_ptr) && (known || (o_ptr->ident & IDENT_SENSE));
+
+        if (unknown_unsensed)
+            t = object_desc_str(t, "?? ");
+        else
+        {
+            if (known_curse)
+                t = object_desc_chr(t, '!');
+            if (object_is_known(o_ptr))
+            {
+                if (object_is_fixed_artifact(o_ptr))
+                    t = object_desc_chr(t, '*');
+                else if (o_ptr->art_name)
+                    t = object_desc_chr(t, 'X');
+            }
+            if (!obj_is_identified_fully(o_ptr))
+                t = object_desc_chr(t, '?');
+            if (t != tmp_val && t[-1] != ' ')
+                t = object_desc_chr(t, ' ');
+        }
+    }
+
     /* The object "expects" a "number" */
     if (basenm[0] == '&')
     {

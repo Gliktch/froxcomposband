@@ -603,6 +603,7 @@ void inv_display(inv_ptr inv, slot_t start, slot_t stop, obj_p p, doc_ptr doc, i
     slot_t slot;
     int    xtra = 0;
     int    max = inv_max(inv);
+    u32b   mode = show_item_markers ? OD_ITEM_MARKERS : 0;
 
     if (!stop) stop = max;
     if (stop > max) stop = max;
@@ -647,11 +648,11 @@ void inv_display(inv_ptr inv, slot_t start, slot_t stop, obj_p p, doc_ptr doc, i
 
             if ((flags & INV_SHOW_FAIL_RATES) && !obj_is_device(obj) && obj->timeout)
             {
-                object_desc(name, obj, 0);
+                object_desc(name, obj, mode);
                 charging = TRUE;
             }
             else
-                object_desc(name, obj, OD_COLOR_CODED);
+                object_desc(name, obj, OD_COLOR_CODED | mode);
             if (flags & INV_SHOW_SLOT)
                 doc_printf(doc, " %d)", slot);
             else if (!(flags & INV_NO_LABELS))
@@ -830,4 +831,3 @@ void inv_save(inv_ptr inv, savefile_ptr file)
     }
     assert(ct == 0);
 }
-

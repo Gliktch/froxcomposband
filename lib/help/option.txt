@@ -514,6 +514,9 @@ Displays details about an object's power (like <color:g>dam 158</color> or <colo
 <topic:show_item_graph><color:U>Show item graphics in object listings</color> <color:D>(show_item_graph)</color>
 Displays graphical representations of items (<color:B>/</color>, <color:g>(</color>, etc.) in inventories.
 
+<topic:show_item_markers><color:U>Show item-state markers in object listings</color> <color:D>(show_item_markers)</color>
+If this option is on, object listings such as inventory, equipment, quiver, shops, Home and Museum prepend compact markers to item names: <color:v>!</color> for cursed, <color:B>*</color> for fixed artifacts, <color:U>X</color> for random artifacts, <color:y>?</color> for known items that are not yet fully identified, and <color:y>??</color> for completely unknown unsensed items. These markers are an extra visual cue only and do not replace the ordinary description or fake inscription conventions.
+
 <topic:shops_mark_unseen><color:U>Indicate unknown flavors in shop inventories</color> <color:D>(shops_mark_unseen)</color>
 If this option is on, potions, scrolls and mushrooms whose flavor has not yet been identified will be marked {unseen} in shop inventories.
 

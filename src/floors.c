@@ -17,6 +17,10 @@
 static s16b new_floor_id;       /* floor_id of the destination */
 static u32b change_floor_mode;  /* Mode flags for changing floor */
 static u32b latest_visit_mark;  /* Max number of visit_mark */
+static bool preserve_inside_arena; /* Current floor is arena despite p_ptr lag */
+static bool preserve_inside_battle; /* Current floor is battle despite p_ptr lag */
+static string_ptr deferred_pet_loss_message; /* Announce pet separation after landing */
+static int deferred_pet_loss_followers; /* Announce collapsed follower losses after landing */
 
 
 /*
@@ -333,17 +337,423 @@ static void build_dead_end(void)
 
 /* Maximum number of preservable pets */
 #define MAX_PARTY_MON 21
+#define _PET_LOSS_PROMPT_LIST_MAX 170
+#define _PET_LOSS_MESSAGE_LIST_MAX 220
 
 static monster_type party_mon[MAX_PARTY_MON];
 
+typedef enum {
+    _PET_TRANSITION_FOLLOW = 0,
+    _PET_TRANSITION_NOFOLLOW,
+    _PET_TRANSITION_SILENT
+} _pet_transition_mode_t;
+
+typedef struct {
+    s16b nickname;
+    int  r_idx;
+    int  level;
+    int  count;
+    bool unique;
+    char label[128];
+} _pet_loss_entry_t;
+
+typedef struct {
+    u16b              *preserved;
+    int                preserved_ct;
+    _pet_loss_entry_t *entries;
+    int                entry_ct;
+    int                lost_ct;
+} _pet_loss_manifest_t;
+
+static _pet_transition_mode_t _pet_transition_mode_current(void)
+{
+    if (p_ptr->leaving_method == LEAVING_REWIND_TIME)
+        return _PET_TRANSITION_SILENT;
+    if (p_ptr->leaving_method == LEAVING_ALTER_REALITY)
+        return _PET_TRANSITION_SILENT;
+    if (p_ptr->leaving_method == LEAVING_TELEPORT_LEVEL)
+        return _PET_TRANSITION_NOFOLLOW;
+    if (p_ptr->wild_mode || preserve_inside_arena || preserve_inside_battle || p_ptr->inside_battle || p_ptr->inside_arena)
+        return _PET_TRANSITION_NOFOLLOW;
+    return _PET_TRANSITION_FOLLOW;
+}
+
+static bool _pet_can_follow(monster_type *m_ptr, _pet_transition_mode_t mode)
+{
+    int dis;
+
+    if (!m_ptr->r_idx) return FALSE;
+    if (!is_pet(m_ptr)) return FALSE;
+
+    if (mode != _PET_TRANSITION_FOLLOW) return FALSE;
+    if (reinit_wilderness) return TRUE;
+    if (m_ptr->parent_m_idx) return FALSE;
+
+    dis = distance(py, px, m_ptr->fy, m_ptr->fx);
+
+    if (MON_CONFUSED(m_ptr) || MON_STUNNED(m_ptr) || MON_CSLEEP(m_ptr)) return FALSE;
+
+    if (m_ptr->nickname
+      && ((player_has_los_bold(m_ptr->fy, m_ptr->fx) && projectable(py, px, m_ptr->fy, m_ptr->fx))
+       || (los(m_ptr->fy, m_ptr->fx, py, px) && projectable(m_ptr->fy, m_ptr->fx, py, px))))
+    {
+        return dis <= 4;
+    }
+
+    return dis <= 2;
+}
+
+static bool _monster_can_follow(monster_type *m_ptr, _pet_transition_mode_t mode)
+{
+    int dis = distance(py, px, m_ptr->fy, m_ptr->fx);
+    int rng = 1;
+
+    if (mode != _PET_TRANSITION_FOLLOW) return FALSE;
+    if (reinit_wilderness) return FALSE;
+    if (is_pet(m_ptr)) return FALSE;
+    if (dun_level < 1) return FALSE;
+    if (dis > rng) return FALSE;
+    if (r_info[m_ptr->r_idx].flags1 & RF1_UNIQUE) return FALSE;
+    if (m_ptr->mflag2 & MFLAG2_QUESTOR) return FALSE;
+    if (!los(m_ptr->fy, m_ptr->fx, py, px)) return FALSE;
+    return TRUE;
+}
+
+static void _pet_manifest_init(_pet_loss_manifest_t *manifest)
+{
+    memset(manifest, 0, sizeof(*manifest));
+    C_MAKE(manifest->preserved, m_max, u16b);
+    C_MAKE(manifest->entries, m_max, _pet_loss_entry_t);
+}
+
+static void _pet_manifest_free(_pet_loss_manifest_t *manifest)
+{
+    if (manifest->preserved)
+        C_KILL(manifest->preserved, m_max, u16b);
+    if (manifest->entries)
+        C_KILL(manifest->entries, m_max, _pet_loss_entry_t);
+}
+
+static void _pet_loss_entry_label(_pet_loss_entry_t *entry)
+{
+    if (entry->nickname)
+    {
+        my_strcpy(entry->label, quark_str(entry->nickname), sizeof(entry->label));
+        return;
+    }
+
+    if (entry->unique)
+    {
+        my_strcpy(entry->label, r_name + r_info[entry->r_idx].name, sizeof(entry->label));
+        return;
+    }
+
+    {
+        char name[96];
+
+        my_strcpy(name, r_name + r_info[entry->r_idx].name, sizeof(name));
+        if (entry->count != 1)
+            plural_aux(name);
+        snprintf(entry->label, sizeof(entry->label), "%d %s", entry->count, name);
+    }
+}
+
+static void _pet_manifest_note_loss(_pet_loss_manifest_t *manifest, monster_type *m_ptr)
+{
+    monster_race *r_ptr = &r_info[m_ptr->r_idx];
+    int i;
+
+    manifest->lost_ct++;
+
+    if (!m_ptr->nickname && !(r_ptr->flags1 & RF1_UNIQUE))
+    {
+        for (i = 0; i < manifest->entry_ct; i++)
+        {
+            _pet_loss_entry_t *entry = &manifest->entries[i];
+
+            if (entry->nickname) continue;
+            if (entry->unique) continue;
+            if (entry->r_idx != m_ptr->r_idx) continue;
+
+            entry->count++;
+            return;
+        }
+    }
+
+    {
+        _pet_loss_entry_t *entry = &manifest->entries[manifest->entry_ct++];
+
+        entry->nickname = m_ptr->nickname;
+        entry->r_idx = m_ptr->r_idx;
+        entry->level = r_ptr->level;
+        entry->count = 1;
+        entry->unique = !!(r_ptr->flags1 & RF1_UNIQUE);
+    }
+}
+
+static int _pet_loss_entry_cmp(const void *left, const void *right)
+{
+    const _pet_loss_entry_t *a = (const _pet_loss_entry_t*)left;
+    const _pet_loss_entry_t *b = (const _pet_loss_entry_t*)right;
+
+    if (a->level != b->level)
+        return b->level - a->level;
+
+    return strcmp(a->label, b->label);
+}
+
+static void _pet_manifest_build(_pet_loss_manifest_t *manifest, _pet_transition_mode_t mode)
+{
+    int i;
+    int num = 1;
+
+    _pet_manifest_init(manifest);
+
+    for (i = m_max - 1; i >= 1; i--)
+    {
+        monster_type *m_ptr = &m_list[i];
+
+        if (!m_ptr->r_idx) continue;
+        if (i == p_ptr->riding) continue;
+
+        if (is_pet(m_ptr))
+        {
+            if (m_ptr->parent_m_idx && !reinit_wilderness) continue;
+            if (_pet_can_follow(m_ptr, mode) && num < MAX_PARTY_MON)
+            {
+                manifest->preserved[manifest->preserved_ct++] = i;
+                num++;
+            }
+            else
+            {
+                _pet_manifest_note_loss(manifest, m_ptr);
+            }
+        }
+        else if (_monster_can_follow(m_ptr, mode) && num < MAX_PARTY_MON)
+        {
+            num++;
+        }
+    }
+
+    for (i = 0; i < manifest->entry_ct; i++)
+        _pet_loss_entry_label(&manifest->entries[i]);
+
+    if (manifest->entry_ct > 1)
+        qsort(manifest->entries, manifest->entry_ct, sizeof(_pet_loss_entry_t), _pet_loss_entry_cmp);
+}
+
+static int _pet_manifest_lost_tail(_pet_loss_manifest_t *manifest, int start)
+{
+    int i;
+    int total = 0;
+
+    for (i = start; i < manifest->entry_ct; i++)
+        total += manifest->entries[i].count;
+
+    return total;
+}
+
+static void _pet_manifest_append_item(string_ptr s, cptr text, int index, int total)
+{
+    if (index > 0)
+    {
+        if (index + 1 == total)
+            string_append_s(s, total == 2 ? " and " : ", and ");
+        else
+            string_append_s(s, ", ");
+    }
+    string_append_s(s, text);
+}
+
+static string_ptr _pet_manifest_render(_pet_loss_manifest_t *manifest, int max_chars)
+{
+    int include;
+
+    for (include = manifest->entry_ct; include >= 0; include--)
+    {
+        string_ptr s = string_alloc();
+        int i;
+        int total = include;
+        int other_count = _pet_manifest_lost_tail(manifest, include);
+
+        if (other_count)
+            total++;
+
+        for (i = 0; i < include; i++)
+            _pet_manifest_append_item(s, manifest->entries[i].label, i, total);
+
+        if (other_count)
+        {
+            char buf[40];
+
+            snprintf(buf, sizeof(buf), "%d other%s", other_count, other_count == 1 ? "" : "s");
+            _pet_manifest_append_item(s, buf, include, total);
+        }
+
+        if ((int)strlen(string_buffer(s)) <= max_chars || include == 0)
+            return s;
+
+        string_free(s);
+    }
+
+    return string_copy_s("your pets");
+}
+
+static string_ptr _pet_loss_message_alloc(_pet_loss_manifest_t *manifest, int max_chars)
+{
+    string_ptr list = _pet_manifest_render(manifest, max_chars);
+    string_ptr msg = string_alloc();
+
+    string_printf(msg, "You left %s behind.", string_buffer(list));
+    string_free(list);
+    return msg;
+}
+
+static bool _confirm_pet_loss(_pet_transition_mode_t mode)
+{
+    _pet_loss_manifest_t manifest;
+    bool result = TRUE;
+
+    _pet_manifest_build(&manifest, mode);
+
+    if (manifest.lost_ct)
+    {
+        string_ptr list = _pet_manifest_render(&manifest, _PET_LOSS_PROMPT_LIST_MAX);
+        string_ptr prompt = string_alloc();
+
+        string_printf(prompt,
+            "You will leave %s behind. <color:y>[y/n]</color>",
+            string_buffer(list));
+        result = msg_prompt(string_buffer(prompt), "ny", PROMPT_DEFAULT) == 'y';
+
+        string_free(prompt);
+        string_free(list);
+    }
+
+    _pet_manifest_free(&manifest);
+    return result;
+}
+
+static int _remove_orphaned_pet_followers(void)
+{
+    int i;
+    int ct = 0;
+
+    for (i = m_max - 1; i >= 1; i--)
+    {
+        monster_type *m_ptr = &m_list[i];
+
+        if (!m_ptr->r_idx) continue;
+        if (!m_ptr->parent_m_idx) continue;
+        if (m_list[m_ptr->parent_m_idx].r_idx) continue;
+
+        delete_monster_idx(i);
+        ct++;
+    }
+
+    return ct;
+}
+
+static bool _party_mon_has_priority(monster_type *left, monster_type *right)
+{
+    bool left_named = !!left->nickname;
+    bool right_named = !!right->nickname;
+    int left_level = r_info[left->r_idx].level;
+    int right_level = r_info[right->r_idx].level;
+
+    if (left_named != right_named) return left_named;
+    if (left_level != right_level) return left_level > right_level;
+    return left->r_idx > right->r_idx;
+}
+
+static void _sort_preserved_pets(void)
+{
+    monster_type pets[MAX_PARTY_MON];
+    int count = 0;
+    int pet_ct = 0;
+    int i, j;
+
+    for (i = 1; i < MAX_PARTY_MON; i++)
+    {
+        if (!party_mon[i].r_idx) break;
+        count++;
+    }
+
+    if (count <= 1) return;
+
+    for (i = count; i > 1; i--)
+    {
+        int a = i;
+        int b = randint0(i) + 1;
+        monster_type tmp = party_mon[a];
+
+        party_mon[a] = party_mon[b];
+        party_mon[b] = tmp;
+    }
+
+    for (i = 1; i <= count; i++)
+    {
+        if (!is_pet(&party_mon[i])) continue;
+        pets[pet_ct++] = party_mon[i];
+    }
+
+    for (i = 0; i < pet_ct - 1; i++)
+    {
+        for (j = i + 1; j < pet_ct; j++)
+        {
+            monster_type tmp;
+
+            if (_party_mon_has_priority(&pets[i], &pets[j])) continue;
+
+            tmp = pets[i];
+            pets[i] = pets[j];
+            pets[j] = tmp;
+        }
+    }
+
+    for (i = 1, j = 0; i <= count && j < pet_ct; i++)
+    {
+        if (!is_pet(&party_mon[i])) continue;
+        party_mon[i] = pets[j++];
+    }
+}
+
+int count_pets_lost_on_floor_change(bool to_wild)
+{
+    _pet_loss_manifest_t manifest;
+    int lost;
+
+    _pet_manifest_build(&manifest, to_wild ? _PET_TRANSITION_NOFOLLOW : _PET_TRANSITION_FOLLOW);
+    lost = manifest.lost_ct;
+    _pet_manifest_free(&manifest);
+    return lost;
+}
+
+bool confirm_leaving_pets(bool to_wild)
+{
+    return _confirm_pet_loss(to_wild ? _PET_TRANSITION_NOFOLLOW : _PET_TRANSITION_FOLLOW);
+}
+
+bool confirm_leaving_pets_no_follow(void)
+{
+    return _confirm_pet_loss(_PET_TRANSITION_NOFOLLOW);
+}
 
 /*
  * Preserve_pets
  */
 static void preserve_pet(void)
 {
+    _pet_loss_manifest_t manifest;
+    _pet_transition_mode_t mode;
     int num, i;
-    static bool inside_arena = FALSE;
+
+    if (deferred_pet_loss_message)
+    {
+        string_free(deferred_pet_loss_message);
+        deferred_pet_loss_message = NULL;
+    }
+    deferred_pet_loss_followers = 0;
 
     for (num = 0; num < MAX_PARTY_MON; num++)
     {
@@ -369,104 +779,49 @@ static void preserve_pet(void)
         delete_monster_idx(p_ptr->riding);
     }
 
-    /* Teleport Level and Alter Reality loses all pets except your mount, and no monsters may follow. */
-    if ( p_ptr->leaving_method == LEAVING_TELEPORT_LEVEL 
-      || p_ptr->leaving_method == LEAVING_ALTER_REALITY )
+    mode = _pet_transition_mode_current();
+    if (mode != _PET_TRANSITION_SILENT)
     {
-        p_ptr->leaving_method = LEAVING_UNKNOWN;
-        return;
+        _pet_manifest_build(&manifest, mode);
+        if (manifest.lost_ct)
+            deferred_pet_loss_message = _pet_loss_message_alloc(&manifest, _PET_LOSS_MESSAGE_LIST_MAX);
+    }
+    else
+    {
+        memset(&manifest, 0, sizeof(manifest));
     }
 
-    /*
-     * If player is in wild mode, no pets are preserved
-     * except a monster whom player riding
-     * Hack: In the wilderness, hostile monsters now follow!
-     */
-    if (!p_ptr->wild_mode && !inside_arena && !p_ptr->inside_battle && !p_ptr->inside_arena)
+    if (mode == _PET_TRANSITION_FOLLOW)
     {
-        for (i = m_max - 1, num = 1; (i >= 1 && num < MAX_PARTY_MON); i--)
+        for (i = 0, num = 1; i < manifest.preserved_ct && num < MAX_PARTY_MON; i++, num++)
+        {
+            monster_type *m_ptr = &m_list[manifest.preserved[i]];
+
+            m_ptr->pack_idx = 0;
+            COPY(&party_mon[num], m_ptr, monster_type);
+            delete_monster_idx(manifest.preserved[i]);
+        }
+
+        for (i = m_max - 1; i >= 1 && num < MAX_PARTY_MON; i--)
         {
             monster_type *m_ptr = &m_list[i];
 
             if (!m_ptr->r_idx) continue;
             if (i == p_ptr->riding) continue;
+            if (!_monster_can_follow(m_ptr, mode)) continue;
 
-            if (reinit_wilderness)
-            {
-                /* Don't lose sight of pets when getting a Quest */
-                if (!is_pet(m_ptr)) continue;
-            }
-            else
-            {
-                int dis = distance(py, px, m_ptr->fy, m_ptr->fx);
-
-                /* Confused (etc.) monsters don't follow. */
-                if (MON_CONFUSED(m_ptr) || MON_STUNNED(m_ptr) || MON_CSLEEP(m_ptr)) continue;
-
-                /* Pet of other pet don't follow. */
-                if (m_ptr->parent_m_idx) continue;
-
-                /* Hack: Hostile monsters follow, even if you recall! */
-                if (!is_pet(m_ptr))
-                {
-                    int rng = 1;
-                    if (dun_level < 1) continue;
-                    if (dis > rng) continue;
-                    if (r_info[m_ptr->r_idx].flags1 & RF1_UNIQUE) continue;
-                    if (m_ptr->mflag2 & MFLAG2_QUESTOR) continue;
-                    if (!los(m_ptr->fy, m_ptr->fx, py, px)) continue;
-                    m_ptr->mflag |= MFLAG_NICE;
-                }
-                else if (m_ptr->parent_m_idx)
-                {
-                    continue;
-                }
-                else if (m_ptr->nickname && 
-                         ((player_has_los_bold(m_ptr->fy, m_ptr->fx) && projectable(py, px, m_ptr->fy, m_ptr->fx)) ||
-                         (los(m_ptr->fy, m_ptr->fx, py, px) && projectable(m_ptr->fy, m_ptr->fx, py, px))))
-                {
-                    if (dis > 4) continue;
-                }
-                else
-                {
-                    if (dis > 2) continue;
-                }
-            }
-
+            m_ptr->mflag |= MFLAG_NICE;
             m_ptr->pack_idx = 0;
-            COPY(&party_mon[num], &m_list[i], monster_type);
-
+            COPY(&party_mon[num], m_ptr, monster_type);
             num++;
 
-            /* Delete from this floor */
             delete_monster_idx(i);
         }
+
     }
 
-    /* Pet of other pet may disappear. */
-    for (i = m_max - 1; i >=1; i--)
-    {
-        monster_type *m_ptr = &m_list[i];
-
-        /* Are there its parent? */
-        if (m_ptr->parent_m_idx && !m_list[m_ptr->parent_m_idx].r_idx)
-        {
-            /* Its parent have gone, it also goes away. */
-
-            if (mon_show_msg(m_ptr))
-            {
-                char m_name[80];
-
-                /* Acquire the monster name */
-                monster_desc(m_name, m_ptr, 0);
-
-                msg_format("%^s disappears!", m_name);
-            }
-
-            /* Delete the monster */
-            delete_monster_idx(i);
-        }
-    }
+    if (mode != _PET_TRANSITION_SILENT)
+        deferred_pet_loss_followers = _remove_orphaned_pet_followers();
 
     /* Hack: p_ptr->inside_arena is out of synch with the level we are leaving
        so stay one step behind ...
@@ -476,8 +831,12 @@ static void preserve_pet(void)
 
        p_ptr->inside_arena = FALSE for most other circumstances!
     */
-    inside_arena = p_ptr->inside_arena;
+    _sort_preserved_pets();
+    preserve_inside_arena = p_ptr->inside_arena;
+    preserve_inside_battle = p_ptr->inside_battle;
     p_ptr->leaving_method = LEAVING_UNKNOWN;
+    if (mode != _PET_TRANSITION_SILENT)
+        _pet_manifest_free(&manifest);
 }
 
 
@@ -600,7 +959,7 @@ static void place_pet(void)
             char m_name[80];
 
             monster_desc(m_name, m_ptr, 0);
-            msg_format("You have lost sight of %s.", m_name);
+            cmsg_format(TERM_L_RED, "There was no room for %s!", m_name);
 
             /* Pre-calculated in precalc_cur_num_of_pet(), but need to decrease */
             if (r_ptr->cur_num) inc_cur_num(m_ptr, -1);
@@ -1437,6 +1796,18 @@ void change_floor(void)
 
     /* Place preserved pet monsters */
     place_pet();
+
+    if (deferred_pet_loss_message)
+    {
+        cmsg_print(TERM_L_RED, string_buffer(deferred_pet_loss_message));
+        string_free(deferred_pet_loss_message);
+        deferred_pet_loss_message = NULL;
+        if (deferred_pet_loss_followers)
+            cmsg_format(TERM_L_RED, "%d of your pets' followers were lost as well.", deferred_pet_loss_followers);
+    }
+    else if (deferred_pet_loss_followers)
+        cmsg_format(TERM_L_RED, "%d of your pets' followers were lost.", deferred_pet_loss_followers);
+    deferred_pet_loss_followers = 0;
 
     /* Place preserved quest rewards */
     place_saily_objects();

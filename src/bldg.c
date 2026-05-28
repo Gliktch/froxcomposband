@@ -239,6 +239,8 @@ static void arena_comm(int cmd)
                     msg_print("The strongest challenger is waiting for you.");
                     if (get_check("Do you fight? "))
                     {
+                        if (!confirm_leaving_pets_no_follow()) break;
+
                         p_ptr->exit_bldg = FALSE;
                         reset_tim_flags();
 
@@ -265,6 +267,8 @@ static void arena_comm(int cmd)
             }
             else
             {
+                if (!confirm_leaving_pets_no_follow()) break;
+
                 p_ptr->exit_bldg = FALSE;
                 reset_tim_flags();
 
@@ -1583,8 +1587,12 @@ static bool kakutoujou(void)
             {
                 msg_print("Ok, we'll start with 1 gold.");
 
-
                 wager = 1;
+            }
+            if (!confirm_leaving_pets_no_follow())
+            {
+                screen_load();
+                return FALSE;
             }
             msg_print(NULL);
             battle_odds = MAX(wager+1, wager * battle_odds / 100);
@@ -3543,6 +3551,12 @@ bool tele_town(void)
         break;
     }
 
+    if (!confirm_leaving_pets(FALSE))
+    {
+        screen_load();
+        return FALSE;
+    }
+
     for (y = 0; y < max_wild_y; y++)
     {
         for (x = 0; x < max_wild_x; x++)
@@ -4221,8 +4235,6 @@ static void bldg_process_command(building_type *bldg, int i)
  */
 void do_cmd_quest(void)
 {
-    energy_use = 100;
-
     if (!cave_have_flag_bold(py, px, FF_QUEST_ENTER))
     {
         msg_print("You see no quest level here.");
@@ -4246,6 +4258,9 @@ void do_cmd_quest(void)
             if (!paranoid_msg_prompt(buf, PROMPT_FORCE_CHOICE)) return;
         }
         else if (!get_check("Do you enter? ")) return;
+        if (!confirm_leaving_pets(FALSE)) return;
+
+        energy_use = 100;
 
         /* Player enters a new quest XXX */
         p_ptr->oldpy = py;
@@ -4301,6 +4316,12 @@ void do_cmd_bldg(void)
         }
         else
         {
+            if (!confirm_leaving_pets_no_follow())
+            {
+                energy_use = 0;
+                return;
+            }
+
             /* Player is not victorious unless they manage to leave the
              * arena alive! */
             if (p_ptr->arena_number > MAX_ARENA_MONS) p_ptr->arena_number++;

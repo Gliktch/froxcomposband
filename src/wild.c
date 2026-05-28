@@ -2140,15 +2140,10 @@ bool change_wild_mode(void)
         return FALSE;
     }
 
-    if (have_pet)
+    if (have_pet && !confirm_leaving_pets(TRUE))
     {
-        cptr msg = "Do you leave your pets behind? ";
-
-        if (!get_check_strict(msg, CHECK_OKAY_CANCEL))
-        {
-            energy_use = 0;
-            return FALSE;
-        }
+        energy_use = 0;
+        return FALSE;
     }
 
     if (p_ptr->word_recall)

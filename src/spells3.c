@@ -670,7 +670,18 @@ void teleport_away_followable(int m_idx)
 bool py_teleport_level(cptr prompt)
 {
     bool kysyttiin = FALSE;
-    if ((py_in_dungeon()) && (!TELE_LEVEL_IS_INEFF(0)))
+
+    if (TELE_LEVEL_IS_INEFF(0))
+    {
+        if ((!kysyttiin) && (prompt) && (strlen(prompt)))
+        {
+            if (!get_check(prompt)) return FALSE;
+        }
+        teleport_level(0);
+        return TRUE;
+    }
+
+    if (py_in_dungeon())
     {
         if (!quests_check_ini_leave("teleport out of", "teleport", &kysyttiin)) return FALSE;
     }
@@ -678,6 +689,7 @@ bool py_teleport_level(cptr prompt)
     {
         if (!get_check(prompt)) return FALSE;
     }
+    if (!confirm_leaving_pets_no_follow()) return FALSE;
     teleport_level(0);
     return TRUE;
 }
@@ -923,6 +935,8 @@ int choose_dungeon(cptr note, int y, int x)
  */
 bool recall_player(int turns, bool varmista)
 {
+    int i;
+
     if (!py_can_recall())
     {
         msg_print("Nothing happens.");
@@ -955,6 +969,17 @@ bool recall_player(int turns, bool varmista)
         p_ptr->leaving_method = LEAVING_RECALL;
 
         cmsg_print(TERM_L_BLUE, "The air about you becomes charged...");
+        for (i = 1; i < m_max; i++)
+        {
+            monster_type *m_ptr = &m_list[i];
+
+            if (!m_ptr->r_idx) continue;
+            if (i == p_ptr->riding) continue;
+            if (!is_pet(m_ptr)) continue;
+
+            msg_print("Pets and summons must be very close to follow when the recall takes hold.");
+            break;
+        }
 
         p_ptr->redraw |= (PR_STATUS);
     }

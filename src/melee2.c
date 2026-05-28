@@ -2387,7 +2387,7 @@ static void process_monster(int m_idx)
             {
                 char m_name[80];
                 monster_desc(m_name, m_ptr, 0);
-                msg_format("%^s disappears!", m_name);
+                cmsg_format(TERM_L_RED, "%^s disappears!", m_name);
             }
 
             /* Delete the monster */
@@ -2419,7 +2419,7 @@ static void process_monster(int m_idx)
                 monster_desc(m_name, m_ptr, 0);
 
                 /* Oops */
-                msg_format("%^s disappears!", m_name);
+                cmsg_format(TERM_L_RED, "%^s disappears!", m_name);
             }
 
             /* Generate treasure, etc */

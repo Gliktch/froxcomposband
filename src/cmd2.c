@@ -61,6 +61,7 @@ void do_cmd_go_up(void)
     }
 
     if (!quests_check_leave()) return;
+    if (!confirm_leaving_pets(FALSE)) return;
 
     /* Hack -- take a turn */
     energy_use = 100;
@@ -163,6 +164,8 @@ void do_cmd_go_down(void)
     else
     {
         int target_dungeon = 0;
+
+        if (!confirm_leaving_pets(FALSE)) return;
 
         if (!dun_level)
         {

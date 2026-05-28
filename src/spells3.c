@@ -977,7 +977,7 @@ bool recall_player(int turns, bool varmista)
             if (i == p_ptr->riding) continue;
             if (!is_pet(m_ptr)) continue;
 
-            msg_print("Pets and summons must be very close to follow when the recall takes hold.");
+            msg_print("Pets and summons must be within 4 squares to follow when the recall takes hold.");
             break;
         }
 

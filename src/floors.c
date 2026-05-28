@@ -393,14 +393,7 @@ static bool _pet_can_follow(monster_type *m_ptr, _pet_transition_mode_t mode)
 
     if (MON_CONFUSED(m_ptr) || MON_STUNNED(m_ptr) || MON_CSLEEP(m_ptr)) return FALSE;
 
-    if (m_ptr->nickname
-      && ((player_has_los_bold(m_ptr->fy, m_ptr->fx) && projectable(py, px, m_ptr->fy, m_ptr->fx))
-       || (los(m_ptr->fy, m_ptr->fx, py, px) && projectable(m_ptr->fy, m_ptr->fx, py, px))))
-    {
-        return dis <= 4;
-    }
-
-    return dis <= 2;
+    return dis <= 4;
 }
 
 static bool _monster_can_follow(monster_type *m_ptr, _pet_transition_mode_t mode)

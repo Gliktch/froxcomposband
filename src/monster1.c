@@ -795,6 +795,91 @@ bool monster_can_enter(int y, int x, monster_race *r_ptr, u16b mode)
     return monster_can_cross_terrain(c_ptr->feat, r_ptr, mode);
 }
 
+static int _monster_move_extra_energy(monster_type *m_ptr, int y, int x)
+{
+    monster_race *r_ptr = &r_info[m_ptr->r_idx];
+    feature_type *f_ptr = &f_info[cave[y][x].feat];
+    int base = energy_need_clipper_aux(SPEED_TO_ENERGY(m_ptr->mspeed));
+    int extra = 0;
+
+    if (have_flag(f_ptr->flags, FF_TREE))
+    {
+        if (!(r_ptr->flags7 & RF7_CAN_FLY) && !(r_ptr->flags2 & RF2_PASS_WALL) && !(r_ptr->flags8 & RF8_WILD_WOOD))
+            extra += base;
+    }
+    else if (have_flag(f_ptr->flags, FF_SNOW))
+    {
+        if (!(r_ptr->flags7 & RF7_CAN_FLY) && !(r_ptr->flags2 & RF2_PASS_WALL) && !(r_ptr->flags8 & RF8_WILD_SNOW))
+            extra += base * 2 / 5;
+    }
+    else if (have_flag(f_ptr->flags, FF_SLUSH))
+    {
+        if (!(r_ptr->flags7 & RF7_CAN_FLY) && !(r_ptr->flags2 & RF2_PASS_WALL) && !(r_ptr->flags8 & RF8_WILD_SNOW))
+            extra += base / 9;
+    }
+    if (have_flag(f_ptr->flags, FF_WEB) && r_ptr->d_char != 'S')
+        extra += base;
+
+    return extra;
+}
+
+int monster_move_energy(monster_type *m_ptr, int y, int x)
+{
+    return energy_need_clipper_aux(SPEED_TO_ENERGY(m_ptr->mspeed)) + _monster_move_extra_energy(m_ptr, y, x);
+}
+
+bool pet_find_shove_grid(monster_type *m_ptr, int *ty, int *tx, int *energy)
+{
+    monster_race *r_ptr = &r_info[m_ptr->r_idx];
+    int best_dir = -1;
+    int best_cost = 0;
+    int i;
+
+    for (i = 0; i < 8; i++)
+    {
+        int ny = m_ptr->fy + ddy_ddd[i];
+        int nx = m_ptr->fx + ddx_ddd[i];
+        int cost;
+
+        if (!in_bounds(ny, nx)) continue;
+        if (!monster_can_enter(ny, nx, r_ptr, 0)) continue;
+
+        cost = _monster_move_extra_energy(m_ptr, ny, nx);
+        if (best_dir < 0 || cost < best_cost)
+        {
+            best_dir = i;
+            best_cost = cost;
+        }
+    }
+
+    if (best_dir < 0) return FALSE;
+
+    *ty = m_ptr->fy + ddy_ddd[best_dir];
+    *tx = m_ptr->fx + ddx_ddd[best_dir];
+    *energy = monster_move_energy(m_ptr, *ty, *tx);
+    return TRUE;
+}
+
+bool pet_shove_aside(int m_idx)
+{
+    monster_type *m_ptr = &m_list[m_idx];
+    int ny, nx, energy;
+    int oy = m_ptr->fy;
+    int ox = m_ptr->fx;
+
+    if (!pet_find_shove_grid(m_ptr, &ny, &nx, &energy)) return FALSE;
+
+    cave[oy][ox].m_idx = 0;
+    cave[ny][nx].m_idx = m_idx;
+    m_ptr->fy = ny;
+    m_ptr->fx = nx;
+    m_ptr->energy_need += energy;
+    update_mon(m_idx, TRUE);
+    lite_spot(oy, ox);
+    lite_spot(ny, nx);
+    return TRUE;
+}
+
 
 /*
  * Check if this monster has "hostile" alignment (aux)

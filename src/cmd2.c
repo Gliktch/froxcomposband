@@ -1385,6 +1385,26 @@ static bool do_cmd_tunnel_aux(int y, int x)
     return more;
 }
 
+static bool _shoo_pet_for_tunnel(int y, int x)
+{
+    cave_type *c_ptr = &cave[y][x];
+    monster_type *m_ptr = &m_list[c_ptr->m_idx];
+    char m_name[80];
+
+    if (!c_ptr->m_idx) return FALSE;
+    if (!is_pet(m_ptr) || is_hostile(m_ptr)) return FALSE;
+
+    monster_desc(m_name, m_ptr, 0);
+    if (pet_shove_aside(c_ptr->m_idx))
+    {
+        msg_format("You shoo %s out of the way.", m_name);
+        return TRUE;
+    }
+
+    msg_format("%^s is in your way!", m_name);
+    return FALSE;
+}
+
 
 /*
  * Tunnels through "walls" (including rubble and closed doors)
@@ -1452,14 +1472,20 @@ void do_cmd_tunnel(void)
         /* A monster is in the way */
         else if (c_ptr->m_idx)
         {
-            /* Take a turn */
-            energy_use = 100;
+            monster_type *m_ptr = &m_list[c_ptr->m_idx];
 
-            /* Message */
-            msg_print("There is a monster in the way!");
-
-            /* Attack */
-            py_attack(y, x, 0);
+            if (is_pet(m_ptr) && !is_hostile(m_ptr))
+            {
+                if (_shoo_pet_for_tunnel(y, x))
+                    more = do_cmd_tunnel_aux(y, x);
+                else
+                    energy_use = 0;
+            }
+            else
+            {
+                msg_print("There is a monster in the way!");
+                py_attack(y, x, 0);
+            }
         }
 
         /* Try digging */
@@ -2142,8 +2168,22 @@ void do_cmd_alter(void)
         /* Attack monsters */
         if (c_ptr->m_idx)
         {
-            /* Attack */
-            py_attack(y, x, 0);
+            if (have_flag(f_ptr->flags, FF_TUNNEL))
+            {
+                monster_type *m_ptr = &m_list[c_ptr->m_idx];
+
+                if (is_pet(m_ptr) && !is_hostile(m_ptr))
+                {
+                    if (_shoo_pet_for_tunnel(y, x))
+                        more = do_cmd_tunnel_aux(y, x);
+                    else
+                        energy_use = 0;
+                }
+                else
+                    py_attack(y, x, 0);
+            }
+            else
+                py_attack(y, x, 0);
         }
 
         /* Locked doors */

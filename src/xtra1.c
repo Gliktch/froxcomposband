@@ -56,7 +56,7 @@
 
 #define ROW_HEALTH_BARS        (p_ptr->pclass == CLASS_POLITICIAN ? 15 : 14)
 #define COL_HEALTH_BARS         0
-#define COUNT_HEALTH_BARS       6 /* HP, SP, Food, Riding, Monster Track, Target */
+#define COUNT_HEALTH_BARS       7 /* HP, SP, Food, Upkeep, Riding, Monster Track, Target */
 
 #define ROW_EFFECTS            (p_ptr->pclass == CLASS_POLITICIAN ? 21 : 20)
 #define COL_EFFECTS             0
@@ -2250,6 +2250,36 @@ static void prt_food_bar(int row, int col)
     }
 }
 
+static void prt_upkeep_bar(int row, int col)
+{
+    byte attr;
+    int  upkeep = calculate_upkeep();
+    int  pct = MAX(0, 100 - upkeep);
+    int  len = MIN(9, 1 + pct * 9 / 100);
+
+    Term_putch(col, row, TERM_L_GREEN, '+');
+
+    if (pct >= 100) attr = TERM_L_GREEN;
+    else if (pct >= 50) attr = TERM_WHITE;
+    else if (pct >= 30) attr = TERM_YELLOW;
+    else if (pct >= 20) attr = TERM_ORANGE;
+    else if (pct >= 10) attr = TERM_L_RED;
+    else attr = TERM_VIOLET;
+
+    if (easy_damage || p_ptr->wizard)
+    {
+        char buf[20];
+        sprintf(buf, "%3d%%", pct);
+        Term_putstr(col + 2, row, strlen(buf), attr, buf);
+    }
+    else
+    {
+        Term_putstr(col + 1, row, 11, TERM_WHITE, "[---------]");
+        if (pct > 0)
+            Term_putstr(col + 2, row, len, attr, "*********");
+    }
+}
+
 static void prt_mon_health_bar(int m_idx, int row, int col)
 {
     monster_type *m_ptr;
@@ -2439,6 +2469,8 @@ static void prt_health_bars(void)
             prt_sp_bar(row++, col);
         if (display_food_bar)
             prt_food_bar(row++, col);
+        if (display_upkeep_bar)
+            prt_upkeep_bar(row++, col);
         if (p_ptr->riding)
             prt_mon_health_bar(p_ptr->riding, row++, col);
         if (p_ptr->health_who && p_ptr->health_who != p_ptr->riding)
@@ -5686,6 +5718,8 @@ void redraw_stuff(void)
     if ((p_ptr->redraw & PR_HP) && display_hp_bar)
         p_ptr->redraw |= PR_HEALTH_BARS;
     if ((p_ptr->redraw & PR_MANA) && display_sp_bar)
+        p_ptr->redraw |= PR_HEALTH_BARS;
+    if ((p_ptr->redraw & PR_STATUS) && display_upkeep_bar)
         p_ptr->redraw |= PR_HEALTH_BARS;
     if (p_ptr->redraw & (PR_DEPTH|PR_BASIC))
         p_ptr->redraw |= PR_STATUS;

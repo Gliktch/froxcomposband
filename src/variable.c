@@ -282,6 +282,7 @@ bool equippy_chars;    /* Display 'equippy' chars */
 bool display_food_bar;
 bool display_hp_bar;
 bool display_sp_bar;
+bool display_upkeep_bar;
 bool compress_savefile;    /* Compress messages in savefiles */
 bool abbrev_extra;    /* Describe obj's extra resistances by abbreviation */
 bool abbrev_all;    /* Describe obj's all resistances by abbreviation */

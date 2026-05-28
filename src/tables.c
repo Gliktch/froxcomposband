@@ -2244,6 +2244,9 @@ option_type option_info[] =
     { &display_food_bar,            FALSE,  OPT_PAGE_TEXT, 1, 13,
     "display_food_bar",             "Display detailed food status" },
 
+    { &display_upkeep_bar,          FALSE,  OPT_PAGE_TEXT, 1, 3,
+    "display_upkeep_bar",           "Display remaining pet control status" },
+
     { &decimal_stats,               FALSE,  OPT_PAGE_TEXT, 2, 25,
     "decimal_stats",                "Display stats as decimals" },
 

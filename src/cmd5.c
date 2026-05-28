@@ -1399,6 +1399,7 @@ void check_pets_num_and_align(monster_type *m_ptr, bool inc)
     }
 
     if (old_friend_align != friend_align) p_ptr->update |= (PU_BONUS);
+    p_ptr->redraw |= PR_HEALTH_BARS;
 }
 
 int pet_upkeep_limit(void)

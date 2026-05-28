@@ -312,6 +312,7 @@ extern bool equippy_chars;    /* Display 'equippy' chars */
 extern bool display_food_bar;    /* Like the monster health bar, only tastier! */
 extern bool display_hp_bar; /* Display player HP just like the monster health bar */
 extern bool display_sp_bar; /* Display player SP just like the monster health bar */
+extern bool display_upkeep_bar; /* Display remaining pet control like a health bar */
 extern bool compress_savefile;    /* Compress messages in savefiles */
 extern bool abbrev_extra;    /* Describe obj's extra resistances by abbreviation */
 extern bool abbrev_all;    /* Describe obj's all resistances by abbreviation */

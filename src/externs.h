@@ -1353,8 +1353,10 @@ extern byte monster_pantheon(monster_race *r_ptr);
 
 /* mon_info.c */
 extern void mon_display(monster_race *r_ptr);
+extern void mon_display_instance(monster_type *mon);
 extern void mon_display_rect(monster_race *r_ptr, rect_t display);
 extern void mon_display_doc(monster_race *r_ptr, doc_ptr doc);
+extern void mon_display_doc_instance(monster_type *mon, doc_ptr doc);
 extern void mon_display_possessor(monster_race *r_ptr, doc_ptr doc);
 
 /* obj_info.c */

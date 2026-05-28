@@ -1349,7 +1349,10 @@ static void _list_monsters_aux(_mon_list_ptr list, rect_t display_rect, int mode
                 assert(info_ptr);
                 if (info_ptr->r_idx)
                 {
-                    mon_display(&r_info[info_ptr->r_idx]);
+                    if (info_ptr->ct_total == 1 && info_ptr->m_idx)
+                        mon_display_instance(&m_list[info_ptr->m_idx]);
+                    else
+                        mon_display(&r_info[info_ptr->r_idx]);
                     screen_load();
                     screen_save();
                     redraw = TRUE;

@@ -8,10 +8,23 @@
 #include <assert.h>
 
 extern void mon_display(monster_race *r_ptr);
+extern void mon_display_instance(monster_type *mon);
 extern void mon_display_rect(monster_race *r_ptr, rect_t display);
 extern void mon_display_doc(monster_race *r_ptr, doc_ptr doc);
+extern void mon_display_doc_instance(monster_type *mon, doc_ptr doc);
 extern void mon_display_possessor(monster_race *r_ptr, doc_ptr doc);
-static bool _possessor_hack = FALSE;
+
+enum
+{
+    _MON_DISPLAY_RAW_SPELL_DAMAGE = 0x01,
+    _MON_DISPLAY_HIDE_ALERTNESS   = 0x02,
+    _MON_DISPLAY_HIDE_SPELL_FREQ  = 0x04,
+    _MON_DISPLAY_HIDE_SPELL_LORE  = 0x08,
+    _MON_DISPLAY_HIDE_KILLS       = 0x10
+};
+
+static byte _mon_display_flags = 0;
+static monster_type *_mon_display_instance = NULL;
 
 static void _display_basic(monster_race *r_ptr, doc_ptr doc);
 static void _display_resists(monster_race *r_ptr, doc_ptr doc);
@@ -307,7 +320,7 @@ static void _display_basic(monster_race *r_ptr, doc_ptr doc)
 
         /* Column 2 */
         _display_speed(r_ptr, cols[1]);
-        if (!_possessor_hack) _display_alertness(r_ptr, cols[1]);
+        if (!(_mon_display_flags & _MON_DISPLAY_HIDE_ALERTNESS)) _display_alertness(r_ptr, cols[1]);
         _display_type(r_ptr, cols[1]);
 
         doc_insert_cols(doc, cols, 2, 0);
@@ -492,18 +505,18 @@ static void _display_spell_group(mon_race_ptr r_ptr, mon_spell_group_ptr group, 
                     }
                     else if (show_damage_range)
                     {
-                        mon_spell_dam_range(s, spell, r_ptr, !_possessor_hack);
+                        mon_spell_dam_range(s, spell, r_ptr, !(_mon_display_flags & _MON_DISPLAY_RAW_SPELL_DAMAGE));
                     }
                     else
-                        string_printf(s, "%d", mon_spell_avg_dam(spell, r_ptr, !_possessor_hack));
-                    if (!spoiler_hack && !_possessor_hack && spell->lore) /* XXX stop repeating yourself! */
+                        string_printf(s, "%d", mon_spell_avg_dam(spell, r_ptr, !(_mon_display_flags & _MON_DISPLAY_RAW_SPELL_DAMAGE)));
+                    if (!spoiler_hack && !(_mon_display_flags & _MON_DISPLAY_HIDE_SPELL_LORE) && spell->lore) /* XXX stop repeating yourself! */
                         string_printf(s, ", %dx", spell->lore);
                     string_append_c(s, ')');
                 }
-                else if (!spoiler_hack && !_possessor_hack && spell->lore) /* XXX stop repeating yourself! */
+                else if (!spoiler_hack && !(_mon_display_flags & _MON_DISPLAY_HIDE_SPELL_LORE) && spell->lore) /* XXX stop repeating yourself! */
                     string_printf(s, " (%dx)", spell->lore);
             }
-            else if (!spoiler_hack && !_possessor_hack && spell->lore) /* XXX stop repeating yourself! */
+            else if (!spoiler_hack && !(_mon_display_flags & _MON_DISPLAY_HIDE_SPELL_LORE) && spell->lore) /* XXX stop repeating yourself! */
                 string_printf(s, " (%dx)", spell->lore);
             vec_add(v, s);
         }
@@ -516,7 +529,7 @@ static void _display_spells(monster_race *r_ptr, doc_ptr doc)
     mon_spells_ptr spells = r_ptr->spells;
 
     assert(spells);
-    if (!_possessor_hack) _display_frequency(r_ptr, doc);
+    if (!(_mon_display_flags & _MON_DISPLAY_HIDE_SPELL_FREQ)) _display_frequency(r_ptr, doc);
 
     /* Breaths */
     _display_spell_group(r_ptr, spells->groups[MST_BREATH], v);
@@ -932,6 +945,19 @@ void mon_display(monster_race *r_ptr)
 {
     mon_display_rect(r_ptr, ui_menu_rect());
 }
+void mon_display_instance(monster_type *mon)
+{
+    byte old_flags = _mon_display_flags;
+    monster_type *old_instance = _mon_display_instance;
+
+    assert(mon);
+    if (is_pet(mon))
+        _mon_display_flags |= _MON_DISPLAY_RAW_SPELL_DAMAGE;
+    _mon_display_instance = mon;
+    mon_display_rect(mon_apparent_race(mon), ui_menu_rect());
+    _mon_display_flags = old_flags;
+    _mon_display_instance = old_instance;
+}
 void mon_display_rect(monster_race *r_ptr, rect_t display)
 {
     doc_ptr doc = doc_alloc(MIN(display.cx, 72));
@@ -955,6 +981,19 @@ void mon_display_rect(monster_race *r_ptr, rect_t display)
     screen_load();
 
     doc_free(doc);
+}
+void mon_display_doc_instance(monster_type *mon, doc_ptr doc)
+{
+    byte old_flags = _mon_display_flags;
+    monster_type *old_instance = _mon_display_instance;
+
+    assert(mon);
+    if (is_pet(mon))
+        _mon_display_flags |= _MON_DISPLAY_RAW_SPELL_DAMAGE;
+    _mon_display_instance = mon;
+    mon_display_doc(mon_apparent_race(mon), doc);
+    _mon_display_flags = old_flags;
+    _mon_display_instance = old_instance;
 }
 void mon_display_doc(monster_race *r_ptr, doc_ptr doc)
 {
@@ -1004,20 +1043,35 @@ void mon_display_doc(monster_race *r_ptr, doc_ptr doc)
 
     }
 
+    if ( _mon_display_instance
+      && !is_original_ap(_mon_display_instance)
+      && _mon_display_instance->ml
+      && !(_mon_display_instance->mflag2 & MFLAG2_FUZZY) )
+    {
+        monster_race *true_race = mon_race(_mon_display_instance);
+        copy.flags7 |= true_race->flags7 & (RF7_SELF_LITE_1 | RF7_SELF_LITE_2 | RF7_SELF_DARK_1 | RF7_SELF_DARK_2);
+    }
+
     _display_basic(&copy, doc);
     _display_resists(&copy, doc);
     if (copy.spells && copy.spells->freq) _display_spells(&copy, doc);
     _display_attacks(&copy, doc);
     _display_other(&copy, doc);
-    if (!_possessor_hack) _display_kills(&copy, doc);
+    if (!(_mon_display_flags & _MON_DISPLAY_HIDE_KILLS)) _display_kills(&copy, doc);
 
     _display_desc(&copy, doc);
 }
 
 void mon_display_possessor(monster_race *r_ptr, doc_ptr doc)
 {
-    _possessor_hack = TRUE;
+    byte old_flags = _mon_display_flags;
+
+    _mon_display_flags |= _MON_DISPLAY_RAW_SPELL_DAMAGE;
+    _mon_display_flags |= _MON_DISPLAY_HIDE_ALERTNESS;
+    _mon_display_flags |= _MON_DISPLAY_HIDE_SPELL_FREQ;
+    _mon_display_flags |= _MON_DISPLAY_HIDE_SPELL_LORE;
+    _mon_display_flags |= _MON_DISPLAY_HIDE_KILLS;
     mon_display_doc(r_ptr, doc);
-    _possessor_hack = FALSE;
+    _mon_display_flags = old_flags;
 }
 

@@ -4274,7 +4274,7 @@ static int target_set_aux(int y, int x, int mode, cptr info)
                 screen_save();
 
                 /* Recall on screen */
-                mon_display_doc(ap_r_ptr, doc);
+                mon_display_doc_instance(m_ptr, doc);
                 doc_sync_term(doc, doc_range_all(doc), doc_pos_create(0, 1));
 
                 /* Hack -- Complete the prompt (again)

@@ -2903,8 +2903,10 @@ static void process_monster(int m_idx)
 
     /* Really, a non-spell turn. The monster may never move, or may be blocked, and we still
        want to track those turns for accurate reporting of spell frequency. Also, don't count
-       unless the monster could spell.*/
-    if (projectable(py, px, m_ptr->fy, m_ptr->fx))
+       unless the monster could spell. While the player is resting, skip non-hostiles so pets
+       and friendlies don't accumulate meaningless "moves" from idle turns. */
+    if (projectable(py, px, m_ptr->fy, m_ptr->fx)
+        && !(p_ptr->action == ACTION_REST && !is_hostile(m_ptr)))
         mon_lore_move(m_ptr);
 
     /* Confused -- 100% random */

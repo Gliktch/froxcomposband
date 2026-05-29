@@ -25,7 +25,7 @@ void _dragon_pack_init(void)
 {
     if (_pack_initialized) return;
     inv_free(_dragon_pack);
-    _dragon_pack = inv_alloc("Extra", INV_SPECIAL2, _MAX_PACK_SLOTS);
+    _dragon_pack = inv_alloc("Satchel", INV_SPECIAL2, _MAX_PACK_SLOTS);
     _pack_initialized = TRUE;
 }
 

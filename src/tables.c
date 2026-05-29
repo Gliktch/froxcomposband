@@ -2595,6 +2595,9 @@ option_type option_info[] =
     { &show_item_markers,           FALSE, OPT_PAGE_LIST, 2, 1,
     "show_item_markers",            "Show item-state markers in object listings" },
 
+    { &show_special_inventories,    FALSE, OPT_PAGE_LIST, 2, 15,
+    "show_special_inventories",     "Include special inventories in standard inventory lists" },
+
     { &shops_mark_unseen,           FALSE, OPT_PAGE_LIST, 0, 31,
     "shops_mark_unseen",            "Indicate unknown flavors in shop inventories" },
 

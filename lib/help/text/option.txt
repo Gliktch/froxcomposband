@@ -589,6 +589,13 @@ Text Display Options
   Show item graphics in object listings (show_item_graph)
   Displays graphical representations of items (/, (, etc.) in 
   inventories.
+
+  Include special inventories in standard inventory lists
+  (show_special_inventories)
+  If this option is on, the standard i inventory list will also 
+  include any race or class special inventories, such as shape-shift 
+  satchels or Igor's body parts. The I inspect command always includes 
+  these inventories regardless of this option.
   
   Display 'equippy' chars (equippy_chars)
   Displays graphical representations of your equipment (/, (, etc.) in 

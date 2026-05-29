@@ -951,6 +951,32 @@ static string_ptr _inventory_prompt(void)
         wgt / 10, wgt % 10, pct > 100 ? 'r' : 'G', pct);
 }
 
+static void _prompt_add_where(obj_prompt_ptr prompt, int where)
+{
+    int i;
+    for (i = 0; i < MAX_LOC; i++)
+    {
+        if (!prompt->where[i])
+        {
+            prompt->where[i] = where;
+            return;
+        }
+    }
+}
+
+static void _prompt_add_standard_special_packs(obj_prompt_ptr prompt)
+{
+    race_t  *race_ptr = get_race();
+    class_t *class_ptr = get_class();
+
+    if (race_ptr->bonus_pack)
+        _prompt_add_where(prompt, inv_loc(race_ptr->bonus_pack));
+    if (race_ptr->bonus_pack2)
+        _prompt_add_where(prompt, inv_loc(race_ptr->bonus_pack2));
+    if (class_ptr->bonus_pack)
+        _prompt_add_where(prompt, inv_loc(class_ptr->bonus_pack));
+}
+
 void obj_inventory_ui(void)
 {
     obj_prompt_t prompt = {0};
@@ -959,12 +985,14 @@ void obj_inventory_ui(void)
     prompt.prompt = string_buffer(s);
     prompt.error = "You have nothing to examine.";
     prompt.filter = obj_exists;
-    prompt.where[0] = INV_PACK;
-    prompt.where[1] = INV_EQUIP;
+    prompt.where[0] = INV_EQUIP;
+    prompt.where[1] = INV_PACK;
     prompt.where[2] = INV_QUIVER;
     prompt.where[3] = INV_FLOOR;
     prompt.top_loc = INV_PACK;
     prompt.cmd_handler = _inspector;
+    if (show_special_inventories)
+        _prompt_add_standard_special_packs(&prompt);
 
     obj_prompt(&prompt);
     string_free(s);
@@ -976,20 +1004,20 @@ void obj_inventory_ui(void)
 void obj_inspect_ui(void)
 {
     obj_prompt_t prompt = {0};
+    string_ptr   s = _inventory_prompt();
 
-    prompt.prompt = "Examine which item <color:w>(<color:keypress>Esc</color> to exit)</color>?";
+    prompt.prompt = string_buffer(s);
     prompt.error = "You have nothing to examine.";
     prompt.filter = obj_exists;
-    prompt.where[0] = INV_PACK;
-    prompt.where[1] = INV_EQUIP;
+    prompt.where[0] = INV_EQUIP;
+    prompt.where[1] = INV_PACK;
     prompt.where[2] = INV_QUIVER;
     prompt.where[3] = INV_FLOOR;
     prompt.cmd_handler = _inspector;
-    allow_special3_hack = TRUE;
-    obj_prompt_add_special_packs(&prompt);
+    _prompt_add_standard_special_packs(&prompt);
 
     obj_prompt(&prompt);
-    allow_special3_hack = FALSE;
+    string_free(s);
 
     /* The '-' key autoselects a single floor object */
     if (prompt.obj)
@@ -1002,9 +1030,10 @@ void gear_ui(int which)
     string_ptr   s = _inventory_prompt();
 
     prompt.prompt = string_buffer(s);
-    prompt.where[0] = INV_PACK;
-    prompt.where[1] = INV_EQUIP;
-    prompt.where[2] = INV_QUIVER;
+    prompt.where[0] = INV_EQUIP;
+    _prompt_add_standard_special_packs(&prompt);
+    _prompt_add_where(&prompt, INV_PACK);
+    _prompt_add_where(&prompt, INV_QUIVER);
     prompt.top_loc = which;
 
     prompt.cmd_handler = _inspector;

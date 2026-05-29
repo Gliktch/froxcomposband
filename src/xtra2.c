@@ -4158,6 +4158,81 @@ static void target_set_prepare(int mode)
 }
 
 
+enum {
+    _TARGET_RECALL_MONSTER = 1,
+    _TARGET_RECALL_SYMBOL,
+    _TARGET_RECALL_CARRIED,
+    _TARGET_RECALL_FLOOR
+};
+
+static bool _target_is_recall_cmd(int query)
+{
+    return query == 'r' || query == '/';
+}
+
+static cptr _target_symbol_desc(monster_type *m_ptr)
+{
+    static char buf[80];
+    monster_race *ap_r_ptr = mon_apparent_race(m_ptr);
+    int i;
+
+    for (i = 0; ident_info[i]; i++)
+    {
+        if (ident_info[i][0] == ap_r_ptr->d_char)
+        {
+            snprintf(buf, sizeof(buf), "%c - %s", ap_r_ptr->d_char, ident_info[i] + 2);
+            return buf;
+        }
+    }
+
+    snprintf(buf, sizeof(buf), "%c - %s", ap_r_ptr->d_char, r_name + ap_r_ptr->name);
+    return buf;
+}
+
+static void _target_do_recall(byte type, s16b ref)
+{
+    switch (type)
+    {
+    case _TARGET_RECALL_MONSTER:
+    {
+        monster_type *m_ptr = &m_list[ref];
+
+        mon_track(m_ptr);
+        health_track(ref);
+        handle_stuff();
+        mon_display_instance(m_ptr);
+        break;
+    }
+    case _TARGET_RECALL_SYMBOL:
+    {
+        monster_type *m_ptr = &m_list[ref];
+        msg_print(_target_symbol_desc(m_ptr));
+        break;
+    }
+    case _TARGET_RECALL_CARRIED:
+    case _TARGET_RECALL_FLOOR:
+        obj_display_inspect(&o_list[ref]);
+        break;
+    }
+}
+
+static int _target_find_recall_start(byte *types, s16b *refs, int ct, int current_type, s16b current_ref, int recall_idx)
+{
+    int i;
+
+    if (ct <= 0) return -1;
+    if (recall_idx >= 0) return (recall_idx + 1) % ct;
+
+    for (i = 0; i < ct; i++)
+    {
+        if (types[i] == current_type && refs[i] == current_ref)
+            return i;
+    }
+
+    return 0;
+}
+
+
 bool show_gold_on_floor = FALSE;
 
 /*
@@ -4193,6 +4268,10 @@ static int target_set_aux(int y, int x, int mode, cptr info)
     char out_val[MAX_NLEN+80];
     inv_ptr inv = NULL;
     int obj_ct = 0;
+    byte recall_types[40];
+    s16b recall_refs[40];
+    int recall_ct = 0;
+    int recall_idx = -1;
 
     /* Hack -- under the player */
     if (player_bold(y, x))
@@ -4241,6 +4320,45 @@ static int target_set_aux(int y, int x, int mode, cptr info)
     if (obj_ct)
         x_info = "x,";
 
+    if (c_ptr->m_idx)
+    {
+        monster_type *m_ptr = &m_list[c_ptr->m_idx];
+        bool fuzzy = BOOL(m_ptr->mflag2 & MFLAG2_FUZZY);
+
+        if (m_ptr->ml && !fuzzy && recall_ct < 40)
+        {
+            recall_types[recall_ct] = _TARGET_RECALL_MONSTER;
+            recall_refs[recall_ct++] = c_ptr->m_idx;
+        }
+        else if (m_ptr->ml && recall_ct < 40)
+        {
+            recall_types[recall_ct] = _TARGET_RECALL_SYMBOL;
+            recall_refs[recall_ct++] = c_ptr->m_idx;
+        }
+
+        if (m_ptr->ml)
+        {
+            for (this_o_idx = m_ptr->hold_o_idx; this_o_idx && recall_ct < 40; this_o_idx = next_o_idx)
+            {
+                object_type *o_ptr = &o_list[this_o_idx];
+
+                next_o_idx = o_ptr->next_o_idx;
+                recall_types[recall_ct] = _TARGET_RECALL_CARRIED;
+                recall_refs[recall_ct++] = this_o_idx;
+            }
+        }
+    }
+
+    for (this_o_idx = c_ptr->o_idx; this_o_idx && recall_ct < 40; this_o_idx = next_o_idx)
+    {
+        object_type *o_ptr = &o_list[this_o_idx];
+
+        next_o_idx = o_ptr->next_o_idx;
+        if (!obj_is_found(o_ptr)) continue;
+        recall_types[recall_ct] = _TARGET_RECALL_FLOOR;
+        recall_refs[recall_ct++] = this_o_idx;
+    }
+
     /* Actual monsters */
     if (c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
     {
@@ -4248,7 +4366,6 @@ static int target_set_aux(int y, int x, int mode, cptr info)
         bool          fuzzy = BOOL(m_ptr->mflag2 & MFLAG2_FUZZY);
         monster_race *ap_r_ptr = mon_apparent_race(m_ptr);
         char m_name[80];
-        bool recall = FALSE;
 
         boring = FALSE;
 
@@ -4265,64 +4382,6 @@ static int target_set_aux(int y, int x, int mode, cptr info)
         /* Interact */
         while (1)
         {
-            /* Recall */
-            if (recall && !fuzzy)
-            {
-                doc_ptr doc = doc_alloc(72);
-
-                /* Save */
-                screen_save();
-
-                /* Recall on screen */
-                mon_display_doc_instance(m_ptr, doc);
-                doc_sync_term(doc, doc_range_all(doc), doc_pos_create(0, 1));
-
-                /* Hack -- Complete the prompt (again)
-                Term_addstr(-1, TERM_WHITE, format("  [r,%s%s]", x_info, info));*/
-
-                /* Command */
-                query = inkey();
-
-                if (((query == '2') || (query == '8') || (query == SKEY_DOWN) || (query == SKEY_UP))
-                    && (doc_cursor(doc).y > Term->hgt - 1))
-                {
-                     int top = 0;
-                     int page_size = Term->hgt - 1;
-                     do
-                     {
-                         switch (query)
-                         {
-                             case SKEY_DOWN:
-                             case '2':
-                                  top++;
-                                  if (top > doc->cursor.y - page_size) top = MAX(0, doc->cursor.y - page_size);
-                                  break;
-                             case SKEY_UP:
-                             case '8':          
-                                  top--;
-                                  if (top < 0) top = 0;
-                                  break;
-                         }
-                         doc_sync_term(doc, doc_region_create(0, top, doc->width, top + page_size - 1), doc_pos_create(0, 1));
-                         query = inkey();
-                     } while ((query == '2') || (query == '8'));
-                }
-
-                doc_free(doc);
-
-                /* Restore */
-                screen_load();
-
-                /* Normal commands */
-                if (query != 'r') break;
-
-                /* Toggle recall */
-                recall = FALSE;
-
-                /* Cleare recall text and repeat */
-                continue;
-            }
-
             /*** Normal ***/
 
             /* Describe, and prompt for recall */
@@ -4337,7 +4396,7 @@ static int target_set_aux(int y, int x, int mode, cptr info)
                     strcat(out_val, "(Clone) ");
             }
             sprintf(out_val + strlen(out_val), "(Rng %d) ", m_ptr->cdis);
-            sprintf(out_val + strlen(out_val), "[r,%s%s]", x_info, info);
+            sprintf(out_val + strlen(out_val), "[r,/,%s%s]", x_info, info);
 
             prt(out_val, 0, 0);
 
@@ -4347,11 +4406,19 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             /* Command */
             query = inkey();
 
-            /* Normal commands */
-            if (query != 'r') break;
+            if (_target_is_recall_cmd(query))
+            {
+                int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
+                    fuzzy ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER, c_ptr->m_idx, recall_idx);
+                if (start >= 0)
+                {
+                    recall_idx = start;
+                    _target_do_recall(recall_types[start], recall_refs[start]);
+                    continue;
+                }
+            }
 
-            /* Toggle recall */
-            recall = TRUE;
+            break;
         }
 
         /* Always stop at "normal" keys */
@@ -4399,11 +4466,23 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             object_desc(o_name, o_ptr, 0);
 
             /* Describe the object */
-            sprintf(out_val, "%s%s%s%s [%s]", s1, s2, s3, o_name, info);
+            sprintf(out_val, "%s%s%s%s (Carried) [r,/,%s]", s1, s2, s3, o_name, info);
 
             prt(out_val, 0, 0);
             move_cursor_relative(y, x);
             query = inkey();
+
+            if (_target_is_recall_cmd(query))
+            {
+                int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
+                    _TARGET_RECALL_CARRIED, this_o_idx, recall_idx);
+                if (start >= 0)
+                {
+                    recall_idx = start;
+                    _target_do_recall(recall_types[start], recall_refs[start]);
+                    continue;
+                }
+            }
 
             /* Always stop at "normal" keys */
             if ((query != '\r') && (query != '\n') && (query != ' ') && (query != 'x'))
@@ -4433,18 +4512,34 @@ static int target_set_aux(int y, int x, int mode, cptr info)
     {
         obj_ptr obj = inv_obj(inv, 1);
         char name[MAX_NLEN];
+        cptr suffix = obj->held_m_idx ? " (Carried)" : "";
 
         object_desc(name, obj, 0);
 
-        sprintf(out_val, "%s%s%s%s [%s]",
-            s1, s2, s3, name, info);
+        sprintf(out_val, "%s%s%s%s%s [r,/,%s]",
+            s1, s2, s3, name, suffix, info);
 
-        prt(out_val, 0, 0);
-        move_cursor_relative(y, x);
+        while (1)
+        {
+            prt(out_val, 0, 0);
+            move_cursor_relative(y, x);
 
-        query = inkey();
-        inv_free(inv);
-        return query;
+            query = inkey();
+
+            if (_target_is_recall_cmd(query))
+            {
+                int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
+                    obj->held_m_idx ? _TARGET_RECALL_CARRIED : _TARGET_RECALL_FLOOR, obj->loc.slot, recall_idx);
+                if (start >= 0)
+                {
+                    recall_idx = start;
+                    _target_do_recall(recall_types[start], recall_refs[start]);
+                    continue;
+                }
+            }
+            inv_free(inv);
+            return query;
+        }
     }
     else if (obj_ct > 1)
     {
@@ -4454,18 +4549,34 @@ static int target_set_aux(int y, int x, int mode, cptr info)
         if (boring)
         {
             /* Display rough information about items */
-            sprintf(out_val, "%s%s%sa pile of %d items [x,%s]",
+            sprintf(out_val, "%s%s%sa pile of %d items [r,/,x,%s]",
                 s1, s2, s3, obj_ct, info);
 
-            prt(out_val, 0, 0);
-            move_cursor_relative(y, x);
-
-            query = inkey();
-
-            if (query != 'x' && query != ' ')
+            while (1)
             {
-                inv_free(inv);
-                return query;
+                prt(out_val, 0, 0);
+                move_cursor_relative(y, x);
+
+                query = inkey();
+
+                if (_target_is_recall_cmd(query))
+                {
+                    int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
+                        _TARGET_RECALL_FLOOR, inv_obj(inv, 1)->loc.slot, recall_idx);
+                    if (start >= 0)
+                    {
+                        recall_idx = start;
+                        _target_do_recall(recall_types[start], recall_refs[start]);
+                        continue;
+                    }
+                }
+
+                if (query != 'x' && query != ' ')
+                {
+                    inv_free(inv);
+                    return query;
+                }
+                break;
             }
         }
         doc = doc_alloc(72);
@@ -4477,11 +4588,23 @@ static int target_set_aux(int y, int x, int mode, cptr info)
                 doc_range_middle_lines(doc, top, top + lines),
                 doc_pos_create(r.x, r.y));
 
-            sprintf(out_val, "%s%s%sa pile of %d items [Enter,%s]",
+            sprintf(out_val, "%s%s%sa pile of %d items [r,/,Enter,%s]",
                 s1, s2, s3, obj_ct, info);
             prt(out_val, 0, 0);
             query = inkey();
             screen_load();
+
+            if (_target_is_recall_cmd(query))
+            {
+                int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
+                    _TARGET_RECALL_FLOOR, inv_obj(inv, 1)->loc.slot, recall_idx);
+                if (start >= 0)
+                {
+                    recall_idx = start;
+                    _target_do_recall(recall_types[start], recall_refs[start]);
+                    continue;
+                }
+            }
 
             if (query != '\\' && query != '\r')
             {
@@ -4707,13 +4830,13 @@ bool target_set(int mode)
             if ( target_able(c_ptr->m_idx)
              || ((mode & (TARGET_MARK|TARGET_DISI|TARGET_XTRA)) && m_list[c_ptr->m_idx].ml))
             {
-                strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,+,-,?,<dir>" : "q,t,p,o,x,j,+,-,?,<dir>");
+                strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,+,-,/,?,<dir>" : "q,t,p,o,x,j,+,-,/,?,<dir>");
             }
 
             /* Dis-allow target */
             else
             {
-                strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,?,<dir>" : "q,p,o,x,j,+,-,?,<dir>");
+                strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,/,?,<dir>" : "q,p,o,x,j,+,-,/,?,<dir>");
             }
 
             /* Describe and Prompt */
@@ -4956,9 +5079,9 @@ bool target_set(int mode)
             c_ptr = &cave[y][x];
 
             if ((mode & TARGET_MARK) && !m_list[c_ptr->m_idx].ml)
-                strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,?,<dir>" : "q,p,o,x,j,+,-,?,<dir>");
+                strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,/,?,<dir>" : "q,p,o,x,j,+,-,/,?,<dir>");
             else
-                strcpy(info, rogue_like_commands ? "q,t,p,m,x,(,+,-,?,<dir>" : "q,t,p,m,x,j,+,-,?,<dir>");
+                strcpy(info, rogue_like_commands ? "q,t,p,m,x,(,+,-,/,?,<dir>" : "q,t,p,m,x,j,+,-,/,?,<dir>");
 
 
             /* Describe and Prompt (enable "TARGET_LOOK") */

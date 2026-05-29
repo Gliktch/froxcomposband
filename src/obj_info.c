@@ -31,6 +31,8 @@ static void _display_ignore(u32b flgs[OF_ARRAY_SIZE], doc_ptr doc);
 static void _display_autopick(object_type *o_ptr, doc_ptr doc);
 static void _display_score(object_type *o_ptr, doc_ptr doc);
 static void _lite_display_doc(object_type *o_ptr, doc_ptr doc);
+static bool _obj_needs_inspect_fallback(object_type *o_ptr);
+static void _obj_display_inspect_fallback_doc(object_type *o_ptr, doc_ptr doc);
 
 /* Ego Object Knowledge is very similar to obj_display() ... I had to hack a bit
    to make it work, though :( */
@@ -174,6 +176,26 @@ static void _selita_paikka(char *paikka_text, byte paikka, byte taso, byte origi
         string_free(apu);
         return;
     }
+}
+
+static bool _obj_needs_inspect_fallback(object_type *o_ptr)
+{
+    return !object_is_known(o_ptr) && !object_is_weapon_armour_ammo(o_ptr);
+}
+
+static void _obj_display_inspect_fallback_doc(object_type *o_ptr, doc_ptr doc)
+{
+    _display_name(o_ptr, doc);
+    doc_insert(doc, "  <indent>");
+
+    if (object_is_jewelry(o_ptr))
+        doc_insert(doc, "Looks kinda shiny!  Might be worth something.\n");
+    else if (object_is_mushroom(o_ptr))
+        doc_insert(doc, "Looks like a mushroom.\n");
+    else
+        doc_insert(doc, "You have no special knowledge about this item.\n");
+
+    doc_insert(doc, "</indent>\n");
 }
 
 bool display_origin(object_type *o_ptr, doc_ptr doc)
@@ -1439,6 +1461,35 @@ static void _lite_display_doc(object_type *o_ptr, doc_ptr doc)
 void obj_display(object_type *o_ptr)
 {
     obj_display_rect(o_ptr, ui_menu_rect());
+}
+
+void obj_display_inspect(object_type *o_ptr)
+{
+    rect_t display = ui_menu_rect();
+    doc_ptr doc = doc_alloc(MIN(display.cx, 72));
+
+    if (display.cx > 80)
+        display.cx = 80;
+
+    if (_obj_needs_inspect_fallback(o_ptr))
+        _obj_display_inspect_fallback_doc(o_ptr, doc);
+    else
+        obj_display_doc(o_ptr, doc);
+
+    screen_save();
+    if (doc_cursor(doc).y < display.cy - 3)
+    {
+        doc_insert(doc, "\n<color:B>[Press <color:y>Any Key</color> to Continue]</color>\n\n");
+        doc_sync_term(doc, doc_range_all(doc), doc_pos_create(display.x, display.y));
+        inkey();
+    }
+    else
+    {
+        doc_display_aux(doc, "Object Info", 0, display);
+    }
+    screen_load();
+
+    doc_free(doc);
 }
 
 void obj_display_rect(object_type *o_ptr, rect_t display)

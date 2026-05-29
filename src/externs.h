@@ -220,6 +220,7 @@ extern bool allow_special3_hack;
 extern bool temporary_name_hack;
 extern bool online_macro_hack;
 extern bool recall_stairs_hack;
+extern bool suppress_travel_resume_prompt_hack;
 extern bool silent_drop_hack;
 extern bool check_useless_pickup_hack;
 extern bool drop_near_stack_hack;

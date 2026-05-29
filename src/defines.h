@@ -5259,6 +5259,7 @@ enum mon_save_fields_e {
 #define SKEY_PGDOWN       0xf006
 #define SKEY_TOP          0xf007
 #define SKEY_BOTTOM       0xf008
+#define SKEY_F3           0xf009
 
 /*
  * Bit flags for move_player_effect()

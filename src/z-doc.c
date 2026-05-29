@@ -454,12 +454,14 @@ static bool _line_test_str(doc_char_ptr cell, int ncell, cptr what, int nwhat)
     return FALSE;
 }
 
-static int _line_find_str(doc_char_ptr cell, int ncell, cptr what)
+static int _line_find_str_aux(doc_char_ptr cell, int ncell, cptr what, int start)
 {
     int i;
     int nwhat = strlen(what);
 
-    for (i = 0; i < ncell - nwhat; i++)
+    if (!nwhat) return -1;
+
+    for (i = start; i <= ncell - nwhat; i++)
     {
         if (_line_test_str(cell + i, ncell - i, what, nwhat))
             return i;
@@ -468,9 +470,21 @@ static int _line_find_str(doc_char_ptr cell, int ncell, cptr what)
     return -1;
 }
 
-doc_pos_t doc_find_next(doc_ptr doc, cptr text, doc_pos_t start)
+static int _line_find_str(doc_char_ptr cell, int ncell, cptr what)
+{
+    return _line_find_str_aux(cell, ncell, what, 0);
+}
+
+static bool _doc_find_next_region(doc_ptr doc, cptr text, doc_pos_t start, doc_region_ptr region)
 {
     int y;
+    int len = strlen(text);
+
+    if (!len) return FALSE;
+    if (start.y < 0) start.y = 0;
+    if (start.y > doc->cursor.y) return FALSE;
+    if (start.x < 0) start.x = 0;
+    if (start.x > doc->width) start.x = doc->width;
 
     for (y = start.y; y <= doc->cursor.y; y++)
     {
@@ -481,15 +495,64 @@ doc_pos_t doc_find_next(doc_ptr doc, cptr text, doc_pos_t start)
 
         if (i >= 0)
         {
-            doc->selection.start.x = x + i;
-            doc->selection.start.y = y;
-
-            doc->selection.stop.x = x + i + strlen(text);
-            doc->selection.stop.y = y;
-
-            return doc->selection.start;
+            region->start.x = x + i;
+            region->start.y = y;
+            region->stop.x = x + i + len;
+            region->stop.y = y;
+            return TRUE;
         }
    }
+
+    return FALSE;
+}
+
+static bool _doc_find_prev_region(doc_ptr doc, cptr text, doc_pos_t start, doc_region_ptr region)
+{
+    int y;
+    int len = strlen(text);
+
+    if (!len) return FALSE;
+    if (start.y > doc->cursor.y) start.y = doc->cursor.y;
+    if (start.y < 0) return FALSE;
+    if (start.x < 0) start.x = 0;
+    if (start.x > doc->width) start.x = doc->width;
+
+    for (y = start.y; y >= 0; y--)
+    {
+        int          limit = (y == start.y) ? start.x : doc->width;
+        int          i = -1;
+        doc_char_ptr cell = doc_char(doc, doc_pos_create(0, y));
+
+        if (limit < len) continue;
+
+        for (;;)
+        {
+            int next = _line_find_str_aux(cell, limit, text, i + 1);
+            if (next < 0) break;
+            i = next;
+        }
+
+        if (i >= 0)
+        {
+            region->start.x = i;
+            region->start.y = y;
+            region->stop.x = i + len;
+            region->stop.y = y;
+            return TRUE;
+        }
+   }
+
+    return FALSE;
+}
+
+doc_pos_t doc_find_next(doc_ptr doc, cptr text, doc_pos_t start)
+{
+    doc_region_t region = doc_region_invalid();
+    if (_doc_find_next_region(doc, text, start, &region))
+    {
+        doc->selection = region;
+        return region.start;
+    }
 
     doc->selection = doc_region_invalid();
     return doc_pos_invalid();
@@ -497,28 +560,219 @@ doc_pos_t doc_find_next(doc_ptr doc, cptr text, doc_pos_t start)
 
 doc_pos_t doc_find_prev(doc_ptr doc, cptr text, doc_pos_t start)
 {
-    int y;
-
-    for (y = start.y; y >= 0; y--)
+    doc_region_t region = doc_region_invalid();
+    if (_doc_find_prev_region(doc, text, start, &region))
     {
-        int          ncell = (y == start.y) ? start.x - 1 : doc->width;
-        doc_char_ptr cell = doc_char(doc, doc_pos_create(0, y));
-        int          i = _line_find_str(cell, ncell, text);
-
-        if (i >= 0)
-        {
-            doc->selection.start.x = i;
-            doc->selection.start.y = y;
-
-            doc->selection.stop.x = i + strlen(text);
-            doc->selection.stop.y = y;
-
-            return doc->selection.start;
-        }
-   }
+        doc->selection = region;
+        return region.start;
+    }
 
     doc->selection = doc_region_invalid();
     return doc_pos_invalid();
+}
+
+typedef struct
+{
+    char text[81];
+    bool active;
+    int  total;
+    int  current;
+    int  wrap;
+} _doc_search_t, *_doc_search_ptr;
+
+#define _DOC_SEARCH_WRAP_NONE   0
+#define _DOC_SEARCH_WRAP_TOP    1
+#define _DOC_SEARCH_WRAP_BOTTOM -1
+#define _DOC_RAW_F3             0x86
+
+static int _doc_search_count(doc_ptr doc, cptr text)
+{
+    int total = 0;
+    int len = strlen(text);
+    int y;
+
+    if (!len) return 0;
+
+    for (y = 0; y <= doc->cursor.y; y++)
+    {
+        int          pos = 0;
+        doc_char_ptr cell = doc_char(doc, doc_pos_create(0, y));
+
+        for (;;)
+        {
+            int match = _line_find_str_aux(cell, doc->width, text, pos);
+            if (match < 0) break;
+            total++;
+            pos = match + len;
+        }
+    }
+
+    return total;
+}
+
+static int _doc_search_current(doc_ptr doc, cptr text, doc_pos_t target)
+{
+    int total = 0;
+    int len = strlen(text);
+    int y;
+
+    if (!len || !doc_pos_is_valid(target)) return 0;
+
+    for (y = 0; y <= doc->cursor.y; y++)
+    {
+        int          pos = 0;
+        doc_char_ptr cell = doc_char(doc, doc_pos_create(0, y));
+
+        for (;;)
+        {
+            int match = _line_find_str_aux(cell, doc->width, text, pos);
+            if (match < 0) break;
+            total++;
+            if (y == target.y && match == target.x)
+                return total;
+            pos = match + len;
+        }
+    }
+
+    return 0;
+}
+
+static bool _doc_search_open(doc_ptr doc, rect_t display, _doc_search_ptr search)
+{
+    _doc_search_t old = *search;
+    doc_region_t  old_selection = doc->selection;
+
+    Term_erase(display.x, display.y + display.cy - 1, display.cx);
+    put_str("Find: ", display.y + display.cy - 1, display.x);
+
+    if (!askfor(search->text, 80))
+    {
+        *search = old;
+        doc->selection = old_selection;
+        return FALSE;
+    }
+
+    search->wrap = _DOC_SEARCH_WRAP_NONE;
+    search->current = 0;
+    search->active = (search->text[0] != '\0');
+    search->total = search->active ? _doc_search_count(doc, search->text) : 0;
+    doc->selection = doc_region_invalid();
+    return TRUE;
+}
+
+static bool _doc_search_next(doc_ptr doc, _doc_search_ptr search, int *top, int page_size)
+{
+    doc_region_t found = doc_region_invalid();
+    doc_region_t old_selection = doc->selection;
+    doc_pos_t    start;
+
+    search->wrap = _DOC_SEARCH_WRAP_NONE;
+    if (!search->active || !search->text[0]) return FALSE;
+
+    search->total = _doc_search_count(doc, search->text);
+    if (!search->total)
+    {
+        search->current = 0;
+        doc->selection = old_selection;
+        return FALSE;
+    }
+
+    start = doc_pos_is_valid(old_selection.stop) ? old_selection.stop : doc_pos_create(0, *top);
+    if (!_doc_find_next_region(doc, search->text, start, &found))
+    {
+        if (!_doc_find_next_region(doc, search->text, doc_pos_create(0, 0), &found))
+        {
+            doc->selection = old_selection;
+            return FALSE;
+        }
+        search->wrap = _DOC_SEARCH_WRAP_TOP;
+    }
+
+    doc->selection = found;
+    search->current = _doc_search_current(doc, search->text, found.start);
+
+    *top = found.start.y;
+    if (*top > doc->cursor.y - page_size)
+        *top = MAX(0, doc->cursor.y - page_size);
+    return TRUE;
+}
+
+static bool _doc_search_prev(doc_ptr doc, _doc_search_ptr search, int *top, int page_size)
+{
+    doc_region_t found = doc_region_invalid();
+    doc_region_t old_selection = doc->selection;
+    doc_pos_t    start;
+
+    search->wrap = _DOC_SEARCH_WRAP_NONE;
+    if (!search->active || !search->text[0]) return FALSE;
+
+    search->total = _doc_search_count(doc, search->text);
+    if (!search->total)
+    {
+        search->current = 0;
+        doc->selection = old_selection;
+        return FALSE;
+    }
+
+    start = doc_pos_is_valid(old_selection.start)
+        ? old_selection.start
+        : doc_pos_create(doc->width, MIN(doc->cursor.y, *top + page_size));
+
+    if (!_doc_find_prev_region(doc, search->text, start, &found))
+    {
+        if (!_doc_find_prev_region(doc, search->text, doc_pos_create(doc->width, doc->cursor.y), &found))
+        {
+            doc->selection = old_selection;
+            return FALSE;
+        }
+        search->wrap = _DOC_SEARCH_WRAP_BOTTOM;
+    }
+
+    doc->selection = found;
+    search->current = _doc_search_current(doc, search->text, found.start);
+
+    *top = found.start.y;
+    if (*top > doc->cursor.y - page_size)
+        *top = MAX(0, doc->cursor.y - page_size);
+    return TRUE;
+}
+
+static bool _doc_cmd_is_f3(int cmd)
+{
+    return cmd == SKEY_F3 || cmd == _DOC_RAW_F3;
+}
+
+static bool _doc_cmd_is_shift_f3(int cmd)
+{
+    return cmd == (SKEY_F3 | SKEY_MOD_SHIFT);
+}
+
+static bool _doc_search_prompt_cmd(int cmd, _doc_search_ptr search)
+{
+    if (cmd == '/') return TRUE;
+    if (cmd == '\\') return !search->active;
+    if (cmd == KTRL('F')) return !search->active;
+    if (_doc_cmd_is_f3(cmd) || _doc_cmd_is_shift_f3(cmd))
+        return !search->active;
+    return FALSE;
+}
+
+static void _doc_search_status(char *buf, int max, _doc_search_ptr search)
+{
+    if (!search->active || !search->text[0])
+    {
+        buf[0] = '\0';
+        return;
+    }
+
+    if (!search->total)
+        snprintf(buf, max, "[Find: %s (0/0 matches; no matches)]", search->text);
+    else if (search->wrap == _DOC_SEARCH_WRAP_TOP)
+        snprintf(buf, max, "[Find: %s (%d/%d matches; wrapped to top)]", search->text, search->current, search->total);
+    else if (search->wrap == _DOC_SEARCH_WRAP_BOTTOM)
+        snprintf(buf, max, "[Find: %s (%d/%d matches; wrapped to bottom)]", search->text, search->current, search->total);
+    else
+        snprintf(buf, max, "[Find: %s (%d/%d matches)]", search->text, search->current, search->total);
 }
 
 void doc_push_style(doc_ptr doc, doc_style_ptr style)
@@ -1627,13 +1881,11 @@ int doc_display_aux(doc_ptr doc, cptr caption, int top, rect_t display)
 {
     int     rc = _OK;
     int     i;
-    char    finder_str[81];
-    char    back_str[81];
+    char    search_status[255];
     int     page_size;
     bool    done = FALSE;
     bool    verify_format_hack = (strpos("Character Sheet", caption) == 1);
-
-    strcpy(finder_str, "");
+    _doc_search_t search = {{0}};
 
     page_size = display.cy - 4;
 
@@ -1652,10 +1904,34 @@ int doc_display_aux(doc_ptr doc, cptr caption, int top, rect_t display)
         Term_erase(display.x, display.y, display.cx);
         c_put_str(TERM_L_GREEN, format("[%s, Line %d/%d]", caption, top, doc->cursor.y), display.y, display.x);
         doc_sync_term(doc, doc_region_create(0, top, doc->width, top + page_size - 1), doc_pos_create(display.x, display.y + 2));
+        Term_erase(display.x, display.y + display.cy - 2, display.cx);
+        _doc_search_status(search_status, sizeof(search_status), &search);
+        if (search_status[0])
+            c_put_str(TERM_YELLOW, search_status, display.y + display.cy - 2, display.x);
         Term_erase(display.x, display.y + display.cy - 1, display.cx);
-        c_put_str(TERM_L_GREEN, "[Press ESC to exit. Press ? for help]", display.y + display.cy - 1, display.x);
+        c_put_str(TERM_L_GREEN, "[ESC exit. / or Ctrl+F find. Enter/F3 next. Shift+F3 prev. ? help]",
+            display.y + display.cy - 1, display.x);
 
         cmd = inkey_special(TRUE);
+
+        if (_doc_search_prompt_cmd(cmd, &search))
+        {
+            _doc_search_open(doc, display, &search);
+            continue;
+        }
+        if (search.active)
+        {
+            if (cmd == '\r' || cmd == '\n' || cmd == KTRL('F') || _doc_cmd_is_f3(cmd))
+            {
+                _doc_search_next(doc, &search, &top, page_size);
+                continue;
+            }
+            if (cmd == '\\' || _doc_cmd_is_shift_f3(cmd))
+            {
+                _doc_search_prev(doc, &search, &top, page_size);
+                continue;
+            }
+        }
 
         /* links */
         if ('a' <= cmd && cmd <= 'z')
@@ -1840,50 +2116,6 @@ int doc_display_aux(doc_ptr doc, cptr caption, int top, rect_t display)
             msg_print(NULL);
             break;
         }
-        case '/':
-            Term_erase(display.x, display.y + display.cy - 1, display.cx);
-            put_str("Find: ", display.y + display.cy - 1, display.x);
-            strcpy(back_str, finder_str);
-            if (askfor(finder_str, 80))
-            {
-                if (finder_str[0])
-                {
-                    doc_pos_t pos = doc->selection.stop;
-                    if (!doc_pos_is_valid(pos))
-                        pos = doc_pos_create(0, top);
-                    pos = doc_find_next(doc, finder_str, pos);
-                    if (doc_pos_is_valid(pos))
-                    {
-                        top = pos.y;
-                        if (top > doc->cursor.y - page_size)
-                            top = MAX(0, doc->cursor.y - page_size);
-                    }
-                }
-            }
-            else strcpy(finder_str, back_str);
-            break;
-        case '\\':
-            Term_erase(display.x, display.y + display.cy - 1, display.cx);
-            put_str("Find: ", display.y + display.cy - 1, display.x);
-            strcpy(back_str, finder_str);
-            if (askfor(finder_str, 80))
-            {
-                if (finder_str[0])
-                {
-                    doc_pos_t pos = doc->selection.start;
-                    if (!doc_pos_is_valid(pos))
-                        pos = doc_pos_create(doc->width, top + page_size);
-                    pos = doc_find_prev(doc, finder_str, pos);
-                    if (doc_pos_is_valid(pos))
-                    {
-                        top = pos.y;
-                        if (top > doc->cursor.y - page_size)
-                            top = MAX(0, doc->cursor.y - page_size);
-                    }
-                }
-            }
-            else strcpy(finder_str, back_str);
-            break;
         default:
         {   /* BETA: Any unhandled keystroke will navigate to the next topic based
                      upon a comparison of the first letter. This is nice, say, for

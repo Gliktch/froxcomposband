@@ -1124,6 +1124,10 @@ bool apply_disenchant(int mode)
             (to_a != o_ptr->to_a) || (pval != o_ptr->pval))
         {
             msg_format("Your %s was disenchanted!", o_name);
+            if ((pval != o_ptr->pval) && (alert_item_major || (alert_insc_gone && obj_is_inscribed(o_ptr))))
+                msg_print(NULL);
+            else if (((to_h != o_ptr->to_h) || (to_d != o_ptr->to_d) || (to_a != o_ptr->to_a)) && alert_item_minor)
+                msg_print(NULL);
             virtue_add(VIRTUE_HARMONY, 1);
             virtue_add(VIRTUE_ENCHANTMENT, -2);
             if (o_ptr->insured) cornucopia_item_disenchanted(o_ptr, to_a, to_h, to_d, pval);
@@ -3962,6 +3966,7 @@ static bool _damage_obj(obj_ptr obj, int p1, int p2, int which_res, bool mon_att
         else
             msg_format("All of your %s were destroyed!", o_name);
 
+        if (alert_item_major) warn_player = TRUE;
         if ((alert_device_gone) && (object_is_device(obj))) warn_player = TRUE;
         if ((alert_insc_gone) && (obj_is_inscribed(obj))) warn_player = TRUE;
 
@@ -4017,7 +4022,7 @@ void inven_damage(int who, inven_func typ, int p1, int which)
                 if (object_is_artifact(obj)) continue;
                 if (!typ(obj)) continue;
 
-                (void)_damage_obj(obj, p1, p2, which, (who > 0));
+                if (_damage_obj(obj, p1, p2, which, (who > 0))) varoita = TRUE;
             }
         }
     }
@@ -4063,6 +4068,8 @@ int minus_ac(void)
         }
 
         msg_format("Your %s %s damaged!", o_name, object_plural(o_ptr) ? "are" : "is");
+        if (alert_item_minor)
+            msg_print(NULL);
         o_ptr->to_a--;
         p_ptr->update |= PU_BONUS;
         p_ptr->window |= PW_EQUIP;

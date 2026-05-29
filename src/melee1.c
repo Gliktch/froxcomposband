@@ -667,10 +667,11 @@ bool make_attack_normal(int m_idx)
                             m_ptr->hold_o_idx = o_idx;
                         }
 
-                        if (((alert_device_gone) && (object_is_device(obj))) ||
+                        if ((alert_item_major) ||
+                           ((alert_device_gone) && (object_is_device(obj))) ||
                            ((alert_insc_gone) && (obj_is_inscribed(obj))))
                         {
-                            msg_print(NULL); /* -more- prompt */
+                            msg_print(NULL);
                         }
 
                         obj->number--;

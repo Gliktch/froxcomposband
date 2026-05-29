@@ -423,19 +423,25 @@ Attempts to make a bell noise when various errors occur. The bell may not work o
 <topic:disturb_trap_detect><color:U>Disturb when leaving trap-detected area</color> <color:D>(disturb_trap_detect)</color>
 This option causes you to be disturbed when you move out of a trap-detected area.
 
-<topic:alert_trap_detect><color:U>Alert when leaving trap-detected area</color> <color:D>(alert_trap_detect)</color>
-This option alerts you with a message when you move out of a trap-detected area.
+<topic:alert_item_minor><color:U>Alert: Equipped item damaged or cursed</color> <color:D>(alert_item_minor)</color>
+This option forces a <color:B>-more-</color> prompt when one of your equipped items is damaged without suffering permanent power loss, or when you learn that one is cursed.
 
-<topic:alert_device_gone><color:U>Alert when carried device is destroyed or stolen</color> <color:D>(alert_device_gone)</color>
+<topic:alert_item_major><color:U>Alert: Item permanently damaged/lost</color> <color:D>(alert_item_major)</color>
+This option forces a <color:B>-more-</color> prompt whenever one of your equipped or carried items is destroyed, stolen, or loses <color:keyword>pval</color>.
+
+<topic:alert_insc_gone><color:U>Alert: Inscribed item permanently damaged/lost</color> <color:D>(alert_insc_gone)</color>
+This option forces a <color:B>-more-</color> prompt whenever any inscribed item you carry is destroyed, stolen, or loses <color:keyword>pval</color>.
+
+<topic:alert_device_gone><color:U>Alert: Carried device destroyed or stolen</color> <color:D>(alert_device_gone)</color>
 This option forces a <color:B>-more-</color> prompt whenever any wand, rod or staff in your inventory is destroyed or stolen.
 
-<topic:alert_insc_gone><color:U>Alert when inscribed item is destroyed or stolen</color> <color:D>(alert_insc_gone)</color>
-This option forces a <color:B>-more-</color> prompt whenever any inscribed item in your inventory is destroyed or stolen.
+<topic:alert_trap_detect><color:U>Alert: Left a trap-detected area</color> <color:D>(alert_trap_detect)</color>
+This option alerts you with a message when you move out of a trap-detected area.
 
-<topic:alert_wanted_kill><color:U>Alert on killing wanted uniques</color> <color:D>(alert_wanted_kill)</color>
+<topic:alert_wanted_kill><color:U>Alert: Wanted unique monster killed</color> <color:D>(alert_wanted_kill)</color>
 This option forces a <color:B>-more-</color> prompt when a unique with a price on its head is killed.
 
-<topic:alert_poison><color:U>Alert on dangerously high poison counter</color> <color:D>(alert_poison)</color>
+<topic:alert_poison><color:U>Alert: Dangerously high poison counter</color> <color:D>(alert_poison)</color>
 This option alerts you with a message before your move if your poison counter exceeds your current HP, 80% of your maximum HP, or 499 points, whichever is lowest. (Subsequent warnings for the same instance of poisoning will be displayed only if you are at immediate risk of dying from poison.)
 
 </indent>

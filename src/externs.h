@@ -382,8 +382,10 @@ extern bool town_no_disturb;    /* Never disturb when a town monster moves */
 extern bool ring_bell;    /* Audible bell (on errors, etc) */
 extern bool disturb_trap_detect;    /* Disturb when leaving trap detected area */
 extern bool alert_trap_detect;    /* Alert when leaving trap detected area */
-extern bool alert_device_gone;  /* Alert when device is destroyed or stolen */
+extern bool alert_item_minor;    /* Alert when an equipped item is damaged or cursed */
+extern bool alert_item_major;    /* Alert when an item is permanently damaged or lost */
 extern bool alert_insc_gone;    /* Alert when inscribed item is destroyed or stolen */
+extern bool alert_device_gone;  /* Alert when device is destroyed or stolen */
 extern bool alert_wanted_kill;  /* Alert when killing a wanted monster */
 extern bool alert_poison;       /* Alert on poisoning */
 

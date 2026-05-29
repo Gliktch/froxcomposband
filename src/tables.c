@@ -2389,20 +2389,26 @@ option_type option_info[] =
     { &disturb_trap_detect,         TRUE,  OPT_PAGE_DISTURBANCE, 0, 27,
     "disturb_trap_detect",          "Disturb when leaving trap-detected area" },
 
-    { &alert_trap_detect,           FALSE, OPT_PAGE_DISTURBANCE, 0, 25,
-    "alert_trap_detect",            "Alert when leaving trap-detected area" },
+    { &alert_item_minor,            FALSE, OPT_PAGE_DISTURBANCE, 3, 0,
+    "alert_item_minor",             "Alert: Equipped item damaged or cursed" },
 
-    { &alert_device_gone,           TRUE,  OPT_PAGE_DISTURBANCE, 0, 13,
-    "alert_device_gone",            "Alert when carried device is destroyed or stolen" },
+    { &alert_item_major,            FALSE, OPT_PAGE_DISTURBANCE, 3, 1,
+    "alert_item_major",             "Alert: Item permanently damaged/lost" },
 
     { &alert_insc_gone,             TRUE,  OPT_PAGE_DISTURBANCE, 0, 2,
-    "alert_insc_gone",              "Alert when inscribed item is destroyed or stolen" },
+    "alert_insc_gone",              "Alert: Inscribed item permanently damaged/lost" },
+
+    { &alert_device_gone,           TRUE,  OPT_PAGE_DISTURBANCE, 0, 13,
+    "alert_device_gone",            "Alert: Carried device destroyed or stolen" },
+
+    { &alert_trap_detect,           FALSE, OPT_PAGE_DISTURBANCE, 0, 25,
+    "alert_trap_detect",            "Alert: Left a trap-detected area" },
 
     { &alert_wanted_kill,           FALSE,  OPT_PAGE_DISTURBANCE, 0, 30,
-    "alert_wanted_kill",            "Alert on killing wanted uniques" },
+    "alert_wanted_kill",            "Alert: Wanted unique monster killed" },
 
     { &alert_poison,                TRUE,  OPT_PAGE_DISTURBANCE, 2, 2,
-    "alert_poison",                 "Alert on dangerously high poison counter" },
+    "alert_poison",                 "Alert: Dangerously high poison counter" },
 
     /*** Birth Options ***/
 

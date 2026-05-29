@@ -1929,6 +1929,8 @@ void equip_learn_curse(int flag)
             char buf[MAX_NLEN];
             object_desc(buf, obj, OD_LORE);
             msg_format("<color:B>You feel that your %s is <color:r>cursed</color>.</color>", buf);
+            if (alert_item_minor)
+                msg_print(NULL);
         }
     }
 }

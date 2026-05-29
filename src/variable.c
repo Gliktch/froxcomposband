@@ -351,8 +351,10 @@ bool town_no_disturb;
 bool ring_bell;    /* Audible bell (on errors, etc) */
 bool disturb_trap_detect;    /* Disturb when leaving trap detected area */
 bool alert_trap_detect;    /* Alert when leaving trap detected area */
-bool alert_device_gone;  /* Alert when device is destroyed or stolen */
+bool alert_item_minor;   /* Alert when an equipped item is damaged or cursed */
+bool alert_item_major;   /* Alert when an item is permanently damaged or lost */
 bool alert_insc_gone;    /* Alert when inscribed item is destroyed or stolen */
+bool alert_device_gone;  /* Alert when device is destroyed or stolen */
 bool alert_wanted_kill;  /* Alert when killing a wanted monster */
 bool alert_poison;   /* Alert on high poisoning */
 

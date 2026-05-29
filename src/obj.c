@@ -940,6 +940,39 @@ static int _inspector(obj_prompt_context_ptr context, int cmd)
     return OP_CMD_SKIPPED;
 }
 
+static string_ptr _inventory_prompt(void)
+{
+    int        wgt = py_total_weight();
+    int        pct = wgt * 100 / weight_limit();
+
+    return string_alloc_format(
+        "<color:w>Carrying %d.%d pounds (<color:%c>%d%%</color> capacity).</color>\n\n"
+        "Examine which item <color:w>(<color:keypress>Esc</color> to exit)</color>?",
+        wgt / 10, wgt % 10, pct > 100 ? 'r' : 'G', pct);
+}
+
+void obj_inventory_ui(void)
+{
+    obj_prompt_t prompt = {0};
+    string_ptr   s = _inventory_prompt();
+
+    prompt.prompt = string_buffer(s);
+    prompt.error = "You have nothing to examine.";
+    prompt.filter = obj_exists;
+    prompt.where[0] = INV_PACK;
+    prompt.where[1] = INV_EQUIP;
+    prompt.where[2] = INV_QUIVER;
+    prompt.where[3] = INV_FLOOR;
+    prompt.top_loc = INV_PACK;
+    prompt.cmd_handler = _inspector;
+
+    obj_prompt(&prompt);
+    string_free(s);
+
+    if (prompt.obj)
+        obj_display(prompt.obj);
+}
+
 void obj_inspect_ui(void)
 {
     obj_prompt_t prompt = {0};
@@ -966,14 +999,8 @@ void obj_inspect_ui(void)
 void gear_ui(int which)
 {
     obj_prompt_t prompt = {0};
-    int          wgt = py_total_weight();
-    int          pct = wgt * 100 / weight_limit();
-    string_ptr   s;
+    string_ptr   s = _inventory_prompt();
 
-    s = string_alloc_format(
-        "<color:w>Carrying %d.%d pounds (<color:%c>%d%%</color> capacity).</color>\n\n"
-        "Examine which item <color:w>(<color:keypress>Esc</color> to exit)</color>?",
-         wgt / 10, wgt % 10, pct > 100 ? 'r' : 'G', pct);
     prompt.prompt = string_buffer(s);
     prompt.where[0] = INV_PACK;
     prompt.where[1] = INV_EQUIP;

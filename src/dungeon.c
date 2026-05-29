@@ -3607,7 +3607,7 @@ static void _dispatch_command(int old_now_turn)
         /* Inventory list */
         case 'i':
         {
-            pack_ui();
+            obj_inventory_ui();
             break;
         }
 

@@ -40,6 +40,7 @@ extern void    obj_enforce_ammo_pile_floor(obj_ptr obj, int min_amt);
 extern void obj_destroy_ui(void);
 extern void obj_inscribe_ui(void);
 extern void obj_uninscribe_ui(void);
+extern void obj_inventory_ui(void);
 extern void obj_inspect_ui(void);
 extern void gear_ui(int which);
 

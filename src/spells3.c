@@ -2393,6 +2393,9 @@ bool artifact_scroll(void)
 
     object_desc(o_name, prompt.obj, (OD_OMIT_PREFIX | OD_NAME_ONLY));
 
+    if (!get_check(format("Use Artifact Creation on %s? ", o_name)))
+        return FALSE;
+
     /* Describe */
     msg_format("The %s radiate%s a blinding light!", o_name,
           ((prompt.obj->number > 1) ? "" : "s"));

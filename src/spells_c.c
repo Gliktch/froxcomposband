@@ -325,6 +325,9 @@ void crafting_spell(int cmd, variant *res)
 
         object_desc(o_name, prompt.obj, (OD_OMIT_PREFIX | OD_NAME_ONLY));
 
+        if (!get_check(format("Use Crafting on %s? ", o_name)))
+            return;
+
         if (!object_is_nameless(prompt.obj))
         {
             msg_print("You cannot enchant that item any further.");

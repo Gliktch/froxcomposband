@@ -5321,6 +5321,10 @@ bool target_set(int mode)
 bool get_fire_dir(int *dp) { return get_fire_dir_aux(dp, TARGET_KILL); }
 bool get_fire_dir_aux(int *dp, int target_mode)
 {
+    if (target_mode == TARGET_DISI)
+    {
+        return get_aim_dir_aux(dp, target_mode);
+    }
 	if (old_target_okay_mode(target_mode)) {
 		*dp = 5;
 		p_ptr->redraw |= PR_HEALTH_BARS;
@@ -5337,7 +5341,7 @@ bool get_fire_dir_aux(int *dp, int target_mode)
             if (!m_ptr->r_idx) continue;
             if (!m_ptr->ml) continue;
             if (!target_pet && is_pet(m_ptr)) continue;
-            if (target_mode != TARGET_DISI && !projectable(py, px, m_ptr->fy, m_ptr->fx)) continue;
+            if (!projectable(py, px, m_ptr->fy, m_ptr->fx)) continue;
             if ((p_ptr->riding) && (i == p_ptr->riding) && (m_ptr->cdis <= 1))
             {
                 best_m_idx = i;

@@ -1349,7 +1349,7 @@ void obj_destroy(obj_ptr obj, int amt)
 
     if (!amt) return;
 
-    energy_use = 100;
+    energy_use = 50;
     if (obj->loc.where != INV_FLOOR) p_ptr->update |= PU_BONUS; /* recalculate weight */
     if (amt < obj->number)
     {

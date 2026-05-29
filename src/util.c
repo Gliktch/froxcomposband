@@ -1754,6 +1754,53 @@ errr macro_add(cptr pat, cptr act)
     return (0);
 }
 
+errr macro_remove(cptr pat)
+{
+    int i;
+    int j;
+
+    i = macro_find_exact(pat);
+    if (i < 0) return -1;
+
+    z_string_free((char *)macro__pat[i]);
+    z_string_free((char *)macro__act[i]);
+
+    for (j = i; j < macro__num - 1; j++)
+    {
+        macro__pat[j] = macro__pat[j + 1];
+        macro__act[j] = macro__act[j + 1];
+    }
+
+    if (macro__num > 0)
+    {
+        macro__pat[macro__num - 1] = NULL;
+        macro__act[macro__num - 1] = NULL;
+        macro__num--;
+    }
+
+    C_WIPE(macro__use, 256, bool);
+    for (j = 0; j < macro__num; j++)
+        macro__use[(byte)(macro__pat[j][0])] = TRUE;
+
+    return 0;
+}
+
+void macro_clear_all(void)
+{
+    int i;
+
+    for (i = macro__num - 1; i >= 0; i--)
+    {
+        z_string_free((char *)macro__pat[i]);
+        z_string_free((char *)macro__act[i]);
+        macro__pat[i] = NULL;
+        macro__act[i] = NULL;
+    }
+
+    macro__num = 0;
+    C_WIPE(macro__use, 256, bool);
+}
+
 
 
 /*
@@ -1968,6 +2015,9 @@ static char inkey_aux(void)
     /* Check for available macro */
     k = macro_find_ready(buf);
 
+    /* Preserve full trigger capture, but don't expand macros. */
+    if (inkey_no_macros && k >= 0) return buf[0];
+
     /* No macro available */
     if (k < 0)
     {
@@ -2142,7 +2192,7 @@ char inkey(void)
         ch = *inkey_next++;
 
         /* Cancel the various "global parameters" */
-        inkey_base = inkey_xtra = inkey_flag = inkey_scan = FALSE;
+        inkey_base = inkey_xtra = inkey_flag = inkey_scan = inkey_no_macros = FALSE;
 
         /* Accept result */
         return (ch);
@@ -2337,7 +2387,7 @@ char inkey(void)
 
 
     /* Cancel the various "global parameters" */
-    inkey_base = inkey_xtra = inkey_flag = inkey_scan = FALSE;
+    inkey_base = inkey_xtra = inkey_flag = inkey_scan = inkey_no_macros = FALSE;
 
     update_playtime(); /* ... which now limits to 30s max */
 
@@ -2739,7 +2789,6 @@ static bool _askfor_aux(char *buf, int len, bool numpad_cursor, bool edit_defaul
         /* Place cursor */
         Term_gotoxy(x + pos, y);
 
-        /* Get a special key code */
         skey = inkey_special(numpad_cursor);
 
         /* Analyze the key */
@@ -3099,7 +3148,10 @@ bool get_com(cptr prompt, char *command, bool z_escape)
 
     /* Get a key */
     if (get_com_no_macros)
+    {
+        inkey_no_macros = TRUE;
         *command = inkey_special(FALSE);
+    }
     else
         *command = inkey();
 

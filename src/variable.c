@@ -145,6 +145,7 @@ bool inkey_base;        /* See the "inkey()" function */
 bool inkey_xtra;        /* See the "inkey()" function */
 bool inkey_scan;        /* See the "inkey()" function */
 bool inkey_flag;        /* See the "inkey()" function */
+bool inkey_no_macros;   /* Disable macro expansion but still read full triggers */
 bool get_com_no_macros = FALSE;    /* Expand macros in "get_com" or not */
 
 s16b coin_type;            /* Hack -- force coin type */

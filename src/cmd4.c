@@ -1787,629 +1787,2034 @@ void do_cmd_reload_autopick(void)
 
 #ifdef ALLOW_MACROS
 
-/*
- * Hack -- append all current macros to the given file
- */
-static errr macro_dump(cptr fname)
+#define MACRO_UI_SCOPE_ALL     0
+#define MACRO_UI_SCOPE_KEYMAPS 1
+#define MACRO_UI_SCOPE_MACROS  2
+
+#define MACRO_UI_OP_LOAD 0
+#define MACRO_UI_OP_SAVE 1
+
+#define MACRO_UI_MODE_REPLACE 1
+#define MACRO_UI_MODE_ADD     2
+
+#define MACRO_UI_MAX_FILE_LINES 4096
+#define MACRO_UI_MAX_ENTRIES   512
+
+typedef struct
 {
-    static cptr mark = "Macro Dump";
+    int count;
+    cptr pat[MACRO_MAX];
+    cptr act[MACRO_MAX];
+} macro_snapshot_t;
 
-    int i;
+typedef struct
+{
+    int mode;
+    cptr act[256];
+} keymap_snapshot_t;
 
-    char buf[1024];
+typedef struct
+{
+    int mode;
+    macro_snapshot_t baseline_macros;
+    keymap_snapshot_t baseline_keymaps[KEYMAP_MODES];
+    macro_snapshot_t original_macros;
+    keymap_snapshot_t original_keymaps[KEYMAP_MODES];
+} macro_ui_context_t;
 
-    /* Build the filename */
-    path_build(buf, sizeof(buf), ANGBAND_DIR_USER, fname);
+typedef struct
+{
+    char trigger[1024];
+    char label[80];
+    cptr old_macro;
+    cptr new_macro;
+    cptr old_keymap;
+    cptr new_keymap;
+} macro_ui_entry_t;
 
-    /* File type is "TEXT" */
-    FILE_TYPE(FILE_TYPE_TEXT);
+static bool _macro_ui_session_snapshot_ready = FALSE;
+static bool _macro_ui_session_snapshot_storage_init = FALSE;
+static macro_snapshot_t _macro_ui_session_macros;
+static keymap_snapshot_t _macro_ui_session_keymaps[KEYMAP_MODES];
 
-    /* Append to the file */
-    if (!open_auto_dump(buf, mark)) return (-1);
-
-    /* Start dumping */
-    auto_dump_printf("\n# Automatic macro dump\n\n");
-
-    /* Dump them */
-    for (i = 0; i < macro__num; i++)
-    {
-        /* Extract the action */
-        ascii_to_text(buf, macro__act[i]);
-
-        /* Dump the macro */
-        auto_dump_printf("A:%s\n", buf);
-
-        /* Extract the action */
-        ascii_to_text(buf, macro__pat[i]);
-
-        /* Dump normal macros */
-        auto_dump_printf("P:%s\n", buf);
-
-        /* End the macro */
-        auto_dump_printf("\n");
-    }
-
-    /* Close */
-    close_auto_dump();
-
-    /* Success */
-    return (0);
+static int _macro_ui_inkey(void)
+{
+    inkey_no_macros = TRUE;
+    return inkey();
 }
 
-
-/*
- * Hack -- ask for a "trigger" (see below)
- *
- * Note the complex use of the "inkey()" function from "util.c".
- *
- * Note that both "flush()" calls are extremely important.
- */
-static void do_cmd_macro_aux(char *buf)
+static int _macro_ui_inkey_special(bool numpad_cursor)
 {
-    int i, n = 0;
+    inkey_no_macros = TRUE;
+    return inkey_special(numpad_cursor);
+}
 
-    char tmp[1024];
+static void _macro_snapshot_init(macro_snapshot_t *snap)
+{
+    int i;
 
+    snap->count = 0;
+    for (i = 0; i < MACRO_MAX; i++)
+    {
+        snap->pat[i] = NULL;
+        snap->act[i] = NULL;
+    }
+}
 
-    /* Flush */
+static void _macro_snapshot_free(macro_snapshot_t *snap)
+{
+    int i;
+
+    for (i = 0; i < snap->count; i++)
+    {
+        z_string_free((char *)snap->pat[i]);
+        z_string_free((char *)snap->act[i]);
+        snap->pat[i] = NULL;
+        snap->act[i] = NULL;
+    }
+    snap->count = 0;
+}
+
+static int _macro_snapshot_find(const macro_snapshot_t *snap, cptr pat)
+{
+    int i;
+
+    for (i = 0; i < snap->count; i++)
+    {
+        if (streq(snap->pat[i], pat)) return i;
+    }
+    return -1;
+}
+
+static cptr _macro_snapshot_get(const macro_snapshot_t *snap, cptr pat)
+{
+    int i = _macro_snapshot_find(snap, pat);
+    if (i < 0) return NULL;
+    return snap->act[i];
+}
+
+static void _macro_snapshot_set(macro_snapshot_t *snap, cptr pat, cptr act)
+{
+    int i;
+
+    if (!pat || !act) return;
+    i = _macro_snapshot_find(snap, pat);
+    if (i >= 0)
+    {
+        z_string_free((char *)snap->act[i]);
+        snap->act[i] = z_string_make(act);
+        return;
+    }
+    if (snap->count >= MACRO_MAX) return;
+
+    i = snap->count++;
+    snap->pat[i] = z_string_make(pat);
+    snap->act[i] = z_string_make(act);
+}
+
+static void _macro_snapshot_copy(macro_snapshot_t *dest, const macro_snapshot_t *src)
+{
+    int i;
+
+    _macro_snapshot_free(dest);
+    for (i = 0; i < src->count; i++)
+        _macro_snapshot_set(dest, src->pat[i], src->act[i]);
+}
+
+static void _macro_snapshot_current(macro_snapshot_t *snap)
+{
+    int i;
+
+    _macro_snapshot_free(snap);
+    for (i = 0; i < macro__num; i++)
+        _macro_snapshot_set(snap, macro__pat[i], macro__act[i]);
+}
+
+static void _macro_snapshot_apply(const macro_snapshot_t *snap)
+{
+    int i;
+
+    macro_clear_all();
+    for (i = 0; i < snap->count; i++)
+        macro_add(snap->pat[i], snap->act[i]);
+}
+
+static void _macro_snapshot_overlay(macro_snapshot_t *dest, const macro_snapshot_t *src)
+{
+    int i;
+
+    for (i = 0; i < src->count; i++)
+        _macro_snapshot_set(dest, src->pat[i], src->act[i]);
+}
+
+static void _macro_snapshot_diff_only(macro_snapshot_t *dest, const macro_snapshot_t *src, const macro_snapshot_t *base)
+{
+    int i;
+
+    _macro_snapshot_free(dest);
+    for (i = 0; i < src->count; i++)
+    {
+        cptr base_act = _macro_snapshot_get(base, src->pat[i]);
+        if (base_act && streq(base_act, src->act[i])) continue;
+        _macro_snapshot_set(dest, src->pat[i], src->act[i]);
+    }
+}
+
+static void _keymap_snapshot_init(keymap_snapshot_t *snap, int mode)
+{
+    int i;
+
+    snap->mode = mode;
+    for (i = 0; i < 256; i++)
+        snap->act[i] = NULL;
+}
+
+static void _keymap_snapshot_free(keymap_snapshot_t *snap)
+{
+    int i;
+
+    for (i = 0; i < 256; i++)
+    {
+        z_string_free((char *)snap->act[i]);
+        snap->act[i] = NULL;
+    }
+}
+
+static void _keymap_snapshot_set(keymap_snapshot_t *snap, byte key, cptr act)
+{
+    z_string_free((char *)snap->act[key]);
+    snap->act[key] = act ? z_string_make(act) : NULL;
+}
+
+static void _keymap_snapshot_copy(keymap_snapshot_t *dest, const keymap_snapshot_t *src)
+{
+    int i;
+
+    _keymap_snapshot_free(dest);
+    dest->mode = src->mode;
+    for (i = 0; i < 256; i++)
+    {
+        if (src->act[i])
+            dest->act[i] = z_string_make(src->act[i]);
+    }
+}
+
+static void _keymap_snapshot_current(keymap_snapshot_t *snap, int mode)
+{
+    int i;
+
+    _keymap_snapshot_free(snap);
+    snap->mode = mode;
+    for (i = 0; i < 256; i++)
+    {
+        if (keymap_act[mode][i])
+            snap->act[i] = z_string_make(keymap_act[mode][i]);
+    }
+}
+
+static void _keymap_snapshot_clear_mode(int mode)
+{
+    int i;
+
+    for (i = 0; i < 256; i++)
+    {
+        z_string_free(keymap_act[mode][i]);
+        keymap_act[mode][i] = NULL;
+    }
+}
+
+static void _keymap_snapshot_apply(const keymap_snapshot_t *snap)
+{
+    int i;
+
+    _keymap_snapshot_clear_mode(snap->mode);
+    for (i = 0; i < 256; i++)
+    {
+        if (snap->act[i])
+            keymap_act[snap->mode][i] = z_string_make(snap->act[i]);
+    }
+}
+
+static void _keymap_snapshot_overlay(keymap_snapshot_t *dest, const keymap_snapshot_t *src)
+{
+    int i;
+
+    for (i = 0; i < 256; i++)
+    {
+        if (src->act[i])
+            _keymap_snapshot_set(dest, (byte)i, src->act[i]);
+    }
+}
+
+static void _keymap_snapshot_diff_only(keymap_snapshot_t *dest, const keymap_snapshot_t *src, const keymap_snapshot_t *base)
+{
+    int i;
+
+    _keymap_snapshot_free(dest);
+    dest->mode = src->mode;
+    for (i = 0; i < 256; i++)
+    {
+        if (!src->act[i]) continue;
+        if (base->act[i] && streq(base->act[i], src->act[i])) continue;
+        dest->act[i] = z_string_make(src->act[i]);
+    }
+}
+
+static void _macro_ui_free_context(macro_ui_context_t *ui)
+{
+    int i;
+
+    _macro_snapshot_free(&ui->baseline_macros);
+    _macro_snapshot_free(&ui->original_macros);
+    for (i = 0; i < KEYMAP_MODES; i++)
+        _keymap_snapshot_free(&ui->baseline_keymaps[i]);
+    for (i = 0; i < KEYMAP_MODES; i++)
+        _keymap_snapshot_free(&ui->original_keymaps[i]);
+}
+
+static void _macro_ui_help(void)
+{
+    (void)show_file(TRUE, "pref.txt#CustomKeys", "Custom Keys", 0, 0);
+}
+
+static cptr _macro_ui_scope_name(int scope)
+{
+    switch (scope)
+    {
+    case MACRO_UI_SCOPE_KEYMAPS: return "keymaps";
+    case MACRO_UI_SCOPE_MACROS: return "macros";
+    default: return "custom keys";
+    }
+}
+
+static bool _macro_ui_scope_has_macros(int scope)
+{
+    return scope != MACRO_UI_SCOPE_KEYMAPS;
+}
+
+static bool _macro_ui_scope_has_keymaps(int scope)
+{
+    return scope != MACRO_UI_SCOPE_MACROS;
+}
+
+static void _macro_ui_default_file(char *buf, int max)
+{
+    strnfmt(buf, max, "%s.prf", pref_save_base);
+}
+
+static bool _macro_ui_prompt_file(cptr title, char *file, int max)
+{
+    Term_clear();
+    prt(title, 2, 0);
+    prt("File: ", 4, 0);
+    return askfor_edit(file, max);
+}
+
+static int _macro_ui_prompt_scope(int op)
+{
+    while (1)
+    {
+        int ch;
+
+        Term_clear();
+        prt(op == MACRO_UI_OP_LOAD ? "Load Customizations" : "Save Customizations", 2, 0);
+        prt("(1) All customizations", 5, 4);
+        prt("(2) Keymaps only", 6, 4);
+        prt("(3) Macros only", 7, 4);
+        prt("ESC returns to the previous menu. ? opens help.", 10, 0);
+        prt("Scope: ", 12, 0);
+
+        ch = _macro_ui_inkey();
+        if (ch == ESCAPE) return -1;
+        if (ch == '?')
+        {
+            _macro_ui_help();
+            continue;
+        }
+        if (ch == '\r' || ch == '\n') return MACRO_UI_SCOPE_ALL;
+        if (ch == '1') return MACRO_UI_SCOPE_ALL;
+        if (ch == '2') return MACRO_UI_SCOPE_KEYMAPS;
+        if (ch == '3') return MACRO_UI_SCOPE_MACROS;
+        bell();
+    }
+}
+
+static int _macro_ui_prompt_mode(int op, int scope)
+{
+    while (1)
+    {
+        int ch;
+        char buf[160];
+
+        Term_clear();
+        prt(op == MACRO_UI_OP_LOAD ? "Load Customizations" : "Save Customizations", 2, 0);
+
+        if (op == MACRO_UI_OP_LOAD)
+        {
+            strnfmt(buf, sizeof(buf), "(1) Replace all current %s", _macro_ui_scope_name(scope));
+            prt(buf, 5, 4);
+            strnfmt(buf, sizeof(buf), "(2) Add %s to current (replacing matches)", _macro_ui_scope_name(scope));
+            prt(buf, 6, 4);
+        }
+        else
+        {
+            strnfmt(buf, sizeof(buf), "(1) Replace all %s in this file", _macro_ui_scope_name(scope));
+            prt(buf, 5, 4);
+            strnfmt(buf, sizeof(buf), "(2) Add %s to this file (replacing matches)", _macro_ui_scope_name(scope));
+            prt(buf, 6, 4);
+        }
+        prt("(3) Browse affected keys", 7, 4);
+        prt("ESC returns to the previous menu. ? opens help.", 10, 0);
+        prt("Mode: ", 12, 0);
+
+        ch = _macro_ui_inkey();
+        if (ch == ESCAPE) return -1;
+        if (ch == '?')
+        {
+            _macro_ui_help();
+            continue;
+        }
+        if (ch == '\r' || ch == '\n') return MACRO_UI_MODE_REPLACE;
+        if (ch == '1') return MACRO_UI_MODE_REPLACE;
+        if (ch == '2') return MACRO_UI_MODE_ADD;
+        if (ch == '3') return 3;
+        bell();
+    }
+}
+
+static bool _macro_ui_capture_trigger(char *buf)
+{
+    int i;
+    int n = 0;
+
     flush();
-
-    /* Do not process macros */
     inkey_base = TRUE;
-
-    /* First key */
     i = inkey();
 
-    /* Read the pattern */
-    while (i)
+    while (i && n < 1023)
     {
-        /* Save the key */
         buf[n++] = i;
-
-        /* Do not process macros */
         inkey_base = TRUE;
-
-        /* Do not wait for keys */
         inkey_scan = TRUE;
-
-        /* Attempt to read a key */
         i = inkey();
     }
-
-    /* Terminate */
     buf[n] = '\0';
-
-    /* Flush */
     flush();
 
+    if (n == 1 && (byte)buf[0] == ESCAPE) return FALSE;
+    return n > 0;
+}
 
-    /* Convert the trigger */
-    ascii_to_text(tmp, buf);
+typedef struct
+{
+    cptr trigger;
+    cptr name;
+} _macro_ui_special_trigger_t;
 
-    /* Hack -- display the trigger */
-    Term_addstr(-1, TERM_WHITE, tmp);
+static _macro_ui_special_trigger_t _macro_ui_special_triggers[] = {
+    {"\033[A", "Up"},
+    {"\033[B", "Down"},
+    {"\033[C", "Right"},
+    {"\033[D", "Left"},
+    {"\033[F", "End"},
+    {"\033[H", "Home"},
+    {"\033OA", "Up"},
+    {"\033OB", "Down"},
+    {"\033OC", "Right"},
+    {"\033OD", "Left"},
+    {"\033OF", "End"},
+    {"\033OG", "KP5"},
+    {"\033OH", "Home"},
+    {"\033OP", "F1"},
+    {"\033OQ", "F2"},
+    {"\033OR", "F3"},
+    {"\033OS", "F4"},
+    {"\033[1~", "Home"},
+    {"\033[2~", "Insert"},
+    {"\033[3~", "Delete"},
+    {"\033[4~", "End"},
+    {"\033[5~", "Page Up"},
+    {"\033[6~", "Page Down"},
+    {"\033[7~", "Home"},
+    {"\033[8~", "End"},
+    {"\033[11~", "F1"},
+    {"\033[12~", "F2"},
+    {"\033[13~", "F3"},
+    {"\033[14~", "F4"},
+    {"\033[15~", "F5"},
+    {"\033[17~", "F6"},
+    {"\033[18~", "F7"},
+    {"\033[19~", "F8"},
+    {"\033[20~", "F9"},
+    {"\033[21~", "F10"},
+    {"\033[23~", "F11"},
+    {"\033[24~", "F12"},
+    {NULL, NULL},
+};
+
+static cptr _macro_ui_special_trigger_name(cptr trigger)
+{
+    int i;
+
+    if (!trigger || !trigger[0]) return NULL;
+
+    if (!trigger[1])
+    {
+        switch ((byte)trigger[0])
+        {
+        case '\r':
+        case '\n':
+            return "Enter";
+        case '\t':
+            return "Tab";
+        case '\b':
+            return "Bksp";
+        case 0x7F:
+            return "Del";
+        case ESCAPE:
+            return "Esc";
+        case ' ':
+            return "Space";
+        }
+    }
+
+    for (i = 0; _macro_ui_special_triggers[i].trigger; i++)
+    {
+        if (streq(trigger, _macro_ui_special_triggers[i].trigger))
+            return _macro_ui_special_triggers[i].name;
+    }
+
+    return NULL;
+}
+
+static cptr _macro_ui_skey_name(int skey)
+{
+    switch (skey)
+    {
+    case SKEY_LEFT:   return "Left";
+    case SKEY_RIGHT:  return "Right";
+    case SKEY_UP:     return "Up";
+    case SKEY_DOWN:   return "Down";
+    case SKEY_PGUP:   return "Page Up";
+    case SKEY_PGDOWN: return "Page Down";
+    case SKEY_TOP:    return "Home";
+    case SKEY_BOTTOM: return "End";
+    }
+    return NULL;
+}
+
+static cptr _macro_ui_pretty_modifier_token(cptr token)
+{
+    if (my_stricmp(token, "control") == 0) return "Ctrl";
+    if (my_stricmp(token, "shift") == 0) return "Shift";
+    if (my_stricmp(token, "alt") == 0) return "Alt";
+    if (my_stricmp(token, "home") == 0) return "Home";
+    if (my_stricmp(token, "end") == 0) return "End";
+    if (my_stricmp(token, "page_up") == 0) return "Page Up";
+    if (my_stricmp(token, "page_down") == 0) return "Page Down";
+    if (my_stricmp(token, "delete") == 0 || my_stricmp(token, "del") == 0) return "Del";
+    if (my_stricmp(token, "insert") == 0 || my_stricmp(token, "ins") == 0) return "Ins";
+    if (my_stricmp(token, "tab") == 0) return "Tab";
+    if (my_stricmp(token, "return") == 0 || my_stricmp(token, "enter") == 0) return "Enter";
+    if (my_stricmp(token, "space") == 0) return "Space";
+    if (my_stricmp(token, "escape") == 0 || my_stricmp(token, "esc") == 0) return "Esc";
+    if (my_stricmp(token, "backspace") == 0 || my_stricmp(token, "bksp") == 0) return "Bksp";
+    return NULL;
+}
+
+static void _macro_ui_pretty_bracket_label(char *buf, int max, cptr raw)
+{
+    char tmp[1024];
+    char out[1024] = "";
+    char *token;
+    bool first = TRUE;
+
+    my_strcpy(tmp, raw, sizeof(tmp));
+    token = tmp;
+
+    while (token && *token)
+    {
+        char *next = strchr(token, '-');
+        cptr pretty;
+
+        if (next) *next++ = '\0';
+        pretty = _macro_ui_pretty_modifier_token(token);
+        if (!first)
+            my_strcat(out, "+", sizeof(out));
+
+        if (pretty)
+            my_strcat(out, pretty, sizeof(out));
+        else if (strlen(token) == 1 && isalpha((unsigned char)token[0]))
+        {
+            char letter[2];
+            letter[0] = tolower((unsigned char)token[0]);
+            letter[1] = '\0';
+            my_strcat(out, letter, sizeof(out));
+        }
+        else
+            my_strcat(out, token, sizeof(out));
+
+        first = FALSE;
+        token = next;
+    }
+
+    if (!out[0])
+        my_strcpy(out, raw, sizeof(out));
+    my_strcpy(buf, out, max);
+}
+
+static void _macro_ui_trigger_label(char *buf, int max, cptr trigger);
+
+static bool _macro_ui_special_comment_name(char *buf, int max, cptr trigger)
+{
+    char raw[1024];
+    char label[1024];
+
+    ascii_to_text(raw, trigger);
+    _macro_ui_trigger_label(label, sizeof(label), trigger);
+
+    if (streq(raw, label)) return FALSE;
+    my_strcpy(buf, label, max);
+    return TRUE;
+}
+
+static void _macro_ui_trigger_label(char *buf, int max, cptr trigger)
+{
+    cptr special = _macro_ui_special_trigger_name(trigger);
+    char tmp[1024];
+    size_t len;
+
+    if (special)
+    {
+        my_strcpy(buf, special, max);
+        return;
+    }
+
+    ascii_to_text(tmp, trigger);
+    len = strlen(tmp);
+
+    if (streq(tmp, "\\r") || streq(tmp, "^M"))
+        my_strcpy(buf, "Enter", max);
+    else if (streq(tmp, "\\t") || streq(tmp, "^I"))
+        my_strcpy(buf, "Tab", max);
+    else if (streq(tmp, "^H") || streq(tmp, "\\x08"))
+        my_strcpy(buf, "Bksp", max);
+    else if (streq(tmp, "^?") || streq(tmp, "\\x7F"))
+        my_strcpy(buf, "Del", max);
+    else if (streq(tmp, "\\e"))
+        my_strcpy(buf, "Esc", max);
+    else if (len == 1 && tmp[0] == ' ')
+        my_strcpy(buf, "Space", max);
+    else if (len >= 3 && tmp[0] == '\\' && tmp[1] == '[' && tmp[len - 1] == ']')
+    {
+        tmp[len - 1] = '\0';
+        _macro_ui_pretty_bracket_label(buf, max, tmp + 2);
+    }
+    else
+        my_strcpy(buf, tmp, max);
+}
+
+static void _macro_ui_action_desc(char *buf, int max, cptr action)
+{
+    if (!action)
+        my_strcpy(buf, "None", max);
+    else
+        ascii_to_text(buf, action);
+}
+
+static bool _macro_ui_same(cptr a, cptr b)
+{
+    if (!a && !b) return TRUE;
+    if (!a || !b) return FALSE;
+    return streq(a, b);
+}
+
+static errr _macro_ui_parse_pref_path(cptr path, macro_snapshot_t *macros, keymap_snapshot_t *keymaps, int mode, int depth);
+
+static errr _macro_ui_parse_pref_name(cptr name, macro_snapshot_t *macros, keymap_snapshot_t *keymaps, int mode, int depth, bool *found_pref, bool *found_user)
+{
+    char path[1024];
+    errr err;
+
+    path_build(path, sizeof(path), ANGBAND_DIR_PREF, name);
+    err = _macro_ui_parse_pref_path(path, macros, keymaps, mode, depth);
+    if (err != -1 && found_pref) *found_pref = TRUE;
+
+    path_build(path, sizeof(path), ANGBAND_DIR_USER, name);
+    err = _macro_ui_parse_pref_path(path, macros, keymaps, mode, depth);
+    if (err != -1 && found_user) *found_user = TRUE;
+
+    return 0;
+}
+
+static errr _macro_ui_parse_pref_path(cptr path, macro_snapshot_t *macros, keymap_snapshot_t *keymaps, int mode, int depth)
+{
+    FILE *fp;
+    char buf[1024];
+    char tmp[1024];
+    char action[1024];
+    bool have_action = FALSE;
+    bool bypass = FALSE;
+
+    if (depth > 20) return 0;
+
+    fp = my_fopen(path, "r");
+    if (!fp) return -1;
+
+    while (0 == my_fgets(fp, buf, sizeof(buf)))
+    {
+        if (!buf[0]) continue;
+        if (isspace(buf[0])) continue;
+        if (buf[0] == '#') continue;
+
+        if (buf[0] == '?' && buf[1] == ':')
+        {
+            char f;
+            char *s = buf + 2;
+            cptr v = process_pref_file_expr(&s, &f);
+            bypass = (streq(v, "0") ? TRUE : FALSE);
+            continue;
+        }
+
+        if (bypass) continue;
+
+        if (buf[0] == '%' && buf[1] == ':')
+        {
+            (void)_macro_ui_parse_pref_name(buf + 2, macros, keymaps, mode, depth + 1, NULL, NULL);
+            continue;
+        }
+
+        if (buf[1] != ':') continue;
+
+        if (buf[0] == 'A')
+        {
+            text_to_ascii(action, buf + 2);
+            have_action = TRUE;
+            continue;
+        }
+
+        if (!have_action) continue;
+
+        if (buf[0] == 'P')
+        {
+            text_to_ascii(tmp, buf + 2);
+            _macro_snapshot_set(macros, tmp, action);
+            continue;
+        }
+
+        if (buf[0] == 'C')
+        {
+            char line[1024];
+            char *zz[3];
+            int key_mode;
+
+            strnfmt(line, sizeof(line), "%s", buf + 2);
+            if (tokenize(line, 2, zz, TOKENIZE_CHECKQUOTE) != 2) continue;
+
+            key_mode = strtol(zz[0], NULL, 0);
+            if (key_mode != mode) continue;
+
+            text_to_ascii(tmp, zz[1]);
+            if (!tmp[0] || tmp[1]) continue;
+            _keymap_snapshot_set(keymaps, (byte)tmp[0], action);
+        }
+    }
+
+    my_fclose(fp);
+    return 0;
+}
+
+static int _macro_ui_load_file(cptr name, macro_snapshot_t *macros, keymap_snapshot_t *keymaps, int mode)
+{
+    bool found_pref = FALSE;
+    bool found_user = FALSE;
+
+    _macro_snapshot_free(macros);
+    _keymap_snapshot_free(keymaps);
+
+    (void)_macro_ui_parse_pref_name(name, macros, keymaps, mode, 0, &found_pref, &found_user);
+
+    if (!found_pref && !found_user) return 1;
+    if (found_pref && !found_user) return -2;
+    return 0;
+}
+
+static void _macro_ui_load_user_only(cptr name, macro_snapshot_t *macros, keymap_snapshot_t *keymaps, int mode)
+{
+    char path[1024];
+
+    _macro_snapshot_free(macros);
+    _keymap_snapshot_free(keymaps);
+
+    path_build(path, sizeof(path), ANGBAND_DIR_USER, name);
+    (void)_macro_ui_parse_pref_path(path, macros, keymaps, mode, 0);
+}
+
+static void _macro_ui_load_baseline(macro_ui_context_t *ui)
+{
+    char path[1024];
+    int i;
+
+    _macro_snapshot_init(&ui->baseline_macros);
+    for (i = 0; i < KEYMAP_MODES; i++)
+        _keymap_snapshot_init(&ui->baseline_keymaps[i], i);
+
+    path_build(path, sizeof(path), ANGBAND_DIR_PREF, "pref-key.prf");
+    for (i = 0; i < KEYMAP_MODES; i++)
+        (void)_macro_ui_parse_pref_path(path, &ui->baseline_macros, &ui->baseline_keymaps[i], i, 0);
+
+    path_build(path, sizeof(path), ANGBAND_DIR_PREF, format("pref-%s.prf", ANGBAND_SYS));
+    for (i = 0; i < KEYMAP_MODES; i++)
+        (void)_macro_ui_parse_pref_path(path, &ui->baseline_macros, &ui->baseline_keymaps[i], i, 0);
+}
+
+static void _macro_ui_current_custom(macro_ui_context_t *ui, macro_snapshot_t *macros, keymap_snapshot_t *keymaps)
+{
+    macro_snapshot_t current_macros;
+    keymap_snapshot_t current_keymaps;
+
+    _macro_snapshot_init(&current_macros);
+    _keymap_snapshot_init(&current_keymaps, ui->mode);
+
+    _macro_snapshot_current(&current_macros);
+    _keymap_snapshot_current(&current_keymaps, ui->mode);
+
+    _macro_snapshot_diff_only(macros, &current_macros, &ui->baseline_macros);
+    _keymap_snapshot_diff_only(keymaps, &current_keymaps, &ui->baseline_keymaps[ui->mode]);
+
+    _macro_snapshot_free(&current_macros);
+    _keymap_snapshot_free(&current_keymaps);
+}
+
+static void _macro_ui_apply_state(const macro_snapshot_t *macros, const keymap_snapshot_t *keymaps)
+{
+    _macro_snapshot_apply(macros);
+    _keymap_snapshot_apply(keymaps);
+}
+
+static int _macro_ui_entry_find(macro_ui_entry_t *entries, int count, cptr trigger)
+{
+    int i;
+
+    for (i = 0; i < count; i++)
+    {
+        if (streq(entries[i].trigger, trigger)) return i;
+    }
+    return -1;
+}
+
+static void _macro_ui_entry_add(macro_ui_entry_t *entries, int *count, int max, cptr trigger)
+{
+    int i;
+
+    if (!trigger || !trigger[0]) return;
+    i = _macro_ui_entry_find(entries, *count, trigger);
+    if (i >= 0) return;
+    if (*count >= max) return;
+
+    my_strcpy(entries[*count].trigger, trigger, sizeof(entries[*count].trigger));
+    _macro_ui_trigger_label(entries[*count].label, sizeof(entries[*count].label), trigger);
+    entries[*count].old_macro = NULL;
+    entries[*count].new_macro = NULL;
+    entries[*count].old_keymap = NULL;
+    entries[*count].new_keymap = NULL;
+    (*count)++;
+}
+
+static int _macro_ui_entry_cmp(const void *a, const void *b)
+{
+    const macro_ui_entry_t *ea = (const macro_ui_entry_t *)a;
+    const macro_ui_entry_t *eb = (const macro_ui_entry_t *)b;
+    return strcmp(ea->label, eb->label);
+}
+
+static bool _macro_ui_entry_changed(const macro_ui_entry_t *entry)
+{
+    if (!_macro_ui_same(entry->old_macro, entry->new_macro)) return TRUE;
+    if (!_macro_ui_same(entry->old_keymap, entry->new_keymap)) return TRUE;
+    return FALSE;
+}
+
+static int _macro_ui_build_entries(
+    macro_ui_entry_t *entries, int max,
+    const macro_snapshot_t *old_macros, const keymap_snapshot_t *old_keymaps,
+    const macro_snapshot_t *new_macros, const keymap_snapshot_t *new_keymaps,
+    bool show_all)
+{
+    int count = 0;
+    int i;
+    int out = 0;
+
+    for (i = 0; i < old_macros->count; i++) _macro_ui_entry_add(entries, &count, max, old_macros->pat[i]);
+    for (i = 0; i < new_macros->count; i++) _macro_ui_entry_add(entries, &count, max, new_macros->pat[i]);
+
+    for (i = 0; i < 256; i++)
+    {
+        char key[2];
+        key[0] = (char)i;
+        key[1] = '\0';
+        if (old_keymaps->act[i]) _macro_ui_entry_add(entries, &count, max, key);
+        if (new_keymaps->act[i]) _macro_ui_entry_add(entries, &count, max, key);
+    }
+
+    for (i = 0; i < count; i++)
+    {
+        char key[2];
+
+        entries[i].old_macro = _macro_snapshot_get(old_macros, entries[i].trigger);
+        entries[i].new_macro = _macro_snapshot_get(new_macros, entries[i].trigger);
+
+        if (entries[i].trigger[0] && !entries[i].trigger[1])
+        {
+            key[0] = entries[i].trigger[0];
+            key[1] = '\0';
+            entries[i].old_keymap = old_keymaps->act[(byte)key[0]];
+            entries[i].new_keymap = new_keymaps->act[(byte)key[0]];
+        }
+    }
+
+    qsort(entries, count, sizeof(macro_ui_entry_t), _macro_ui_entry_cmp);
+
+    if (show_all) return count;
+
+    for (i = 0; i < count; i++)
+    {
+        if (_macro_ui_entry_changed(entries + i))
+        {
+            if (out != i) entries[out] = entries[i];
+            out++;
+        }
+    }
+    return out;
+}
+
+static byte _macro_ui_entry_color(const macro_ui_entry_t *entry)
+{
+    bool had_old = entry->old_macro || entry->old_keymap;
+    bool has_new = entry->new_macro || entry->new_keymap;
+
+    if (!had_old && has_new) return TERM_L_GREEN;
+    if (had_old && !has_new) return TERM_L_RED;
+    return TERM_YELLOW;
+}
+
+static void _macro_ui_put_label(int x, int y, cptr label, bool selected, byte color)
+{
+    byte bracket = selected ? TERM_L_UMBER : TERM_SLATE;
+    byte text = selected ? TERM_WHITE : color;
+
+    Term_putstr(x, y, 1, bracket, "[");
+    Term_putstr(x + 1, y, -1, text, label);
+    Term_putstr(x + 1 + strlen(label), y, 1, bracket, "]");
+}
+
+static void _macro_ui_jump_entry(macro_ui_entry_t *entries, int count, int *cur, int skey)
+{
+    int i;
+    char trigger[2];
+    char label[32];
+    cptr special = _macro_ui_skey_name(skey);
+
+    if (skey == ESCAPE) return;
+
+    if (special)
+    {
+        my_strcpy(label, special, sizeof(label));
+        for (i = 0; i < count; i++)
+        {
+            if (streq(entries[i].label, label))
+            {
+                *cur = i;
+                return;
+            }
+        }
+        return;
+    }
+
+    trigger[0] = (char)skey;
+    trigger[1] = '\0';
+
+    for (i = 0; i < count; i++)
+    {
+        if (streq(entries[i].trigger, trigger))
+        {
+            *cur = i;
+            return;
+        }
+    }
+
+    if (skey == '\r' || skey == '\n')
+        my_strcpy(label, "Enter", sizeof(label));
+    else if (skey == '\t')
+        my_strcpy(label, "Tab", sizeof(label));
+    else if (skey == ' ')
+        my_strcpy(label, "Space", sizeof(label));
+    else if (skey == '\b')
+        my_strcpy(label, "Bksp", sizeof(label));
+    else if ((byte)skey == 0x7F)
+        my_strcpy(label, "Del", sizeof(label));
+    else
+        return;
+
+    for (i = 0; i < count; i++)
+    {
+        if (streq(entries[i].label, label))
+        {
+            *cur = i;
+            return;
+        }
+    }
+}
+
+static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int count, bool preview, bool *show_all, bool *replace_view)
+{
+    int cur = 0;
+    int top = 0;
+
+    while (1)
+    {
+        int ch;
+        int x = 0;
+        int y = 3;
+        int i;
+        int detail_row = Term->hgt - 5;
+        int visible_end = top;
+        char buf[1024];
+
+        if (cur >= count) cur = MAX(0, count - 1);
+        if (cur < top) top = cur;
+
+        while (1)
+        {
+            x = 0;
+            y = 3;
+            visible_end = top;
+
+            while (visible_end < count)
+            {
+                int len = strlen(entries[visible_end].label) + 2;
+                if (x + len >= Term->wid)
+                {
+                    x = 0;
+                    y++;
+                }
+                if (y >= detail_row) break;
+                x += len + 1;
+                visible_end++;
+            }
+
+            if (cur < visible_end || top == cur) break;
+            top = cur;
+        }
+
+        Term_clear();
+        prt(title, 0, 0);
+        if (preview)
+        {
+            prt(*replace_view ? "Previewing Replace results." : "Previewing Add results.", 1, 0);
+            prt(*show_all ? "Showing all affected keys. Enter toggles to differences only." : "Showing differences only. Enter toggles to all affected keys.", 2, 0);
+        }
+        else
+            prt("Browse custom keys. Press a listed key to jump to it. ? opens help.", 1, 0);
+
+        if (count == 0)
+        {
+            prt("No keys to display.", 4, 0);
+        }
+        else
+        {
+            x = 0;
+            y = 3;
+            for (i = top; i < visible_end; i++)
+            {
+                int len = strlen(entries[i].label) + 2;
+                if (x + len >= Term->wid)
+                {
+                    x = 0;
+                    y++;
+                }
+                _macro_ui_put_label(x, y, entries[i].label, i == cur, preview ? _macro_ui_entry_color(entries + i) : TERM_SLATE);
+                x += len + 1;
+            }
+
+            strnfmt(buf, sizeof(buf), "Trigger: %s", entries[cur].label);
+            prt(buf, detail_row, 0);
+            _macro_ui_action_desc(buf, sizeof(buf), entries[cur].new_keymap);
+            prt(format("Keymap: %s", buf), detail_row + 1, 0);
+            _macro_ui_action_desc(buf, sizeof(buf), entries[cur].new_macro);
+            prt(format("Macro : %s", buf), detail_row + 2, 0);
+
+            if (preview)
+            {
+                Term_putstr(0, detail_row + 3, -1, TERM_L_GREEN, "New");
+                Term_putstr(6, detail_row + 3, -1, TERM_YELLOW, "Changed");
+                Term_putstr(16, detail_row + 3, -1, TERM_L_RED, "Removed");
+                Term_putstr(26, detail_row + 3, -1, TERM_SLATE, "ESC returns");
+                prt("Tab switches preview between Replace or Add view.", detail_row + 4, 0);
+            }
+            else
+                prt("Left/Right or 4/6 browse. ESC returns.", detail_row + 3, 0);
+        }
+
+        ch = _macro_ui_inkey_special(TRUE);
+
+        if (ch == ESCAPE) return FALSE;
+        if (ch == '?' )
+        {
+            _macro_ui_help();
+            continue;
+        }
+
+        if (preview && ch == '\t')
+        {
+            *replace_view = !*replace_view;
+            return TRUE;
+        }
+        if (preview && (ch == '\r' || ch == '\n'))
+        {
+            *show_all = !*show_all;
+            return TRUE;
+        }
+
+        switch (ch)
+        {
+        case '4':
+        case SKEY_LEFT:
+            if (cur > 0) cur--;
+            break;
+        case '6':
+        case SKEY_RIGHT:
+            if (cur < count - 1) cur++;
+            break;
+        default:
+            _macro_ui_jump_entry(entries, count, &cur, ch);
+            break;
+        }
+    }
+}
+
+static void _macro_ui_preview(cptr title,
+    const macro_snapshot_t *old_macros, const keymap_snapshot_t *old_keymaps,
+    const macro_snapshot_t *replace_macros, const keymap_snapshot_t *replace_keymaps,
+    const macro_snapshot_t *add_macros, const keymap_snapshot_t *add_keymaps)
+{
+    bool show_all = FALSE;
+    bool replace_view = TRUE;
+    macro_ui_entry_t entries[MACRO_UI_MAX_ENTRIES];
+    int count;
+
+    while (1)
+    {
+        const macro_snapshot_t *new_macros = replace_view ? replace_macros : add_macros;
+        const keymap_snapshot_t *new_keymaps = replace_view ? replace_keymaps : add_keymaps;
+
+        count = _macro_ui_build_entries(entries, MACRO_UI_MAX_ENTRIES, old_macros, old_keymaps, new_macros, new_keymaps, show_all);
+        if (!_macro_ui_browse_entries(title, entries, count, TRUE, &show_all, &replace_view)) break;
+    }
+}
+
+static bool _macro_ui_read_file_lines(cptr path, cptr lines[], int *count)
+{
+    FILE *fp;
+    char buf[1024];
+
+    *count = 0;
+
+    fp = my_fopen(path, "r");
+    if (!fp) return FALSE;
+
+    while (0 == my_fgets(fp, buf, sizeof(buf)))
+    {
+        if (*count >= MACRO_UI_MAX_FILE_LINES) break;
+        lines[*count] = z_string_make(buf);
+        (*count)++;
+    }
+    my_fclose(fp);
+    return TRUE;
+}
+
+static void _macro_ui_free_lines(cptr lines[], int count)
+{
+    int i;
+
+    for (i = 0; i < count; i++)
+        z_string_free((char *)lines[i]);
+}
+
+static bool _macro_ui_keep_keymap_line(cptr line, int mode)
+{
+    char buf[1024];
+    char *zz[3];
+    int line_mode;
+
+    strnfmt(buf, sizeof(buf), "%s", line + 2);
+    if (tokenize(buf, 2, zz, TOKENIZE_CHECKQUOTE) != 2) return TRUE;
+    line_mode = strtol(zz[0], NULL, 0);
+    return line_mode != mode;
+}
+
+static int _macro_ui_filter_lines(cptr in_lines[], int in_count, cptr out_lines[], int scope, int mode)
+{
+    int i = 0;
+    int out = 0;
+
+    while (i < in_count)
+    {
+        if (in_lines[i][0] == 'A' && in_lines[i][1] == ':')
+        {
+            int j = i + 1;
+            bool saw_binding = FALSE;
+            bool kept_any = FALSE;
+            bool keep_flags[64];
+            int block_count = 0;
+
+            while (j < in_count && block_count < 64)
+            {
+                cptr line = in_lines[j];
+
+                if (line[0] == 'P' && line[1] == ':')
+                {
+                    bool keep = !_macro_ui_scope_has_macros(scope);
+                    if (!keep) saw_binding = TRUE;
+                    if (keep) kept_any = TRUE;
+                    keep_flags[block_count++] = keep;
+                    j++;
+                    continue;
+                }
+
+                if (line[0] == 'C' && line[1] == ':')
+                {
+                    bool keep = TRUE;
+                    if (_macro_ui_scope_has_keymaps(scope) && !_macro_ui_keep_keymap_line(line, mode))
+                        keep = FALSE;
+                    if (!keep) saw_binding = TRUE;
+                    if (keep) kept_any = TRUE;
+                    keep_flags[block_count++] = keep;
+                    j++;
+                    continue;
+                }
+                break;
+            }
+
+            if (!block_count)
+            {
+                out_lines[out++] = in_lines[i++];
+                continue;
+            }
+
+            if (!saw_binding)
+            {
+                out_lines[out++] = in_lines[i];
+                while (++i < j) out_lines[out++] = in_lines[i];
+                i = j;
+                continue;
+            }
+
+            if (kept_any)
+            {
+                int k = 0;
+
+                out_lines[out++] = in_lines[i];
+                for (i = i + 1; i < j; i++, k++)
+                {
+                    if (keep_flags[k])
+                        out_lines[out++] = in_lines[i];
+                }
+            }
+            i = j;
+            continue;
+        }
+
+        out_lines[out++] = in_lines[i++];
+    }
+
+    return out;
+}
+
+static int _macro_ui_write_block(FILE *fp, cptr mark, int scope, const macro_snapshot_t *macros, const keymap_snapshot_t *keymaps)
+{
+    char header[80];
+    char footer[80];
+    char buf[1024];
+    char key[1024];
+    char key_raw[2];
+    int lines = 0;
+    int i;
+
+    sprintf(header, auto_dump_header, mark);
+    sprintf(footer, auto_dump_footer, mark);
+
+    fprintf(fp, "%s\n", header);
+    fprintf(fp, "# *Warning!*  The lines below are an automatic dump.\n");
+    fprintf(fp, "# Don't edit them; changes will be deleted and replaced automatically.\n");
+    lines += 2;
+
+    if (_macro_ui_scope_has_macros(scope))
+    {
+        fprintf(fp, "\n# Automatic macro dump\n\n");
+        lines += 3;
+        for (i = 0; i < macros->count; i++)
+        {
+            char special[1024];
+
+            ascii_to_text(buf, macros->act[i]);
+            fprintf(fp, "A:%s\n", buf);
+            if (_macro_ui_special_comment_name(special, sizeof(special), macros->pat[i]))
+            {
+                fprintf(fp, "# Special key: %s\n", special);
+                lines++;
+            }
+            ascii_to_text(buf, macros->pat[i]);
+            fprintf(fp, "P:%s\n\n", buf);
+            lines += 3;
+        }
+    }
+
+    if (_macro_ui_scope_has_keymaps(scope))
+    {
+        fprintf(fp, "\n# Automatic keymap dump\n\n");
+        lines += 3;
+        for (i = 0; i < 256; i++)
+        {
+            char special[1024];
+
+            if (!keymaps->act[i]) continue;
+            ascii_to_text(buf, keymaps->act[i]);
+            key_raw[0] = (char)i;
+            key_raw[1] = '\0';
+            ascii_to_text(key, key_raw);
+            fprintf(fp, "A:%s\n", buf);
+            if (_macro_ui_special_comment_name(special, sizeof(special), key_raw))
+            {
+                fprintf(fp, "# Special key: %s\n", special);
+                lines++;
+            }
+            fprintf(fp, "C:%d:%s\n", keymaps->mode, key);
+            lines += 2;
+        }
+    }
+
+    fprintf(fp, "# *Warning!*  The lines above are an automatic dump.\n");
+    fprintf(fp, "# Don't edit them; changes will be deleted and replaced automatically.\n");
+    lines += 2;
+    fprintf(fp, "%s (%d)\n", footer, lines);
+    return lines + 1;
+}
+
+static void _macro_ui_remove_dump_marks(cptr path, int scope)
+{
+    if (scope == MACRO_UI_SCOPE_ALL)
+    {
+        auto_dump_mark = "Custom Key Dump";
+        remove_auto_dump(path);
+        auto_dump_mark = "Macro Dump";
+        remove_auto_dump(path);
+        auto_dump_mark = "Keymap Dump";
+        remove_auto_dump(path);
+    }
+    else if (scope == MACRO_UI_SCOPE_MACROS)
+    {
+        auto_dump_mark = "Macro Dump";
+        remove_auto_dump(path);
+    }
+    else
+    {
+        auto_dump_mark = "Keymap Dump";
+        remove_auto_dump(path);
+    }
+}
+
+static bool _macro_ui_save_file(cptr name, int scope, int mode, const macro_snapshot_t *macros, const keymap_snapshot_t *keymaps, int keymap_mode)
+{
+    char path[1024];
+    cptr old_lines[MACRO_UI_MAX_FILE_LINES];
+    cptr kept_lines[MACRO_UI_MAX_FILE_LINES];
+    int old_count = 0;
+    int kept_count = 0;
+    FILE *fp;
+    int i;
+    bool ok = TRUE;
+    cptr mark;
+
+    path_build(path, sizeof(path), ANGBAND_DIR_USER, name);
+    if (mode == MACRO_UI_MODE_REPLACE)
+        _macro_ui_remove_dump_marks(path, scope);
+    (void)_macro_ui_read_file_lines(path, old_lines, &old_count);
+
+    mark = (scope == MACRO_UI_SCOPE_MACROS) ? "Macro Dump" :
+           (scope == MACRO_UI_SCOPE_KEYMAPS) ? "Keymap Dump" : "Custom Key Dump";
+
+    if (mode == MACRO_UI_MODE_REPLACE)
+        kept_count = _macro_ui_filter_lines(old_lines, old_count, kept_lines, scope, keymap_mode);
+
+    fp = my_fopen(path, mode == MACRO_UI_MODE_ADD ? "a" : "w");
+    if (!fp)
+    {
+        msg_format("Failed to open '%s'.", path);
+        ok = FALSE;
+    }
+    else
+    {
+        if (mode == MACRO_UI_MODE_REPLACE)
+        {
+            for (i = 0; i < kept_count; i++)
+                fprintf(fp, "%s\n", kept_lines[i]);
+        }
+
+        if ((_macro_ui_scope_has_macros(scope) && macros->count) ||
+            (_macro_ui_scope_has_keymaps(scope)))
+        {
+            bool any_keymap = FALSE;
+            for (i = 0; i < 256; i++)
+            {
+                if (keymaps->act[i])
+                {
+                    any_keymap = TRUE;
+                    break;
+                }
+            }
+
+            if ((_macro_ui_scope_has_macros(scope) && macros->count) ||
+                (_macro_ui_scope_has_keymaps(scope) && any_keymap))
+            {
+                _macro_ui_write_block(fp, mark, scope, macros, keymaps);
+            }
+        }
+
+        my_fclose(fp);
+    }
+
+    _macro_ui_free_lines(old_lines, old_count);
+    return ok;
+}
+
+static void _macro_ui_reset_key_to_baseline(macro_ui_context_t *ui, cptr trigger)
+{
+    cptr act;
+    byte key;
+
+    act = _macro_snapshot_get(&ui->baseline_macros, trigger);
+    if (act)
+        macro_add(trigger, act);
+    else
+        macro_remove(trigger);
+
+    if (trigger[0] && !trigger[1])
+    {
+        key = (byte)trigger[0];
+        z_string_free(keymap_act[ui->mode][key]);
+        keymap_act[ui->mode][key] = NULL;
+        if (ui->baseline_keymaps[ui->mode].act[key])
+            keymap_act[ui->mode][key] = z_string_make(ui->baseline_keymaps[ui->mode].act[key]);
+    }
+}
+
+static void _macro_ui_customize_key(macro_ui_context_t *ui)
+{
+    char trigger[1024];
+    char label[80];
+    char action[1024];
+    int ch;
+
+    Term_clear();
+    prt("Customize a Key", 2, 0);
+    prt("Press the key or trigger to customize. ESC cancels. ? opens help.", 4, 0);
+    prt("Trigger: ", 6, 0);
+
+    if (!_macro_ui_capture_trigger(trigger)) return;
+
+    _macro_ui_trigger_label(label, sizeof(label), trigger);
+
+    while (1)
+    {
+        macro_snapshot_t current_macros;
+        keymap_snapshot_t current_keymaps;
+        cptr live_macro = NULL;
+        cptr live_keymap = NULL;
+        char buf[1024];
+        bool has_both = FALSE;
+
+        _macro_snapshot_init(&current_macros);
+        _keymap_snapshot_init(&current_keymaps, ui->mode);
+
+        _macro_snapshot_current(&current_macros);
+        _keymap_snapshot_current(&current_keymaps, ui->mode);
+
+        live_macro = _macro_snapshot_get(&current_macros, trigger);
+        if (trigger[0] && !trigger[1])
+            live_keymap = current_keymaps.act[(byte)trigger[0]];
+        has_both = live_macro && live_keymap;
+
+        Term_clear();
+        prt("Customize a Key", 2, 0);
+        prt(format("Trigger: [%s]", label), 4, 0);
+        _macro_ui_action_desc(buf, sizeof(buf), live_keymap);
+        prt(format("Keymap: %s", buf), 6, 0);
+        _macro_ui_action_desc(buf, sizeof(buf), live_macro);
+        prt(format("Macro : %s", buf), 7, 0);
+        if (has_both)
+            c_prt(TERM_YELLOW, "Warning: this trigger has both a keymap and a macro.", 9, 0);
+        prt("(k) Edit keymap", 11, 4);
+        prt("(m) Edit macro", 12, 4);
+        prt("(r) Reset this key to defaults", 13, 4);
+        prt("ESC returns. ? opens help.", 15, 0);
+        prt("Command: ", 17, 0);
+
+        ch = _macro_ui_inkey();
+        if (ch == ESCAPE)
+        {
+            _macro_snapshot_free(&current_macros);
+            _keymap_snapshot_free(&current_keymaps);
+            break;
+        }
+        if (ch == '?')
+        {
+            _macro_snapshot_free(&current_macros);
+            _keymap_snapshot_free(&current_keymaps);
+            _macro_ui_help();
+            continue;
+        }
+        if (ch == 'r')
+        {
+            _macro_ui_reset_key_to_baseline(ui, trigger);
+            _macro_snapshot_free(&current_macros);
+            _keymap_snapshot_free(&current_keymaps);
+            msg_print("Reset this key to defaults.");
+            continue;
+        }
+        if (ch == 'k')
+        {
+            if (!(trigger[0] && !trigger[1]))
+            {
+                _macro_snapshot_free(&current_macros);
+                _keymap_snapshot_free(&current_keymaps);
+                msg_print("Only single-byte triggers can use keymaps.");
+                continue;
+            }
+
+            action[0] = '\0';
+            if (live_keymap) ascii_to_text(action, live_keymap);
+
+            clear_from(19);
+            c_prt(TERM_L_RED, "Press Left/Right arrow keys to move cursor. Backspace/Delete to delete a char.", 21, 0);
+            prt("Keymap Action: ", 19, 0);
+            if (!askfor_edit(action, 80))
+            {
+                _macro_snapshot_free(&current_macros);
+                _keymap_snapshot_free(&current_keymaps);
+                continue;
+            }
+
+            z_string_free(keymap_act[ui->mode][(byte)trigger[0]]);
+            keymap_act[ui->mode][(byte)trigger[0]] = NULL;
+            if (action[0])
+            {
+                text_to_ascii(macro__buf, action);
+                keymap_act[ui->mode][(byte)trigger[0]] = z_string_make(macro__buf);
+                msg_print("Updated keymap.");
+            }
+            else
+                msg_print("Cleared keymap.");
+            _macro_snapshot_free(&current_macros);
+            _keymap_snapshot_free(&current_keymaps);
+            continue;
+        }
+        if (ch == 'm')
+        {
+            action[0] = '\0';
+            if (live_macro) ascii_to_text(action, live_macro);
+
+            clear_from(19);
+            c_prt(TERM_L_RED, "Press Left/Right arrow keys to move cursor. Backspace/Delete to delete a char.", 21, 0);
+            prt("Macro Action: ", 19, 0);
+            if (!askfor_edit(action, 80))
+            {
+                _macro_snapshot_free(&current_macros);
+                _keymap_snapshot_free(&current_keymaps);
+                continue;
+            }
+
+            macro_remove(trigger);
+            if (action[0])
+            {
+                text_to_ascii(macro__buf, action);
+                macro_add(trigger, macro__buf);
+                msg_print("Updated macro.");
+            }
+            else
+                msg_print("Cleared macro.");
+            _macro_snapshot_free(&current_macros);
+            _keymap_snapshot_free(&current_keymaps);
+            continue;
+        }
+        _macro_snapshot_free(&current_macros);
+        _keymap_snapshot_free(&current_keymaps);
+        bell();
+    }
+}
+
+static void _macro_ui_update_original(macro_ui_context_t *ui)
+{
+    int i;
+
+    if (!_macro_ui_session_snapshot_storage_init)
+    {
+        _macro_snapshot_init(&_macro_ui_session_macros);
+        for (i = 0; i < KEYMAP_MODES; i++)
+            _keymap_snapshot_init(&_macro_ui_session_keymaps[i], i);
+        _macro_ui_session_snapshot_storage_init = TRUE;
+    }
+
+    if (!_macro_ui_session_snapshot_ready)
+    {
+        _macro_snapshot_current(&_macro_ui_session_macros);
+        for (i = 0; i < KEYMAP_MODES; i++)
+            _keymap_snapshot_current(&_macro_ui_session_keymaps[i], i);
+        _macro_ui_session_snapshot_ready = TRUE;
+    }
+
+    _macro_snapshot_copy(&ui->original_macros, &_macro_ui_session_macros);
+    for (i = 0; i < KEYMAP_MODES; i++)
+        _keymap_snapshot_copy(&ui->original_keymaps[i], &_macro_ui_session_keymaps[i]);
+}
+
+static void _macro_ui_update_session_snapshot(int scope, int mode)
+{
+    if (!_macro_ui_session_snapshot_storage_init)
+    {
+        int i;
+
+        _macro_snapshot_init(&_macro_ui_session_macros);
+        for (i = 0; i < KEYMAP_MODES; i++)
+            _keymap_snapshot_init(&_macro_ui_session_keymaps[i], i);
+        _macro_ui_session_snapshot_storage_init = TRUE;
+    }
+
+    if (!_macro_ui_session_snapshot_ready)
+    {
+        int i;
+
+        _macro_snapshot_current(&_macro_ui_session_macros);
+        for (i = 0; i < KEYMAP_MODES; i++)
+            _keymap_snapshot_current(&_macro_ui_session_keymaps[i], i);
+        _macro_ui_session_snapshot_ready = TRUE;
+    }
+
+    if (_macro_ui_scope_has_macros(scope))
+        _macro_snapshot_current(&_macro_ui_session_macros);
+    if (_macro_ui_scope_has_keymaps(scope))
+        _keymap_snapshot_current(&_macro_ui_session_keymaps[mode], mode);
+}
+
+static void _macro_ui_restore_original(macro_ui_context_t *ui)
+{
+    int i;
+
+    _macro_snapshot_apply(&ui->original_macros);
+    for (i = 0; i < KEYMAP_MODES; i++)
+        _keymap_snapshot_apply(&ui->original_keymaps[i]);
+}
+
+static void _macro_ui_reset_defaults(macro_ui_context_t *ui)
+{
+    while (1)
+    {
+        int ch;
+
+        Term_clear();
+        prt("Reset to Defaults", 2, 0);
+        prt("Reset (m)acros, current (k)eyset, both (K)eysets, (y)everything, or (n)othing?", 5, 0);
+        prt("Enter resets everything. ? opens help.", 7, 0);
+        prt("Choice: ", 9, 0);
+
+        ch = _macro_ui_inkey();
+        if (ch == '?')
+        {
+            _macro_ui_help();
+            continue;
+        }
+        if (ch == '\r' || ch == '\n' || ch == 'y')
+        {
+            _macro_snapshot_apply(&ui->baseline_macros);
+            _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ORIG]);
+            _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ROGUE]);
+            msg_print("Reset everything to defaults.");
+            return;
+        }
+        if (ch == 'm')
+        {
+            _macro_snapshot_apply(&ui->baseline_macros);
+            msg_print("Reset macros to defaults.");
+            return;
+        }
+        if (ch == 'k')
+        {
+            _keymap_snapshot_apply(&ui->baseline_keymaps[ui->mode]);
+            msg_print("Reset the current keyset to defaults.");
+            return;
+        }
+        if (ch == 'K')
+        {
+            _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ORIG]);
+            _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ROGUE]);
+            msg_print("Reset both keysets to defaults.");
+            return;
+        }
+        if (ch == ESCAPE || ch == 'n')
+        {
+            msg_print("Reset cancelled.");
+            return;
+        }
+        bell();
+    }
+}
+
+static void _macro_ui_browse_current(macro_ui_context_t *ui)
+{
+    macro_snapshot_t empty_macros;
+    keymap_snapshot_t empty_keymaps;
+    macro_snapshot_t current_macros;
+    keymap_snapshot_t current_keymaps;
+    macro_ui_entry_t entries[MACRO_UI_MAX_ENTRIES];
+    int count;
+    bool dummy = FALSE;
+    bool replace_view = TRUE;
+
+    _macro_snapshot_init(&empty_macros);
+    _macro_snapshot_init(&current_macros);
+    _keymap_snapshot_init(&empty_keymaps, ui->mode);
+    _keymap_snapshot_init(&current_keymaps, ui->mode);
+
+    _macro_ui_current_custom(ui, &current_macros, &current_keymaps);
+    count = _macro_ui_build_entries(entries, MACRO_UI_MAX_ENTRIES, &empty_macros, &empty_keymaps, &current_macros, &current_keymaps, FALSE);
+    (void)_macro_ui_browse_entries("Browse Custom Keys", entries, count, FALSE, &dummy, &replace_view);
+
+    _macro_snapshot_free(&empty_macros);
+    _macro_snapshot_free(&current_macros);
+    _keymap_snapshot_free(&empty_keymaps);
+    _keymap_snapshot_free(&current_keymaps);
+}
+
+static void _macro_ui_build_load_result(
+    int mode_choice, int scope,
+    const macro_snapshot_t *file_macros, const keymap_snapshot_t *file_keymaps,
+    macro_snapshot_t *result_macros, keymap_snapshot_t *result_keymaps,
+    int mode)
+{
+    macro_snapshot_t current_macros;
+    keymap_snapshot_t current_keymaps;
+
+    _macro_snapshot_init(&current_macros);
+    _keymap_snapshot_init(&current_keymaps, mode);
+    _macro_snapshot_current(&current_macros);
+    _keymap_snapshot_current(&current_keymaps, mode);
+
+    _macro_snapshot_copy(result_macros, &current_macros);
+    _keymap_snapshot_copy(result_keymaps, &current_keymaps);
+
+    if (mode_choice == MACRO_UI_MODE_REPLACE)
+    {
+        if (_macro_ui_scope_has_macros(scope))
+            _macro_snapshot_copy(result_macros, file_macros);
+        if (_macro_ui_scope_has_keymaps(scope))
+            _keymap_snapshot_copy(result_keymaps, file_keymaps);
+    }
+    else
+    {
+        if (_macro_ui_scope_has_macros(scope))
+            _macro_snapshot_overlay(result_macros, file_macros);
+        if (_macro_ui_scope_has_keymaps(scope))
+            _keymap_snapshot_overlay(result_keymaps, file_keymaps);
+    }
+
+    _macro_snapshot_free(&current_macros);
+    _keymap_snapshot_free(&current_keymaps);
+}
+
+static void _macro_ui_build_save_result(
+    macro_ui_context_t *ui, int scope, int mode_choice,
+    const macro_snapshot_t *file_macros, const keymap_snapshot_t *file_keymaps,
+    macro_snapshot_t *result_macros, keymap_snapshot_t *result_keymaps)
+{
+    macro_snapshot_t current_macros;
+    keymap_snapshot_t current_keymaps;
+
+    _macro_snapshot_init(&current_macros);
+    _keymap_snapshot_init(&current_keymaps, ui->mode);
+    _macro_ui_current_custom(ui, &current_macros, &current_keymaps);
+
+    if (mode_choice == MACRO_UI_MODE_REPLACE)
+    {
+        if (_macro_ui_scope_has_macros(scope))
+            _macro_snapshot_copy(result_macros, &current_macros);
+        else
+            _macro_snapshot_copy(result_macros, file_macros);
+
+        if (_macro_ui_scope_has_keymaps(scope))
+            _keymap_snapshot_copy(result_keymaps, &current_keymaps);
+        else
+            _keymap_snapshot_copy(result_keymaps, file_keymaps);
+    }
+    else
+    {
+        _macro_snapshot_copy(result_macros, file_macros);
+        _keymap_snapshot_copy(result_keymaps, file_keymaps);
+        if (_macro_ui_scope_has_macros(scope))
+            _macro_snapshot_overlay(result_macros, &current_macros);
+        if (_macro_ui_scope_has_keymaps(scope))
+            _keymap_snapshot_overlay(result_keymaps, &current_keymaps);
+    }
+
+    _macro_snapshot_free(&current_macros);
+    _keymap_snapshot_free(&current_keymaps);
+}
+
+static void _macro_ui_do_load(macro_ui_context_t *ui)
+{
+    char file[80];
+    int scope;
+    macro_snapshot_t file_macros;
+    keymap_snapshot_t file_keymaps;
+    int status;
+
+    _macro_ui_default_file(file, sizeof(file));
+    if (!_macro_ui_prompt_file("Load Customizations", file, sizeof(file))) return;
+
+    while (1)
+    {
+        int mode_choice;
+
+        scope = _macro_ui_prompt_scope(MACRO_UI_OP_LOAD);
+        if (scope < 0) return;
+
+        _macro_snapshot_init(&file_macros);
+        _keymap_snapshot_init(&file_keymaps, ui->mode);
+        status = _macro_ui_load_file(file, &file_macros, &file_keymaps, ui->mode);
+        if (status > 0)
+        {
+            _macro_snapshot_free(&file_macros);
+            _keymap_snapshot_free(&file_keymaps);
+            msg_format("Failed to load '%s'!", file);
+            return;
+        }
+
+        while (1)
+        {
+            mode_choice = _macro_ui_prompt_mode(MACRO_UI_OP_LOAD, scope);
+            if (mode_choice < 0) break;
+
+            if (mode_choice == 3)
+            {
+                macro_snapshot_t current_macros;
+                keymap_snapshot_t current_keymaps;
+                macro_snapshot_t replace_macros;
+                keymap_snapshot_t replace_keymaps;
+                macro_snapshot_t add_macros;
+                keymap_snapshot_t add_keymaps;
+
+                _macro_snapshot_init(&current_macros);
+                _keymap_snapshot_init(&current_keymaps, ui->mode);
+                _macro_snapshot_init(&replace_macros);
+                _keymap_snapshot_init(&replace_keymaps, ui->mode);
+                _macro_snapshot_init(&add_macros);
+                _keymap_snapshot_init(&add_keymaps, ui->mode);
+                _macro_snapshot_current(&current_macros);
+                _keymap_snapshot_current(&current_keymaps, ui->mode);
+                _macro_ui_build_load_result(MACRO_UI_MODE_REPLACE, scope, &file_macros, &file_keymaps, &replace_macros, &replace_keymaps, ui->mode);
+                _macro_ui_build_load_result(MACRO_UI_MODE_ADD, scope, &file_macros, &file_keymaps, &add_macros, &add_keymaps, ui->mode);
+                _macro_ui_preview("Browse Affected Keys", &current_macros, &current_keymaps, &replace_macros, &replace_keymaps, &add_macros, &add_keymaps);
+                _macro_snapshot_free(&current_macros);
+                _keymap_snapshot_free(&current_keymaps);
+                _macro_snapshot_free(&replace_macros);
+                _keymap_snapshot_free(&replace_keymaps);
+                _macro_snapshot_free(&add_macros);
+                _keymap_snapshot_free(&add_keymaps);
+                continue;
+            }
+
+            {
+                macro_snapshot_t result_macros;
+                keymap_snapshot_t result_keymaps;
+
+                _macro_snapshot_init(&result_macros);
+                _keymap_snapshot_init(&result_keymaps, ui->mode);
+                _macro_ui_build_load_result(mode_choice, scope, &file_macros, &file_keymaps, &result_macros, &result_keymaps, ui->mode);
+                _macro_ui_apply_state(&result_macros, &result_keymaps);
+                _macro_snapshot_free(&result_macros);
+                _keymap_snapshot_free(&result_keymaps);
+
+                if (status == -2)
+                    msg_format("Loaded default '%s'.", file);
+                else
+                    msg_format("Loaded '%s'.", file);
+                _macro_snapshot_free(&file_macros);
+                _keymap_snapshot_free(&file_keymaps);
+                return;
+            }
+        }
+
+        _macro_snapshot_free(&file_macros);
+        _keymap_snapshot_free(&file_keymaps);
+    }
+}
+
+static void _macro_ui_do_save(macro_ui_context_t *ui)
+{
+    char file[80];
+
+    _macro_ui_default_file(file, sizeof(file));
+    if (!_macro_ui_prompt_file("Save Customizations", file, sizeof(file))) return;
+
+    while (1)
+    {
+        int scope;
+        macro_snapshot_t file_macros;
+        keymap_snapshot_t file_keymaps;
+
+        scope = _macro_ui_prompt_scope(MACRO_UI_OP_SAVE);
+        if (scope < 0) return;
+
+        _macro_snapshot_init(&file_macros);
+        _keymap_snapshot_init(&file_keymaps, ui->mode);
+        _macro_ui_load_user_only(file, &file_macros, &file_keymaps, ui->mode);
+
+        while (1)
+        {
+            int mode_choice;
+
+            mode_choice = _macro_ui_prompt_mode(MACRO_UI_OP_SAVE, scope);
+            if (mode_choice < 0) break;
+
+            if (mode_choice == 3)
+            {
+                macro_snapshot_t replace_macros;
+                keymap_snapshot_t replace_keymaps;
+                macro_snapshot_t add_macros;
+                keymap_snapshot_t add_keymaps;
+
+                _macro_snapshot_init(&replace_macros);
+                _keymap_snapshot_init(&replace_keymaps, ui->mode);
+                _macro_snapshot_init(&add_macros);
+                _keymap_snapshot_init(&add_keymaps, ui->mode);
+                _macro_ui_build_save_result(ui, scope, MACRO_UI_MODE_REPLACE, &file_macros, &file_keymaps, &replace_macros, &replace_keymaps);
+                _macro_ui_build_save_result(ui, scope, MACRO_UI_MODE_ADD, &file_macros, &file_keymaps, &add_macros, &add_keymaps);
+                _macro_ui_preview("Browse Affected Keys", &file_macros, &file_keymaps, &replace_macros, &replace_keymaps, &add_macros, &add_keymaps);
+                _macro_snapshot_free(&replace_macros);
+                _keymap_snapshot_free(&replace_keymaps);
+                _macro_snapshot_free(&add_macros);
+                _keymap_snapshot_free(&add_keymaps);
+                continue;
+            }
+
+            {
+                macro_snapshot_t result_macros;
+                keymap_snapshot_t result_keymaps;
+
+                _macro_snapshot_init(&result_macros);
+                _keymap_snapshot_init(&result_keymaps, ui->mode);
+                _macro_ui_build_save_result(ui, scope, mode_choice, &file_macros, &file_keymaps, &result_macros, &result_keymaps);
+
+                if (_macro_ui_save_file(file, scope, mode_choice, &result_macros, &result_keymaps, ui->mode))
+                {
+                    _macro_ui_update_session_snapshot(scope, ui->mode);
+                    _macro_ui_update_original(ui);
+                    msg_format("Saved '%s'.", file);
+                }
+
+                _macro_snapshot_free(&result_macros);
+                _keymap_snapshot_free(&result_keymaps);
+                _macro_snapshot_free(&file_macros);
+                _keymap_snapshot_free(&file_keymaps);
+                return;
+            }
+        }
+
+        _macro_snapshot_free(&file_macros);
+        _keymap_snapshot_free(&file_keymaps);
+    }
+}
+
+void do_cmd_macros(void)
+{
+    macro_ui_context_t ui;
+    int i;
+
+    ui.mode = rogue_like_commands ? KEYMAP_MODE_ROGUE : KEYMAP_MODE_ORIG;
+    _macro_snapshot_init(&ui.baseline_macros);
+    _macro_snapshot_init(&ui.original_macros);
+    for (i = 0; i < KEYMAP_MODES; i++)
+        _keymap_snapshot_init(&ui.baseline_keymaps[i], i);
+    _keymap_snapshot_init(&ui.original_keymaps[KEYMAP_MODE_ORIG], KEYMAP_MODE_ORIG);
+    _keymap_snapshot_init(&ui.original_keymaps[KEYMAP_MODE_ROGUE], KEYMAP_MODE_ROGUE);
+
+    FILE_TYPE(FILE_TYPE_TEXT);
+
+    _macro_ui_load_baseline(&ui);
+    _macro_ui_update_original(&ui);
+
+    screen_save();
+    while (1)
+    {
+        int ch;
+
+        Term_clear();
+        prt("Interact with Custom Keys", 2, 0);
+        prt("(1) Load customizations", 5, 4);
+        prt("(2) Save customizations", 6, 4);
+        prt("(b) Browse custom keys", 8, 4);
+        prt("(c) Customize a key", 9, 4);
+        prt("(d) Discard unsaved changes", 11, 4);
+        prt("(r) Reset to defaults...", 12, 4);
+        prt("Keymaps suit most custom actions. Macros are mainly for special keys or triggers that must work inside menus.", 14, 0);
+        prt("ESC exits. ? opens help.", 16, 0);
+        prt("Command: ", 18, 0);
+
+        ch = _macro_ui_inkey();
+        if (ch == ESCAPE) break;
+        if (ch == '?')
+        {
+            _macro_ui_help();
+            continue;
+        }
+        if (ch == '1')
+        {
+            _macro_ui_do_load(&ui);
+            continue;
+        }
+        if (ch == '2')
+        {
+            _macro_ui_do_save(&ui);
+            continue;
+        }
+        if (ch == 'b')
+        {
+            _macro_ui_browse_current(&ui);
+            continue;
+        }
+        if (ch == 'c')
+        {
+            _macro_ui_customize_key(&ui);
+            continue;
+        }
+        if (ch == 'd')
+        {
+            _macro_ui_restore_original(&ui);
+            msg_print("Discarded unsaved changes.");
+            continue;
+        }
+        if (ch == 'r')
+        {
+            _macro_ui_reset_defaults(&ui);
+            msg_print("Reset all to defaults.");
+            continue;
+        }
+        bell();
+    }
+    screen_load();
+    _macro_ui_free_context(&ui);
 }
 
 #endif
-
-
-/*
- * Hack -- ask for a keymap "trigger" (see below)
- *
- * Note that both "flush()" calls are extremely important. This may
- * no longer be true, since "util.c" is much simpler now. XXX XXX XXX
- */
-static void do_cmd_macro_aux_keymap(char *buf)
-{
-    char tmp[1024];
-
-
-    /* Flush */
-    flush();
-
-
-    /* Get a key */
-    buf[0] = inkey();
-    buf[1] = '\0';
-
-
-    /* Convert to ascii */
-    ascii_to_text(tmp, buf);
-
-    /* Hack -- display the trigger */
-    Term_addstr(-1, TERM_WHITE, tmp);
-
-
-    /* Flush */
-    flush();
-}
-
-
-/*
- * Hack -- append all keymaps to the given file
- */
-static errr keymap_dump(cptr fname)
-{
-    static cptr mark = "Keymap Dump";
-    int i;
-
-    char key[1024];
-    char buf[1024];
-
-    int mode;
-
-    /* Roguelike */
-    if (rogue_like_commands)
-    {
-        mode = KEYMAP_MODE_ROGUE;
-    }
-
-    /* Original */
-    else
-    {
-        mode = KEYMAP_MODE_ORIG;
-    }
-
-
-    /* Build the filename */
-    path_build(buf, sizeof(buf), ANGBAND_DIR_USER, fname);
-
-    /* File type is "TEXT" */
-    FILE_TYPE(FILE_TYPE_TEXT);
-
-    /* Append to the file */
-    if (!open_auto_dump(buf, mark)) return -1;
-
-    /* Start dumping */
-    auto_dump_printf("\n# Automatic keymap dump\n\n");
-
-    /* Dump them */
-    for (i = 0; i < 256; i++)
-    {
-        cptr act;
-
-        /* Loop up the keymap */
-        act = keymap_act[mode][i];
-
-        /* Skip empty keymaps */
-        if (!act) continue;
-
-        /* Encode the key */
-        buf[0] = i;
-        buf[1] = '\0';
-        ascii_to_text(key, buf);
-
-        /* Encode the action */
-        ascii_to_text(buf, act);
-
-        /* Dump the macro */
-        auto_dump_printf("A:%s\n", buf);
-        auto_dump_printf("C:%d:%s\n", mode, key);
-    }
-
-    /* Close */
-    close_auto_dump();
-
-    /* Success */
-    return (0);
-}
-
-
-
-/*
- * Interact with "macros"
- *
- * Note that the macro "action" must be defined before the trigger.
- *
- * Could use some helpful instructions on this page. XXX XXX XXX
- */
-void do_cmd_macros(void)
-{
-    int i;
-
-    char tmp[1024];
-
-    char buf[1024];
-
-    int mode;
-
-
-    /* Roguelike */
-    if (rogue_like_commands)
-    {
-        mode = KEYMAP_MODE_ROGUE;
-    }
-
-    /* Original */
-    else
-    {
-        mode = KEYMAP_MODE_ORIG;
-    }
-
-    /* File type is "TEXT" */
-    FILE_TYPE(FILE_TYPE_TEXT);
-
-
-    /* Save screen */
-    screen_save();
-
-
-    /* Process requests until done */
-    while (1)
-    {
-        /* Clear screen */
-        Term_clear();
-
-        /* Describe */
-        prt("Interact with Macros", 2, 0);
-
-
-
-        /* Describe that action */
-        prt("Current action (if any) shown below:", 20, 0);
-
-
-        /* Analyze the current action */
-        ascii_to_text(buf, macro__buf);
-
-        /* Display the current action */
-        prt(buf, 22, 0);
-
-
-        /* Selections */
-        prt("(1) Load a user pref file", 4, 5);
-
-#ifdef ALLOW_MACROS
-        prt("(2) Append macros and keymaps to a file", 5, 5);
-        prt("(3) Query a macro", 6, 5);
-        prt("(4) Create a macro", 7, 5);
-        prt("(5) Remove a macro", 8, 5);
-        prt("(7) Query a keymap", 10, 5);
-        prt("(8) Create a keymap", 11, 5);
-        prt("(9) Remove a keymap", 12, 5);
-        prt("(0) Enter a new action", 13, 5);
-
-#endif /* ALLOW_MACROS */
-
-        /* Prompt */
-        prt("Command: ", 16, 0);
-
-
-        /* Get a command */
-        i = inkey();
-
-        /* Leave */
-        if (i == ESCAPE) break;
-
-        /* Load a 'macro' file */
-        else if (i == '1')
-        {
-            errr err;
-
-            /* Prompt */
-            prt("Command: Load a user pref file", 16, 0);
-
-
-            /* Prompt */
-            prt("File: ", 18, 0);
-
-
-            /* Default filename */
-            sprintf(tmp, "%s.prf", pref_save_base);
-
-            /* Ask for a file */
-            if (!askfor(tmp, 80)) continue;
-
-            /* Process the given filename */
-            err = process_pref_file(tmp);
-            if (-2 == err)
-            {
-                msg_format("Loaded default '%s'.", tmp);
-            }
-            else if (err)
-            {
-                /* Prompt */
-                msg_format("Failed to load '%s'!", tmp);
-            }
-            else
-            {
-                msg_format("Loaded '%s'.", tmp);
-            }
-        }
-
-#ifdef ALLOW_MACROS
-
-        /* Save macros */
-        else if (i == '2')
-        {
-            /* Prompt */
-            prt("Command: Append macros and keymaps to a file", 16, 0);
-
-
-            /* Prompt */
-            prt("File: ", 18, 0);
-
-
-            /* Default filename */
-            sprintf(tmp, "%s.prf", pref_save_base);
-
-            /* Ask for a file */
-            if (!askfor(tmp, 80)) continue;
-
-            /* Dump the macros */
-            (void)macro_dump(tmp);
-            (void)keymap_dump(tmp);
-
-            /* Prompt */
-            msg_print("Appended macros and keymaps.");
-
-        }
-
-        /* Query a macro */
-        else if (i == '3')
-        {
-            int k;
-
-            /* Prompt */
-            prt("Command: Query a macro", 16, 0);
-
-
-            /* Prompt */
-            prt("Trigger: ", 18, 0);
-
-
-            /* Get a macro trigger */
-            do_cmd_macro_aux(buf);
-
-            /* Acquire action */
-            k = macro_find_exact(buf);
-
-            /* Nothing found */
-            if (k < 0)
-            {
-                /* Prompt */
-                msg_print("Found no macro.");
-
-            }
-
-            /* Found one */
-            else
-            {
-                /* Obtain the action */
-                strcpy(macro__buf, macro__act[k]);
-
-                /* Analyze the current action */
-                ascii_to_text(buf, macro__buf);
-
-                /* Display the current action */
-                prt(buf, 22, 0);
-
-                /* Prompt */
-                msg_print("Found a macro.");
-
-            }
-        }
-
-        /* Create a macro */
-        else if (i == '4')
-        {
-            /* Prompt */
-            prt("Command: Create a macro", 16, 0);
-
-
-            /* Prompt */
-            prt("Trigger: ", 18, 0);
-
-
-            /* Get a macro trigger */
-            do_cmd_macro_aux(buf);
-
-            /* Clear */
-            clear_from(20);
-
-            /* Help message */
-            c_prt(TERM_L_RED, "Press Left/Right arrow keys to move cursor. Backspace/Delete to delete a char.", 22, 0);
-
-            /* Prompt */
-            prt("Action: ", 20, 0);
-
-
-            /* Convert to text */
-            ascii_to_text(tmp, macro__buf);
-
-            /* Get an encoded action */
-            if (askfor(tmp, 80))
-            {
-                /* Convert to ascii */
-                text_to_ascii(macro__buf, tmp);
-
-                /* Link the macro */
-                macro_add(buf, macro__buf);
-
-                /* Prompt */
-                msg_print("Added a macro.");
-
-            }
-        }
-
-        /* Remove a macro */
-        else if (i == '5')
-        {
-            /* Prompt */
-            prt("Command: Remove a macro", 16, 0);
-
-
-            /* Prompt */
-            prt("Trigger: ", 18, 0);
-
-
-            /* Get a macro trigger */
-            do_cmd_macro_aux(buf);
-
-            /* Link the macro */
-            macro_add(buf, buf);
-
-            /* Prompt */
-            msg_print("Removed a macro.");
-
-        }
-
-        /* Query a keymap */
-        else if (i == '7')
-        {
-            cptr act;
-
-            /* Prompt */
-            prt("Command: Query a keymap", 16, 0);
-
-
-            /* Prompt */
-            prt("Keypress: ", 18, 0);
-
-
-            /* Get a keymap trigger */
-            do_cmd_macro_aux_keymap(buf);
-
-            /* Look up the keymap */
-            act = keymap_act[mode][(byte)(buf[0])];
-
-            /* Nothing found */
-            if (!act)
-            {
-                /* Prompt */
-                msg_print("Found no keymap.");
-
-            }
-
-            /* Found one */
-            else
-            {
-                /* Obtain the action */
-                strcpy(macro__buf, act);
-
-                /* Analyze the current action */
-                ascii_to_text(buf, macro__buf);
-
-                /* Display the current action */
-                prt(buf, 22, 0);
-
-                /* Prompt */
-                msg_print("Found a keymap.");
-
-            }
-        }
-
-        /* Create a keymap */
-        else if (i == '8')
-        {
-            /* Prompt */
-            prt("Command: Create a keymap", 16, 0);
-
-
-            /* Prompt */
-            prt("Keypress: ", 18, 0);
-
-
-            /* Get a keymap trigger */
-            do_cmd_macro_aux_keymap(buf);
-
-            /* Clear */
-            clear_from(20);
-
-            /* Help message */
-            c_prt(TERM_L_RED, "Press Left/Right arrow keys to move cursor. Backspace/Delete to delete a char.", 22, 0);
-
-            /* Prompt */
-            prt("Action: ", 20, 0);
-
-
-            /* Convert to text */
-            ascii_to_text(tmp, macro__buf);
-
-            /* Get an encoded action */
-            if (askfor(tmp, 80))
-            {
-                /* Convert to ascii */
-                text_to_ascii(macro__buf, tmp);
-
-                /* Free old keymap */
-                z_string_free(keymap_act[mode][(byte)(buf[0])]);
-
-                /* Make new keymap */
-                keymap_act[mode][(byte)(buf[0])] = z_string_make(macro__buf);
-
-                /* Prompt */
-                msg_print("Added a keymap.");
-
-            }
-        }
-
-        /* Remove a keymap */
-        else if (i == '9')
-        {
-            /* Prompt */
-            prt("Command: Remove a keymap", 16, 0);
-
-
-            /* Prompt */
-            prt("Keypress: ", 18, 0);
-
-
-            /* Get a keymap trigger */
-            do_cmd_macro_aux_keymap(buf);
-
-            /* Free old keymap */
-            z_string_free(keymap_act[mode][(byte)(buf[0])]);
-
-            /* Make new keymap */
-            keymap_act[mode][(byte)(buf[0])] = NULL;
-
-            /* Prompt */
-            msg_print("Removed a keymap.");
-
-        }
-
-        /* Enter a new action */
-        else if (i == '0')
-        {
-            /* Prompt */
-            prt("Command: Enter a new action", 16, 0);
-
-            /* Clear */
-            clear_from(20);
-
-            /* Help message */
-            c_prt(TERM_L_RED, "Press Left/Right arrow keys to move cursor. Backspace/Delete to delete a char.", 22, 0);
-
-            /* Prompt */
-            prt("Action: ", 20, 0);
-
-            /* Hack -- limit the value */
-            tmp[80] = '\0';
-
-            /* Get an encoded action */
-            if (!askfor(buf, 80)) continue;
-
-            /* Extract an action */
-            text_to_ascii(macro__buf, buf);
-        }
-
-#endif /* ALLOW_MACROS */
-
-        /* Oops */
-        else
-        {
-            /* Oops */
-            bell();
-        }
-
-        /* Flush messages */
-        msg_print(NULL);
-    }
-
-    /* Load screen */
-    screen_load();
-}
 
 
 static cptr lighting_level_str[F_LIT_MAX] =

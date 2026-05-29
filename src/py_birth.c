@@ -67,6 +67,7 @@ static void _birth_finalize(void);
 static int _inkey(void);
 static void _sync_term(doc_ptr doc);
 static int _count(int ids[]);
+static cptr _mon_race_group_topic(b_race_group_ptr g_ptr);
 
 /************************************************************************
  * Public Entrypoints
@@ -1062,6 +1063,17 @@ b_race_group_t b_mon_race_groups[B_MAX_MON_RACE_GROUPS] = {
         {RACE_MON_PUMPKIN, RACE_MON_XORN, -1} },
 };
 
+static cptr _mon_race_group_topic(b_race_group_ptr g_ptr)
+{
+    int id = g_ptr->ids[0];
+    race_t *race_ptr;
+
+    if (id == -1) return NULL;
+
+    race_ptr = get_race_aux(id, 0);
+    return race_ptr ? race_ptr->name : NULL;
+}
+
 static void _race_group_ui(void)
 {
     vec_ptr groups = vec_alloc(NULL);
@@ -2034,9 +2046,11 @@ static int _realm2_ui(void)
 
 static void _mon_race_group_ui(void)
 {
+    int i;
+
     for (;;)
     {
-        int cmd, i;
+        int cmd;
 
         doc_clear(_doc);
         _race_class_top(_doc);
@@ -2048,6 +2062,7 @@ static void _mon_race_group_ui(void)
             doc_printf( _doc, "  <color:y>%c</color>) %s\n", I2A(i), g_ptr->name);
         }
         doc_insert(_doc, "  <color:y>*</color>) Random\n");
+        doc_insert(_doc, "     Use SHIFT+choice to display help topic\n");
         _sync_term(_doc);
 
         cmd = _inkey();
@@ -2059,15 +2074,13 @@ static void _mon_race_group_ui(void)
         else if (cmd == '!') doc_display_help("start.txt", NULL);
         else if (isupper(cmd))
         {
-            i = A2I(cmd);
+            i = A2I(tolower(cmd));
             if (0 <= i && i < B_MAX_MON_RACE_GROUPS)
             {
                 b_race_group_ptr g_ptr = &b_mon_race_groups[i];
-                if (_count(g_ptr->ids) == 1)
-                {
-                    race_t *race_ptr = get_race_aux(p_ptr->prace, 0);
-                    doc_display_help("MonsterRaces.txt", race_ptr->name);
-                }
+                cptr topic = _mon_race_group_topic(g_ptr);
+                if (topic)
+                    doc_display_help("MonsterRaces.txt", topic);
                 else
                     doc_display_help("MonsterRaces.txt", NULL);
             }

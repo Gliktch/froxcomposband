@@ -5863,9 +5863,9 @@ static void do_cmd_knowledge_artifacts(void)
         }
 
         if (show_all)
-            prt("<dir>, 'r' to recall, 't' to Hide Unfound, ESC", hgt - 1, 0);
+            prt("<dir>, 'r' or '/' to recall, 't' to Hide Unfound, ESC", hgt - 1, 0);
         else
-            prt("<dir>, 'r' to recall, 't' to Show All, ESC", hgt - 1, 0);
+            prt("<dir>, 'r' or '/' to recall, 't' to Show All, ESC", hgt - 1, 0);
 
         if (!column)
         {
@@ -5890,6 +5890,7 @@ static void do_cmd_knowledge_artifacts(void)
             rebuild = TRUE;
             break;
 
+        case '/':
         case 'R': case 'r':
         case 'I': case 'i':
             if (grp_cnt > 0 && art_idx[art_cur] >= 0)
@@ -8395,7 +8396,7 @@ static void do_cmd_knowledge_egos(void)
             Term_erase(max + 3, 6 + i, 255);
         }
 
-        prt("<dir>, 'r' to recall, ESC", hgt - 1, 0);
+        prt("<dir>, 'r' or '/' to recall, ESC", hgt - 1, 0);
 
         if (!column)
         {
@@ -8414,6 +8415,7 @@ static void do_cmd_knowledge_egos(void)
             flag = TRUE;
             break;
 
+        case '/':
         case 'R':
         case 'r':
         case 'I':
@@ -8627,7 +8629,7 @@ static void do_cmd_knowledge_objects(bool *need_redraw, bool visual_only, int di
 
         /* Prompt */
         prt(format("<dir>%s%s%s, ESC",
-            (!visual_list && !visual_only) ? ", 'r' to recall" : "",
+            (!visual_list && !visual_only) ? ", 'r' or '/' to recall" : "",
             visual_list ? ", ENTER to accept" : ", 'v' for visuals",
             (attr_idx || char_idx) ? ", 'c', 'p' to paste" : ", 'c' to copy"),
             hgt - 1, 0);
@@ -8689,6 +8691,7 @@ static void do_cmd_knowledge_objects(bool *need_redraw, bool visual_only, int di
                 break;
             }
 
+            case '/':
             case 'R':
             case 'r':
             {

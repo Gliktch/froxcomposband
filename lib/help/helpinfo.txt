@@ -14,6 +14,7 @@
 
 <color:keypress>    >     </color>(Go to next section)
 <color:keypress>    <     </color>(Go to previous section)
+<color:keypress> letters  </color>(Jump to the next matching section, if the document provides lettered sections)
 
 <style:heading>Other Commands</style>
 <color:keypress>    /     </color>(Search forward for a string - case-sensitive)

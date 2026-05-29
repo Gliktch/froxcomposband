@@ -121,6 +121,7 @@ struct doc_s
     vec_ptr        style_stack;
     string_ptr     name;
     string_ptr     html_header;
+    string_ptr     html_footer;
 };
 typedef struct doc_s doc_t, *doc_ptr;
 
@@ -187,6 +188,7 @@ void          doc_sync_menu(doc_ptr doc);
 
 void          doc_change_name(doc_ptr doc, cptr name);
 void          doc_change_html_header(doc_ptr doc, cptr header);
+void          doc_change_html_footer(doc_ptr doc, cptr footer);
 vec_ptr       doc_get_links(doc_ptr doc);
 
 /* Parsing */

@@ -33,6 +33,7 @@ static void _build_statistics(doc_ptr doc);
 
 static void _build_messages(doc_ptr doc);
 static void _build_options(doc_ptr doc);
+static cptr _character_dump_html_footer(void);
 
 /********************************** Page 1 ************************************/
 static void _build_general1(doc_ptr doc)
@@ -625,6 +626,7 @@ static void _build_flags(doc_ptr doc, cptr name, int flg, int dec_flg, _flagzill
 static void _build_flags1(doc_ptr doc, _flagzilla_ptr flagzilla)
 {
     int i;
+    doc_insert(doc, "<topic:Resistances>");
     _equippy_chars(doc, 14);
     _equippy_heading(doc, "Resistances", 14);
 
@@ -2742,9 +2744,45 @@ static void _add_html_header(doc_ptr doc)
     string_free(header);
 }
 
+static cptr _character_dump_html_footer(void)
+{
+    return
+        "<script>\n"
+        "(function(){\n"
+        "var jumps={"
+            "a:['allies'],"
+            "d:['dungeons'],"
+            "e:['equipment'],"
+            "h:['home'],"
+            "i:['inventory'],"
+            "k:['kills'],"
+            "l:['lastmessages'],"
+            "m:['melee','mutations','museum'],"
+            "o:['options'],"
+            "p:['powers','pets'],"
+            "r:['resistances'],"
+            "s:['shooting','spells','statistics'],"
+            "u:['uquests'],"
+            "v:['virtues','vquiver']"
+        "};\n"
+        "document.addEventListener('keydown',function(e){\n"
+        "var ids,key,i;\n"
+        "if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;\n"
+        "key=e.key;\n"
+        "if(key.length!==1)return;\n"
+        "ids=jumps[key.toLowerCase()];\n"
+        "if(!ids)return;\n"
+        "for(i=0;i<ids.length;i++)if(location.hash==='#'+ids[i])break;\n"
+        "location.hash='#'+ids[(i+1)%ids.length];\n"
+        "});\n"
+        "})();\n"
+        "</script>\n";
+}
+
 void py_display_character_sheet(doc_ptr doc)
 {
     _add_html_header(doc);
+    doc_change_html_footer(doc, _character_dump_html_footer());
 
     doc_insert(doc, "<style:wide>  [FrogComposband <$:version> Character Dump]\n");
     if (p_ptr->total_winner)

@@ -4,6 +4,7 @@
 #include "c-string.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdint.h>
 
 #define _INVALID_COLOR 255
@@ -215,6 +216,7 @@ doc_ptr doc_alloc(int width)
     res->style_stack = vec_alloc(free);
     res->name = string_alloc();
     res->html_header = string_alloc();
+    res->html_footer = string_alloc();
 
     /* Default Styles */
     _add_doc_style_f(res, "normal", _normal_style);
@@ -248,6 +250,7 @@ void doc_free(doc_ptr doc)
         vec_free(doc->style_stack);
         string_free(doc->name);
         string_free(doc->html_header);
+        string_free(doc->html_footer);
 
         free(doc);
     }
@@ -263,6 +266,12 @@ void doc_change_html_header(doc_ptr doc, cptr header)
 {
     string_clear(doc->html_header);
     string_append_s(doc->html_header, header);
+}
+
+void doc_change_html_footer(doc_ptr doc, cptr footer)
+{
+    string_clear(doc->html_footer);
+    string_append_s(doc->html_footer, footer);
 }
 
 doc_pos_t doc_cursor(doc_ptr doc)
@@ -1571,6 +1580,34 @@ static int _compare_links(doc_link_ptr left, doc_link_ptr right)
     return doc_pos_compare(left->location.start, right->location.start);
 }
 
+static string_ptr _doc_bookmark_id(doc_bookmark_ptr mark)
+{
+    string_ptr id = string_alloc();
+    cptr name = string_buffer(mark->name);
+    bool pending_dash = FALSE;
+    int i;
+
+    for (i = 0; name[i]; i++)
+    {
+        unsigned char c = (unsigned char)name[i];
+
+        if (isalnum(c))
+        {
+            if (pending_dash && string_length(id))
+                string_append_c(id, '-');
+            string_append_c(id, (char)tolower(c));
+            pending_dash = FALSE;
+        }
+        else if (string_length(id))
+            pending_dash = TRUE;
+    }
+
+    if (!string_length(id))
+        string_append_s(id, "section");
+
+    return id;
+}
+
 vec_ptr doc_get_links(doc_ptr doc)
 {
     vec_ptr          links = vec_alloc(NULL);
@@ -1620,7 +1657,9 @@ static void _doc_write_html_file(doc_ptr doc, FILE *fp)
 
         if (next_bookmark && pos.y == next_bookmark->pos.y)
         {
-            fprintf(fp, "<a name=\"%s\"></a>", string_buffer(next_bookmark->name));
+            string_ptr id = _doc_bookmark_id(next_bookmark);
+            fprintf(fp, "<a name=\"%s\" id=\"%s\"></a>", string_buffer(next_bookmark->name), string_buffer(id));
+            string_free(id);
             bookmark_idx++;
             if (bookmark_idx < vec_length(doc->bookmarks))
                 next_bookmark = vec_get(doc->bookmarks, bookmark_idx);
@@ -1692,7 +1731,10 @@ static void _doc_write_html_file(doc_ptr doc, FILE *fp)
         fputc('\n', fp);
    }
    fprintf(fp, "</font>");
-   fprintf(fp, "</pre></body></html>\n");
+   fprintf(fp, "</pre>");
+   if (string_length(doc->html_footer))
+       fprintf(fp, "%s", string_buffer(doc->html_footer));
+   fprintf(fp, "</body></html>\n");
 
    vec_free(links);
 }

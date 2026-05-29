@@ -1880,14 +1880,33 @@ static void _process_wanted_corpse(obj_ptr obj)
     /*msg_format("You get %s.", name);*/
     pack_carry(&prize);
 }
+static void _process_attached_wanted_corpse(obj_ptr obj)
+{
+    char name[MAX_NLEN];
+    char buf[MAX_NLEN+30];
+
+    ++_prize_count;
+
+    object_desc(name, obj, OD_COLOR_CODED);
+    sprintf(buf, "Hand %s over? ", name);
+    if (!get_check(buf)) return;
+
+    msg_print("You'll need to detach that first.");
+}
 static bool kankin(void)
 {
+    race_t *race_ptr = get_race();
+
     _prize_count = 0;
     equip_for_each_that(_process_tsuchinoko, _is_captured_tsuchinoko);
     pack_for_each_that(_process_tsuchinoko, _is_captured_tsuchinoko);
     pack_for_each_that(_process_tsuchinoko, _is_corpse_tsuchinoko);
     pack_for_each_that(_process_todays_prize, _is_todays_prize);
     pack_for_each_that(_process_wanted_corpse, _is_wanted_corpse);
+    if (race_ptr->bonus_pack)
+        inv_for_each_that(race_ptr->bonus_pack, _process_wanted_corpse, _is_wanted_corpse);
+    if (race_ptr->bonus_pack2)
+        inv_for_each_that(race_ptr->bonus_pack2, _process_attached_wanted_corpse, _is_wanted_corpse);
     equip_for_each_that(_process_wanted_corpse, _is_wanted_captureball);
     pack_for_each_that(_process_wanted_corpse, _is_wanted_captureball);
     if (!_prize_count)

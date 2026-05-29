@@ -18,6 +18,11 @@
 #define OLYMPIAN_CHANCE 20 /* Olympians are now a bit easier */
 
 static bool old_target_never_okay = FALSE;
+static s16b _buff_target_who = 0;
+static bool _buff_target_override = FALSE;
+static s16b _buff_target_override_row = 0;
+static s16b _buff_target_override_col = 0;
+static int _target_sort_mode = 0;
 
  /* Experience required to advance from level to level + 1
     Note the table is off by 1, so we encapsulate that fact.
@@ -3792,6 +3797,61 @@ bool target_able_aux(int m_idx, int mode)
     return (TRUE);
 }
 
+static bool _target_mode_uses_monster_list(int mode)
+{
+    return BOOL(mode & (TARGET_KILL | TARGET_MARK | TARGET_DISI | TARGET_MONS | TARGET_XTRA | TARGET_BUFF | TARGET_CAPTURE));
+}
+
+static bool _target_mode_needs_monster(int mode)
+{
+    return BOOL(mode & (TARGET_MONS | TARGET_BUFF | TARGET_CAPTURE));
+}
+
+static bool _buff_cycle_candidate(monster_type *m_ptr)
+{
+    if (!m_ptr->r_idx) return FALSE;
+    if (m_ptr->id == p_ptr->riding) return TRUE;
+    if (is_pet(m_ptr)) return TRUE;
+    if (is_friendly(m_ptr)) return TRUE;
+    return FALSE;
+}
+
+static int _buff_target_priority(monster_type *m_ptr)
+{
+    if (m_ptr->id == p_ptr->riding) return 0;
+    if (is_pet(m_ptr)) return 1;
+    if (is_friendly(m_ptr)) return 2;
+    return 3;
+}
+
+static bool _target_allows_monster_target(int mode, cave_type *c_ptr)
+{
+    if (target_able(c_ptr->m_idx)) return TRUE;
+    if ((mode & (TARGET_MARK | TARGET_DISI | TARGET_XTRA)) && c_ptr->m_idx && m_list[c_ptr->m_idx].ml) return TRUE;
+    return FALSE;
+}
+
+static void _set_buff_target(monster_type *m_ptr)
+{
+    _buff_target_who = m_ptr->id;
+}
+
+static void _set_buff_target_override(int y, int x)
+{
+    _buff_target_override = TRUE;
+    _buff_target_override_row = y;
+    _buff_target_override_col = x;
+}
+
+bool get_buff_target_override(int *y, int *x)
+{
+    if (!_buff_target_override) return FALSE;
+    *y = _buff_target_override_row;
+    *x = _buff_target_override_col;
+    _buff_target_override = FALSE;
+    return TRUE;
+}
+
 /*
  * Update (if necessary) and verify (if possible) the target.
  *
@@ -3801,7 +3861,8 @@ bool old_target_okay_mode(int mode)
 {
     if (!use_old_target) return FALSE;
     if (p_ptr->confused) return FALSE;
-    if (old_target_never_okay) return FALSE;
+    if ((mode & TARGET_BUFF) && !_buff_target_who) return FALSE;
+    if (!(mode & TARGET_BUFF) && old_target_never_okay) return FALSE;
     if (!target_okay_aux(mode)) return FALSE;
     return TRUE;
 }
@@ -3810,18 +3871,28 @@ void target_grab(int y, int x)
     target_row = y;
     target_col = x;
     old_target_never_okay = FALSE;
-    /* Heal/haste will autotarget the mount anyway for
-       players with use_old_target and auto_target */
     if ((y == py) && (x == px) && (p_ptr->riding)) old_target_never_okay = TRUE;
 }
 bool old_target_okay(void) { return old_target_okay_mode(TARGET_KILL); }
 bool target_okay(void) { return target_okay_aux(TARGET_KILL); }
 bool target_okay_aux(int mode)
 {
+    if (mode & TARGET_BUFF)
+    {
+        if (_buff_target_who > 0 && target_able_aux(_buff_target_who, mode))
+        {
+            monster_type *m_ptr = &m_list[_buff_target_who];
+
+            _set_buff_target(m_ptr);
+            return TRUE;
+        }
+        return FALSE;
+    }
+
     /* Accept stationary targets ... but cf move_player_effect
      * in cmd1.c. We will dismiss a non-projectable positional
      * target the next time the player moves. */
-    if ((target_who < 0) && (!(mode & TARGET_MONS))) return TRUE;
+    if ((target_who < 0) && !_target_mode_needs_monster(mode)) return TRUE;
 
     /* Check moving targets */
     if (target_who > 0)
@@ -3872,6 +3943,25 @@ static bool ang_sort_comp_distance(vptr u, vptr v, int a, int b)
 
     /* Compare the distances */
     return (da <= db);
+}
+
+static bool ang_sort_comp_target_distance(vptr u, vptr v, int a, int b)
+{
+    s16b *x = (s16b*)(u);
+    s16b *y = (s16b*)(v);
+
+    if (_target_sort_mode & TARGET_BUFF)
+    {
+        monster_type *ma_ptr = &m_list[cave[y[a]][x[a]].m_idx];
+        monster_type *mb_ptr = &m_list[cave[y[b]][x[b]].m_idx];
+        int pa = _buff_target_priority(ma_ptr);
+        int pb = _buff_target_priority(mb_ptr);
+
+        if (pa < pb) return TRUE;
+        if (pa > pb) return FALSE;
+    }
+
+    return ang_sort_comp_distance(u, v, a, b);
 }
 
 /*
@@ -4095,6 +4185,7 @@ static void target_set_prepare(int mode)
 
     /* Reset "temp" array */
     temp_n = 0;
+    _target_sort_mode = mode;
 
     /* Scan the current panel */
     for (uip.y = map_rect.y; uip.y < map_rect.y + map_rect.cy; uip.y++)
@@ -4108,13 +4199,15 @@ static void target_set_prepare(int mode)
 
             c_ptr = &cave[cp.y][cp.x];
 
-            /* Require target_able monsters for "TARGET_KILL" */
-            if ((mode & (TARGET_KILL | TARGET_MONS)) && !target_able(c_ptr->m_idx)) continue;
+            /* Require target_able monsters for monster-targeting modes */
+            if ((mode & (TARGET_KILL | TARGET_MONS | TARGET_BUFF | TARGET_CAPTURE)) && !target_able(c_ptr->m_idx)) continue;
 
             if ((mode & (TARGET_KILL | TARGET_MARK)) && !target_pet && is_pet(&m_list[c_ptr->m_idx])) continue;
 
+            if ((mode & TARGET_BUFF) && !_buff_cycle_candidate(&m_list[c_ptr->m_idx])) continue;
+
             /* Duelist is attempting to mark a target ... only visible monsters, please! */
-            if ( ((mode & TARGET_MARK) || (mode & TARGET_DISI) || (mode & TARGET_MONS))
+            if ( ((mode & TARGET_MARK) || (mode & TARGET_DISI) || (mode & TARGET_MONS) || (mode & TARGET_BUFF) || (mode & TARGET_CAPTURE))
               && (!c_ptr->m_idx || !m_list[c_ptr->m_idx].ml) )
             {
                 continue;
@@ -4128,10 +4221,10 @@ static void target_set_prepare(int mode)
     }
 
     /* Set the sort hooks */
-    if ((mode & TARGET_KILL) || (mode & (TARGET_MARK | TARGET_DISI | TARGET_MONS | TARGET_XTRA)))
+    if (_target_mode_uses_monster_list(mode))
     {
         /* Target the nearest monster for shooting */
-        ang_sort_comp = ang_sort_comp_distance;
+        ang_sort_comp = ang_sort_comp_target_distance;
         ang_sort_swap = ang_sort_swap_distance;
     }
     else
@@ -4144,17 +4237,6 @@ static void target_set_prepare(int mode)
     /* Sort the positions */
     ang_sort(temp_x, temp_y, temp_n);
 
-    if (p_ptr->riding && target_pet && (temp_n > 1) && (mode & (TARGET_KILL)))
-    {
-        s16b tmp;
-
-        tmp = temp_y[0];
-        temp_y[0] = temp_y[1];
-        temp_y[1] = tmp;
-        tmp = temp_x[0];
-        temp_x[0] = temp_x[1];
-        temp_x[1] = tmp;
-    }
 }
 
 
@@ -4827,8 +4909,7 @@ bool target_set(int mode)
             c_ptr = &cave[y][x];
 
             /* Allow target */
-            if ( target_able(c_ptr->m_idx)
-             || ((mode & (TARGET_MARK|TARGET_DISI|TARGET_XTRA)) && m_list[c_ptr->m_idx].ml))
+            if (_target_allows_monster_target(mode, c_ptr))
             {
                 strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,+,-,/,?,<dir>" : "q,t,p,o,x,j,+,-,/,?,<dir>");
             }
@@ -4875,8 +4956,7 @@ bool target_set(int mode)
                 case '5':
                 case '0':
                 {
-                    if ( target_able(c_ptr->m_idx)
-                     || ((mode & (TARGET_MARK | TARGET_DISI | TARGET_XTRA)) && m_list[c_ptr->m_idx].ml))
+                    if (_target_allows_monster_target(mode, c_ptr))
                     {
                         health_track(c_ptr->m_idx);
                         target_who = c_ptr->m_idx;
@@ -5122,12 +5202,19 @@ bool target_set(int mode)
                 if ( !(mode & TARGET_MARK)
                   || (c_ptr->m_idx && m_list[c_ptr->m_idx].ml) )
                 {
-                    if (mode & TARGET_MARK)
+                    if ((mode & TARGET_MARK) || (mode & TARGET_BUFF))
+                        target_who = c_ptr->m_idx;
+                    else if ((mode & TARGET_CAPTURE) && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
                         target_who = c_ptr->m_idx;
                     else
                         target_who = -1;
-                    target_grab(y, x);
-                    done = TRUE;
+                    if ((mode & TARGET_BUFF) && !target_who)
+                        bell();
+                    else
+                    {
+                        target_grab(y, x);
+                        done = TRUE;
+                    }
                 }
                 else
                 {
@@ -5306,6 +5393,45 @@ bool target_set(int mode)
     return (TRUE);
 }
 
+static int _auto_target_monster(int target_mode)
+{
+    int i;
+    int best_m_idx = 0;
+    int best_rank = 9999;
+    int best_dis = 9999;
+
+    for (i = 0; i < max_m_idx; i++)
+    {
+        monster_type *m_ptr = &m_list[i];
+        int rank = 0;
+
+        if (!m_ptr->r_idx) continue;
+        if (!m_ptr->ml) continue;
+        if (!projectable(py, px, m_ptr->fy, m_ptr->fx)) continue;
+
+        if (target_mode & TARGET_BUFF)
+        {
+            if (!_buff_cycle_candidate(m_ptr)) continue;
+            rank = _buff_target_priority(m_ptr);
+        }
+        else
+        {
+            if (!target_pet && is_pet(m_ptr)) continue;
+            if ((p_ptr->riding) && (i == p_ptr->riding) && (m_ptr->cdis <= 1))
+                rank = -1;
+        }
+
+        if ((rank < best_rank) || ((rank == best_rank) && (m_ptr->cdis < best_dis)))
+        {
+            best_rank = rank;
+            best_dis = m_ptr->cdis;
+            best_m_idx = i;
+        }
+    }
+
+    return best_m_idx;
+}
+
 /*
  * Get an "aiming direction" from the user.
  *
@@ -5333,34 +5459,13 @@ bool get_fire_dir_aux(int *dp, int target_mode)
     /* auto_target the closest monster if no valid target is selected up front */
     if (auto_target && !p_ptr->confused && !p_ptr->image)
     {
-        int i, best_m_idx = 0, best_dis = 9999;
-
-        for (i = 0; i < max_m_idx; i++)
-        {
-            monster_type *m_ptr = &m_list[i];
-            if (!m_ptr->r_idx) continue;
-            if (!m_ptr->ml) continue;
-            if (!target_pet && is_pet(m_ptr)) continue;
-            if (!projectable(py, px, m_ptr->fy, m_ptr->fx)) continue;
-            if ((p_ptr->riding) && (i == p_ptr->riding) && (m_ptr->cdis <= 1))
-            {
-                best_m_idx = i;
-                best_dis = 0;
-                break;
-            }
-            if (m_ptr->cdis < best_dis)
-            {
-                best_dis = m_ptr->cdis;
-                best_m_idx = i;
-            }
-        }
+        int best_m_idx = _auto_target_monster(target_mode);
         if (best_m_idx)
         {
             target_who = best_m_idx;
             target_grab(m_list[best_m_idx].fy, m_list[best_m_idx].fx);
             *dp = 5;
             p_ptr->redraw |= PR_HEALTH_BARS;
-//            msg_format("Target grabbed: %s (%d) Distance: %d", r_name + r_info[m_list[best_m_idx].r_idx].name, target_who, best_dis);
             return TRUE;
         }
     }
@@ -5369,6 +5474,46 @@ bool get_fire_dir_aux(int *dp, int target_mode)
 }
 
 bool get_aim_dir(int *dp) { return get_aim_dir_aux(dp, TARGET_KILL); }
+bool get_buff_mon_dir(int *dp)
+{
+    s16b old_who = target_who;
+    s16b old_row = target_row;
+    s16b old_col = target_col;
+    bool old_never_okay = old_target_never_okay;
+    bool used_old_target = old_target_okay_mode(TARGET_BUFF);
+    bool result;
+
+    _buff_target_override = FALSE;
+    result = get_aim_dir_aux(dp, TARGET_BUFF);
+    if (result && *dp == 5)
+    {
+        if (used_old_target)
+        {
+            monster_type *m_ptr = &m_list[_buff_target_who];
+            _set_buff_target(m_ptr);
+            _set_buff_target_override(m_ptr->fy, m_ptr->fx);
+        }
+        else if (target_who > 0)
+        {
+            monster_type *m_ptr = &m_list[target_who];
+            _set_buff_target(m_ptr);
+            _set_buff_target_override(target_row, target_col);
+        }
+    }
+
+    target_who = old_who;
+    target_row = old_row;
+    target_col = old_col;
+    old_target_never_okay = old_never_okay;
+
+    return result;
+}
+
+bool get_capture_mon_dir(int *dp)
+{
+    return get_aim_dir_aux(dp, TARGET_CAPTURE);
+}
+
 bool get_aim_dir_aux(int *dp, int target_mode)
 {
     int        dir;
@@ -5392,12 +5537,12 @@ bool get_aim_dir_aux(int *dp, int target_mode)
         /* Confusion? */
 
         /* Verify */
-        if (!((*dp == 5) && ((!target_okay_aux(target_mode)) || (old_target_never_okay))))
+        if (!((*dp == 5) && ((!target_okay_aux(target_mode)) || ((!(target_mode & TARGET_BUFF)) && old_target_never_okay))))
         {
 /*            return (TRUE); */
             dir = *dp;
         }
-        if ((target_mode & (TARGET_MONS)) && (dir != 5)) dir = 0;
+        if ((target_mode & (TARGET_MONS | TARGET_CAPTURE)) && (dir != 5)) dir = 0;
     }
 
 #endif /* ALLOW_REPEAT -- TNB */
@@ -5405,7 +5550,7 @@ bool get_aim_dir_aux(int *dp, int target_mode)
     /* Ask until satisfied */
     while (!dir)
     {
-        if (target_mode & (TARGET_MONS)) /* Skip directly to target_set() since directions are not accepted */
+        if (target_mode & (TARGET_MONS | TARGET_CAPTURE)) /* Skip directly to target_set() since directions are not accepted */
         {
             if (target_set(target_mode)) dir = 5;
             break;

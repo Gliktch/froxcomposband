@@ -1442,14 +1442,7 @@ static void _do_capture_ball(object_type *o_ptr)
     int dir;
     if (!o_ptr->pval)
     {
-        bool old_target_pet = target_pet;
-        target_pet = TRUE;
-        if (!get_aim_dir(&dir))
-        {
-            target_pet = old_target_pet;
-            return;
-        }
-        target_pet = old_target_pet;
+        if (!get_capture_mon_dir(&dir)) return;
 
         if (fire_ball(GF_CAPTURE, dir, 0, 0))
         {

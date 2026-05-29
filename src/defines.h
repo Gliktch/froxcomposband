@@ -2341,6 +2341,8 @@ enum {
 #define TARGET_DISI        0x20
 #define TARGET_TRVL        0x40
 #define TARGET_MONS        0x80
+#define TARGET_BUFF        0x100
+#define TARGET_CAPTURE     0x200
 
 
 /*

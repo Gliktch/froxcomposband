@@ -4343,19 +4343,7 @@ static cptr do_trump_spell(int spell, int mode)
         {
             if (cast)
             {
-                bool result;
-
-                /* Temporary enable target_pet option */
-                bool old_target_pet = target_pet;
-                target_pet = TRUE;
-
-                result = get_fire_dir(&dir);
-
-                /* Restore target_pet option */
-                target_pet = old_target_pet;
-
-                if (!result) return NULL;
-
+                if (!get_buff_mon_dir(&dir)) return NULL;
                 speed_monster(dir);
             }
         }
@@ -4632,19 +4620,7 @@ static cptr do_trump_spell(int spell, int mode)
 
             if (cast)
             {
-                bool result;
-
-                /* Temporary enable target_pet option */
-                bool old_target_pet = target_pet;
-                target_pet = TRUE;
-
-                result = get_fire_dir(&dir);
-
-                /* Restore target_pet option */
-                target_pet = old_target_pet;
-
-                if (!result) return NULL;
-
+                if (!get_buff_mon_dir(&dir)) return NULL;
                 heal_monster(dir, heal);
             }
         }

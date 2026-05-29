@@ -2129,8 +2129,11 @@ extern void target_grab(int y, int x);
  * and stone to mud. */
 extern bool get_fire_dir(int *dp);
 extern bool get_aim_dir(int *dp);
+extern bool get_buff_mon_dir(int *dp);
+extern bool get_capture_mon_dir(int *dp);
 extern bool get_fire_dir_aux(int *dp, int target_mode);
 extern bool get_aim_dir_aux(int *dp, int target_mode);
+extern bool get_buff_target_override(int *y, int *x);
 
 extern bool get_hack_dir(int *dp);
 #define GET_DIR_OK 1

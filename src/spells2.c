@@ -3976,8 +3976,11 @@ bool project_hook(int typ, int dir, int dam, int flg)
      * at this point anyway? Project() at the players feet? That is just silly ... */
     if (dir == 5 /*&& target_okay()*/)
     {
-        tx = target_col;
-        ty = target_row;
+        if (!get_buff_target_override(&ty, &tx))
+        {
+            tx = target_col;
+            ty = target_row;
+        }
     }
 
     /* Analyze the "dir" and the "target", do NOT explode */

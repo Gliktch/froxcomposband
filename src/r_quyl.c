@@ -96,16 +96,10 @@ void _heal_monster_spell(int cmd, variant *res)
     case SPELL_CAST:
     {
         int dir;
-        bool result;
-        bool old_target_pet = target_pet;
 
         var_set_bool(res, FALSE);
 
-        target_pet = TRUE;
-        result = get_fire_dir(&dir);
-        target_pet = old_target_pet;
-
-        if (!result) return;
+        if (!get_buff_mon_dir(&dir)) return;
 
         heal_monster(dir, heal);
         var_set_bool(res, TRUE);

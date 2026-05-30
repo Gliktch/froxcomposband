@@ -4544,6 +4544,8 @@ static int target_set_aux(int y, int x, int mode, cptr info)
                 else if (m_ptr->smart & (1U << SM_CLONED))
                     strcat(out_val, "(Clone) ");
             }
+            if (!fuzzy && MON_CSLEEP(m_ptr))
+                strcat(out_val, "(Asleep) ");
             sprintf(out_val + strlen(out_val), "(Rng %d) ", m_ptr->cdis);
             sprintf(out_val + strlen(out_val), "[r,/,%s%s]", x_info, info);
 

@@ -1281,6 +1281,10 @@ static bool do_cmd_tunnel_aux(int y, int x)
     f_ptr = &f_info[c_ptr->feat];
     power = f_ptr->power;
 
+    /* Doors tunnel more like rubble, with lock/jam severity layered on top. */
+    if (have_flag(f_ptr->flags, FF_DOOR))
+        power += 10;
+
     /* Feature code (applying "mimic" field) */
     mimic_f_ptr = &f_info[get_feat_mimic(c_ptr)];
 
@@ -1348,8 +1352,11 @@ static bool do_cmd_tunnel_aux(int y, int x)
             /* Remove the feature */
             cave_alter_feat(y, x, FF_TUNNEL);
 
-            virtue_add(VIRTUE_DILIGENCE, 1);
-            virtue_add(VIRTUE_NATURE, -1);
+            if (!have_flag(f_ptr->flags, FF_DOOR))
+            {
+                virtue_add(VIRTUE_DILIGENCE, 1);
+                virtue_add(VIRTUE_NATURE, -1);
+            }
         }
 
         /* Keep trying */
@@ -1456,15 +1463,8 @@ void do_cmd_tunnel(void)
         /* Feature code (applying "mimic" field) */
         feat = get_feat_mimic(c_ptr);
 
-        /* No tunnelling through doors */
-        if (have_flag(f_info[feat].flags, FF_DOOR))
-        {
-            /* Message */
-            msg_print("You cannot tunnel through doors.");
-        }
-
         /* No tunnelling through most features */
-        else if (!have_flag(f_info[feat].flags, FF_TUNNEL))
+        if (!have_flag(f_info[feat].flags, FF_TUNNEL))
         {
             msg_print("You can't tunnel through that.");
         }

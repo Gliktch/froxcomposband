@@ -2133,7 +2133,7 @@ static void _display_missile_slay(int bow_mult, int slay_mult, int crit_mult,
 }
 
 
-static void _shooter_info_aux(doc_ptr doc, object_type *bow, object_type *arrow, int ct)
+static void _shooter_info_aux(doc_ptr doc, object_type *bow, object_type *arrow, int ct, cptr source)
 {
     char         o_name[MAX_NLEN];
     u32b         flgs[OF_ARRAY_SIZE];
@@ -2208,7 +2208,10 @@ static void _shooter_info_aux(doc_ptr doc, object_type *bow, object_type *arrow,
 
     /* First Column */
     object_desc(o_name, arrow, OD_OMIT_INSCRIPTION | OD_COLOR_CODED);
-    doc_printf(cols[0], "<color:u> Ammo #%-2d</color>: <indent><style:indent>%s</style></indent>\n", ct, o_name);
+    if (source)
+        doc_printf(cols[0], "<color:u> Ammo #%-2d (%s)</color>: <indent><style:indent>%s</style></indent>\n", ct, source, o_name);
+    else
+        doc_printf(cols[0], "<color:u> Ammo #%-2d</color>: <indent><style:indent>%s</style></indent>\n", ct, o_name);
 
     real_snipe = shoot_hack;
     if (display_shooter_mode) shoot_hack = display_shooter_mode;
@@ -2307,6 +2310,7 @@ static void _shooter_info_aux(doc_ptr doc, object_type *bow, object_type *arrow,
 void display_shooter_info(doc_ptr doc)
 {
     object_type *bow_ptr = NULL;
+    inv_ptr      floor = NULL;
     int          slot = equip_find_obj(TV_BOW, SV_ANY);
     char         o_name[MAX_NLEN];
     int          mult;
@@ -2352,11 +2356,22 @@ void display_shooter_info(doc_ptr doc)
     for (i = quiver_find_first(obj_can_shoot); i; i = quiver_find_next(obj_can_shoot, i))
     {
         obj_ptr ammo = quiver_obj(i);
-        _shooter_info_aux(doc, bow_ptr, ammo, ++j);
+        _shooter_info_aux(doc, bow_ptr, ammo, ++j, NULL);
     }
     for (i = pack_find_first(obj_can_shoot); i; i = pack_find_next(obj_can_shoot, i))
     {
         obj_ptr ammo = pack_obj(i);
-        _shooter_info_aux(doc, bow_ptr, ammo, ++j);
+        _shooter_info_aux(doc, bow_ptr, ammo, ++j, NULL);
+    }
+    floor = inv_filter_floor(point(px, py), obj_can_shoot);
+    if (floor)
+    {
+        for (i = inv_first(floor, NULL); i; i = inv_next(floor, NULL, i))
+        {
+            obj_ptr ammo = inv_obj(floor, i);
+            if (!ammo) continue;
+            _shooter_info_aux(doc, bow_ptr, ammo, ++j, "Floor");
+        }
+        inv_free(floor);
     }
 }

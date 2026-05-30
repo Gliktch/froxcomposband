@@ -337,6 +337,36 @@ static int _col_height(int ct)
     return result;
 }
 
+static int _list_spell_stat(power_info* spells, int ct, bool power)
+{
+    int i;
+    int default_stat = A_NONE;
+    int result = A_NONE;
+    caster_info *caster = get_caster_info();
+
+    if (power) return A_NONE;
+
+    if (caster)
+        default_stat = caster->which_stat;
+    if (p_ptr->pclass == CLASS_NINJA_LAWYER)
+        default_stat = A_DEX;
+
+    for (i = 0; i < ct; i++)
+    {
+        int stat = spells[i].stat;
+        if (stat == A_NONE)
+            stat = default_stat;
+        if (stat == A_NONE)
+            return A_NONE;
+        if (result == A_NONE)
+            result = stat;
+        else if (result != stat)
+            return A_NONE;
+    }
+
+    return result;
+}
+
 static void _list_spells(power_info* spells, int ct, int max_cost, char *labels, bool rage_hack, bool power)
 {
     char temp[140];
@@ -344,6 +374,7 @@ static void _list_spells(power_info* spells, int ct, int max_cost, char *labels,
     rect_t display = ui_menu_rect();
     int  col_height = _col_height(ct);
     int  col_width;
+    int  list_stat = A_NONE;
     variant name, info, color;
     bool poli = (p_ptr->pclass == CLASS_POLITICIAN);
     bool show_stats = (power || p_ptr->pclass == CLASS_WILD_TALENT);
@@ -361,7 +392,12 @@ static void _list_spells(power_info* spells, int ct, int max_cost, char *labels,
         col_height = _col_height(8);
     }
 
+    if (!show_stats)
+        list_stat = _list_spell_stat(spells, ct, power);
+
     Term_erase(display.x, display.y, display.cx);
+    if (list_stat != A_NONE)
+        put_str(format("Casting Stat: %s", stat_abbrev_true[list_stat]), display.y, display.x + 5);
     if (col_height == ct)
     {
         if (poli) put_str("Lvl   Cost   Fail   Desc", display.y, display.x + 29);
@@ -1806,4 +1842,3 @@ void spellbook_destroy(obj_ptr obj)
         virtue_add(VIRTUE_VITALITY, 1);
     }
 }
-

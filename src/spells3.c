@@ -3787,11 +3787,17 @@ void print_spells(int target_spell, byte *spells, int num, rect_t display, int u
     char            buf[256];
     bool            max = FALSE;
     caster_info    *caster_ptr = get_caster_info();
+    int             spell_stat = A_INT;
     int             vaikeustaso;
 
     if (((use_realm <= REALM_NONE) || (use_realm > MAX_REALM)) && p_ptr->wizard)
         msg_print("Warning! print_spells called with null realm");
 
+    if (caster_ptr)
+        spell_stat = caster_ptr->which_stat;
+    /* Hack - ninja-lawyers have WIS as their spell stat but use DEX for ninjutsu */
+    if ((p_ptr->pclass == CLASS_NINJA_LAWYER) && (use_realm != REALM_LAW))
+        spell_stat = A_DEX;
 
     /* Title the list */
     if (use_realm == REALM_HISSATSU)
@@ -3805,7 +3811,10 @@ void print_spells(int target_spell, byte *spells, int num, rect_t display, int u
     }
 
     Term_erase(display.x, display.y, display.cx);
-    put_str("Name", display.y, display.x + 5);
+    if (use_realm == REALM_HISSATSU)
+        put_str("Name", display.y, display.x + 5);
+    else
+        put_str(format("Name (%s)", stat_abbrev_true[spell_stat]), display.y, display.x + 5);
     put_str(buf, display.y, display.x + 29);
 
     if ((p_ptr->pclass == CLASS_SORCERER) || (p_ptr->pclass == CLASS_RED_MAGE)) increment = 0;

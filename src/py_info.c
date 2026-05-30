@@ -539,34 +539,81 @@ static void _build_slays_imp(doc_ptr doc, cptr name, int flg, int kill_flg, _fla
         if (kill_flg != OF_INVALID && have_flag(flagzilla->obj_flgs[i], kill_flg))
             doc_insert_char(doc, TERM_RED, '*');
         else if (have_flag(flagzilla->obj_flgs[i], flg))
-            doc_insert_char(doc, TERM_WHITE, '+');
+            doc_insert_char(doc, TERM_WHITE, '*');
         else
             doc_insert_char(doc, TERM_L_DARK, '.');
     }
     if (kill_flg != OF_INVALID && have_flag(flagzilla->tim_py_flgs, kill_flg))
         doc_insert_char(doc, TERM_YELLOW, '*');
     else if (have_flag(flagzilla->tim_py_flgs, flg))
-        doc_insert_char(doc, TERM_YELLOW, '+');
+        doc_insert_char(doc, TERM_YELLOW, '*');
     else if (kill_flg != OF_INVALID && have_flag(flagzilla->py_flgs, kill_flg))
         doc_insert_char(doc, TERM_RED, '*');
     else if (have_flag(flagzilla->py_flgs, flg))
-        doc_insert_char(doc, TERM_WHITE, '+');
+        doc_insert_char(doc, TERM_WHITE, '*');
     else
         doc_insert_char(doc, TERM_L_DARK, '.');
 
     doc_newline(doc);
 }
 
+static bool _is_toggle_flag(int flg)
+{
+    switch (flg)
+    {
+    case OF_AURA_REVENGE:
+    case OF_BLESSED:
+    case OF_RIDING:
+    case OF_THROWING:
+    case OF_WARNING:
+    case OF_SLOW_DIGEST:
+    case OF_REGEN_MANA:
+    case OF_LEVITATION:
+    case OF_REFLECT:
+    case OF_NIGHT_VISION:
+    case OF_DEC_MANA:
+    case OF_EASY_SPELL:
+    case OF_NO_MAGIC:
+    case OF_SUST_STR:
+    case OF_SUST_INT:
+    case OF_SUST_WIS:
+    case OF_SUST_DEX:
+    case OF_SUST_CON:
+    case OF_SUST_CHR:
+    case OF_TELEPATHY:
+    case OF_ESP_EVIL:
+    case OF_ESP_NONLIVING:
+    case OF_ESP_LIVING:
+    case OF_ESP_GOOD:
+    case OF_ESP_UNDEAD:
+    case OF_ESP_DEMON:
+    case OF_ESP_DRAGON:
+    case OF_ESP_HUMAN:
+    case OF_ESP_ANIMAL:
+    case OF_ESP_ORC:
+    case OF_ESP_TROLL:
+    case OF_ESP_GIANT:
+    case OF_TELEPORT:
+    case OF_NO_TELE:
+    case OF_DRAIN_EXP:
+    case OF_AGGRAVATE:
+    case OF_TY_CURSE:
+        return TRUE;
+    }
+    return FALSE;
+}
+
 static int _build_flags_imp(doc_ptr doc, cptr name, int flg, int dec_flg, _flagzilla_ptr flagzilla)
 {
     int result = 0;
     int i;
+    char pos = _is_toggle_flag(flg) ? '*' : '+';
     doc_printf(doc, " %-11.11s: ", name);
     for (i = 1; i <= equip_max(); i++)
     {
         if (have_flag(flagzilla->obj_flgs[i], flg))
         {
-            doc_insert_char(doc, TERM_WHITE, '+');
+            doc_insert_char(doc, TERM_WHITE, pos);
             result++;
         }
         else if (dec_flg != OF_INVALID && have_flag(flagzilla->obj_flgs[i], dec_flg))
@@ -579,12 +626,12 @@ static int _build_flags_imp(doc_ptr doc, cptr name, int flg, int dec_flg, _flagz
     }
     if (have_flag(flagzilla->tim_py_flgs, flg))
     {
-       doc_insert_char(doc, TERM_YELLOW, '#');
+       doc_insert_char(doc, TERM_YELLOW, _is_toggle_flag(flg) ? '*' : '#');
        result++;
     }
     else if (have_flag(flagzilla->py_flgs, flg))
     {
-        doc_insert_char(doc, TERM_WHITE, '+');
+        doc_insert_char(doc, TERM_WHITE, pos);
         result++;
     }
     else if (dec_flg != OF_INVALID && have_flag(flagzilla->py_flgs, dec_flg))

@@ -2090,6 +2090,8 @@ static void prt_effects(void)
     }
     if (p_ptr->food >= PY_FOOD_FULL || p_ptr->food < PY_FOOD_ALERT)
         prt_food(row++, col);
+    if (p_ptr->action == ACTION_QUICK_WALK)
+        c_put_str(TERM_RED, "No SP Regen", row++, col);
     if (p_ptr->wizard)
         c_put_str(TERM_L_BLUE, "Wizard", row++, col);
     if (p_ptr->pclass == CLASS_SKILLMASTER)

@@ -730,6 +730,13 @@ static bool have_flag_of(flag_insc_table *fi_ptr, u32b flgs[OF_ARRAY_SIZE])
     return (FALSE);
 }
 
+static void _append_fake_inscription(char *buf, cptr text)
+{
+    if (!text || !text[0]) return;
+    if (buf[0]) strcat(buf, ", ");
+    strcat(buf, text);
+}
+
 static char *get_ability_abbreviation(char *ptr, object_type *o_ptr, bool all)
 {
     char *prev_ptr = ptr;
@@ -2358,10 +2365,19 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
     /* No fake inscription yet */
     fake_insc_buf[0] = '\0';
 
+    if (p_ptr->prace == RACE_MON_POSSESSOR && object_is_(o_ptr, TV_CORPSE, SV_CORPSE) && o_ptr->pval)
+    {
+        char corpse_buf[20];
+        int  corpse_lvl = o_ptr->xtra3 ? o_ptr->xtra3 : r_info[o_ptr->pval].level;
+
+        sprintf(corpse_buf, "L%d", corpse_lvl);
+        _append_fake_inscription(fake_insc_buf, corpse_buf);
+    }
+
     /* Use the game-generated "feeling" otherwise, if available */
     if (o_ptr->feeling)
     {
-        strcpy(fake_insc_buf, game_inscriptions[o_ptr->feeling]);
+        _append_fake_inscription(fake_insc_buf, game_inscriptions[o_ptr->feeling]);
     }
 
     else if ((p_ptr->munchkin_pseudo_id) && ((obj_can_sense1(o_ptr)) || (obj_can_sense2(o_ptr))) &&
@@ -2369,7 +2385,7 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
     {
         o_ptr->feeling = value_check_aux1(o_ptr, TRUE);
         if (!(o_ptr->ident & IDENT_KNOWN)) o_ptr->ident |= IDENT_SENSE; 
-        if (o_ptr->feeling) strcpy(fake_insc_buf, game_inscriptions[o_ptr->feeling]);
+        if (o_ptr->feeling) _append_fake_inscription(fake_insc_buf, game_inscriptions[o_ptr->feeling]);
     }
 
     /* Note "cursed" if the item is known to be cursed */
@@ -2380,7 +2396,7 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
             /* Hide cursed status of devices until *Identified* */
         }
         else
-            strcpy(fake_insc_buf, "cursed");
+            _append_fake_inscription(fake_insc_buf, "cursed");
     }
 
     /* Note "unidentified" if the item is unidentified */
@@ -2389,26 +2405,26 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
            && !known
            && !(o_ptr->ident & IDENT_SENSE) )
     {
-        strcpy(fake_insc_buf, "unidentified");
+        _append_fake_inscription(fake_insc_buf, "unidentified");
     }
     /* Mega-Hack -- note empty wands/staffs */
     else if (!known && (o_ptr->ident & IDENT_EMPTY))
     {
-        strcpy(fake_insc_buf, "empty");
+        _append_fake_inscription(fake_insc_buf, "empty");
     }
 
     /* Note "tried" if the object has been tested unsuccessfully */
     else if (!known && object_is_device(o_ptr) && object_is_tried(o_ptr))
     {
-        strcpy(fake_insc_buf, "tried");
+        _append_fake_inscription(fake_insc_buf, "tried");
     }
     else if (!aware && object_is_tried(o_ptr))
     {
-        strcpy(fake_insc_buf, "tried");
+        _append_fake_inscription(fake_insc_buf, "tried");
     }
     else if ((shops_mark_unseen) && (aware) && (!object_is_aware(o_ptr)) && (object_is_flavor(o_ptr)) && (o_ptr->loc.where == INV_SHOP))
     {
-        strcpy(fake_insc_buf, "unseen");
+        _append_fake_inscription(fake_insc_buf, "unseen");
     }
 
     /* Note the discount, if any */
@@ -2466,5 +2482,4 @@ object_desc_done:
     else
         my_strcpy(buf, tmp_val, MAX_NLEN);
 }
-
 

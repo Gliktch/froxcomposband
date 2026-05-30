@@ -1097,6 +1097,7 @@ void monster_death(int m_idx, bool drop_item)
         apply_magic(q_ptr, object_level, AM_NO_FIXED_ART);
 
         q_ptr->pval = m_ptr->r_idx;
+        q_ptr->xtra3 = MIN(255, MAX(1, r_ptr->level * m_ptr->mpower / 1000));
         if (r_ptr->weight && p_ptr->prace == RACE_MON_POSSESSOR)
         {
             /* Note: object_type.weight is an s16b and stores decipounds.

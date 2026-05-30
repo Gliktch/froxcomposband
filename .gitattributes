@@ -1,5 +1,23 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normalize tracked text files to LF in this repo
+* text=auto eol=lf
+
+# Explicit binary/container formats
+*.ods  -text
+*.xlsx -text
+*.fon  -text
+*.bmp  -text
+*.png  -text
+*.ico  -text
+*.icns -text
+*.res  -text
+*.nib  -text
+*.pdf  -text
+*.PDF  -text
+*.rtf  -text
+*.RTF  -text
+
+# Windows batch files should retain CRLF
+*.bat  text eol=crlf
 
 # Custom for Visual Studio
 *.cs     diff=csharp

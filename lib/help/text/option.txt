@@ -656,13 +656,39 @@ Text Display Options
   If this option is on, you will not receive messages when out-of-sight 
   monsters fight one another.
   
-  Display distance in monster list (display_distance)
+  Show range, not coords, for line-of-sight mobs (monlist_range)
   If this option is on, the distance between a player and a monster 
   will be displayed when the monster is targeted; for example, "Rng 4" 
   for a monster 4 squares away. The distance will also be displayed in 
   the monster list if only one monster of that race is visible; with 
   the option off, the list instead displays the monster's coordinates 
   relative to the player.
+
+  Show range, not coords, for all listed mobs (monlist_range_all)
+  If this option is on, single-monster rows in the nearby monster list 
+  will show range even for listed monsters outside line of sight. 
+  Grouped rows still omit both range and coordinates.
+
+  Top list section for line-of-sight monsters (monlist_los)
+  If this option is on, the nearby monster list is split into a top 
+  section for line-of-sight monsters and a lower section for other 
+  listed monsters. If it is off, the split and section headers are 
+  removed and all listed monsters are sorted together.
+
+  Display awake monsters first in monster lists (monlist_awake)
+  If this option is on, awake monsters sort ahead of sleeping monsters 
+  in the nearby monster list. When grouping by race, mixed awake/asleep 
+  rows are split so the awake and sleeping monsters display separately.
+
+  Sort monster lists by distance instead of level (monlist_distance)
+  If this option is on, the nearby monster list sorts nearer monsters 
+  before farther ones. If it is off, the list sorts by base monster 
+  level first and uses distance only to break ties.
+
+  List each monster separately in monster lists (monlist_ungroup)
+  If this option is on, the nearby monster list will display one row 
+  per monster instead of grouping monsters of the same apparent race 
+  together.
   
   Player character depends on their race (display_race)
   If this option is on, the player's representation on the map depends 
@@ -1127,5 +1153,3 @@ Updated    : PosChengband 4.0.0
 Updated    : FrogComposband 7.0.nougat
 Updated    : FrogComposband 7.1.chocolate
 Updated    : FrogComposband 7.1.liquorice
-
-

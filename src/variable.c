@@ -294,7 +294,12 @@ bool abbrev_all;    /* Describe obj's all resistances by abbreviation */
 bool mark_dragon; /* Extend '?' to random dragon resistances */
 bool exp_need;    /* Show the experience needed for next level */
 bool ignore_unview;    /* Ignore whenever any monster does */
-bool display_distance;
+bool monlist_range;
+bool monlist_range_all;
+bool monlist_los;
+bool monlist_awake;
+bool monlist_distance;
+bool monlist_ungroup;
 bool display_race; /* Display monster races with their racial char */
 bool easy_mimics;  /* Use the 'x' glyph for monsters that look like things */
 bool show_origins; /* Show origin in object description */

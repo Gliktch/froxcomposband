@@ -1,6 +1,6 @@
 <style:title>The Monster List</style>
 
-This command lists all monsters you are currently aware of. The list is grouped by monsters in line of sight and those outside of line of sight. Within each group, monsters are sorted by their difficulty so that the most dangerous monsters are listed first.
+This command lists all monsters you are currently aware of. Depending on your list-display options, it can split line-of-sight monsters into a top section, push awake monsters ahead of sleeping ones, and sort by either monster level or distance. When grouping stays enabled, monsters of the same apparent race are still grouped together, except that awake-first sorting splits mixed awake/asleep rows.
 
 <topic:Summary><style:heading>Quick Summary</style>
 

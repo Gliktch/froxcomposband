@@ -61,7 +61,12 @@ X:abbrev_extra
 Y:abbrev_all
 Y:exp_need
 Y:ignore_unview
-X:display_distance
+X:monlist_range
+X:monlist_range_all
+Y:monlist_los
+X:monlist_awake
+X:monlist_distance
+X:monlist_ungroup
 Y:show_discovery
 Y:always_dump_origins
 
@@ -119,4 +124,3 @@ Y:leave_wanted
 X:leave_corpse
 X:leave_junk
 Y:leave_special
-

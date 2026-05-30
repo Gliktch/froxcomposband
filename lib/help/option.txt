@@ -532,8 +532,23 @@ If this option is on, potions, scrolls and mushrooms whose flavor has not yet be
 <topic:black_curses><color:U>Show cursed items as black in unwield menu</color> <color:D>(black_curses)</color>
 If this option is on, sticky items will be displayed in black while taking off equipment.
 
-<topic:display_distance><color:U>Display distance in monster list</color> <color:D>(display_distance)</color>
-If this option is on, the distance between a player and a monster will be displayed when the monster is targeted; for example, "Rng 4" for a monster 4 squares away. The distance will also be displayed in the monster list if only one monster of that race is visible; with the option off, the list instead displays the monster's coordinates relative to the player.
+<topic:monlist_range><color:U>Show range, not coords, for line-of-sight mobs</color> <color:D>(monlist_range)</color>
+If this option is on, single-monster rows in the nearby monster list will show range for line-of-sight monsters; for example, "Rng 4" for a monster 4 squares away. With the option off, those rows instead display the monster's coordinates relative to the player.
+
+<topic:monlist_range_all><color:U>Show range, not coords, for all listed mobs</color> <color:D>(monlist_range_all)</color>
+If this option is on, single-monster rows in the nearby monster list will show range even for listed monsters outside line of sight. Grouped rows still omit both range and coordinates.
+
+<topic:monlist_los><color:U>Top list section for line-of-sight monsters</color> <color:D>(monlist_los)</color>
+If this option is on, the nearby monster list is split into a top section for line-of-sight monsters and a lower section for other listed monsters. If it is off, the split and section headers are removed and all listed monsters are sorted together.
+
+<topic:monlist_awake><color:U>Display awake monsters first in monster lists</color> <color:D>(monlist_awake)</color>
+If this option is on, awake monsters sort ahead of sleeping monsters in the nearby monster list. When grouping by race, mixed awake/asleep rows are split so the awake and sleeping monsters display separately.
+
+<topic:monlist_distance><color:U>Sort monster lists by distance instead of level</color> <color:D>(monlist_distance)</color>
+If this option is on, the nearby monster list sorts nearer monsters before farther ones. If it is off, the list sorts by base monster level first and uses distance only to break ties.
+
+<topic:monlist_ungroup><color:U>List each monster separately in monster lists</color> <color:D>(monlist_ungroup)</color>
+If this option is on, the nearby monster list will display one row per monster instead of grouping monsters of the same apparent race together.
 
 <topic:list_stairs><color:U>Display stairs in the object list</color> <color:D>(list_stairs)</color>
 If this option is enabled, the list of visible objects (accessible in-game by pressing <color:keypress>O</color> or <color:keypress>]</color>) will include stairs in its Interesting Features section. (The inclusion of stairs in the object list can be toggled in the list itself by pressing <color:keypress>S</color>, but this option determines whether stairs are shown by default.)

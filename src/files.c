@@ -567,11 +567,16 @@ errr process_pref_file_command(char *buf)
     /* Process "Y:<str>" -- turn option on */
     case 'X':
     case 'Y':
+    {
+        cptr opt_name = buf + 2;
+        if (streq(opt_name, "display_distance"))
+            opt_name = "monlist_range";
+
         for (i = 0; option_info[i].o_desc; i++)
         {
             if (option_info[i].o_var &&
                 option_info[i].o_text &&
-                streq(option_info[i].o_text, buf + 2))
+                streq(option_info[i].o_text, opt_name))
             {
                 int os = option_info[i].o_set;
                 int ob = option_info[i].o_bit;
@@ -604,6 +609,7 @@ errr process_pref_file_command(char *buf)
         msg_format("Ignored invalid option: %s", buf);
         msg_print(NULL);
         return 0;
+    }
 
     /* Process "Z:<type>:<str>" -- set spell color */
     case 'Z':

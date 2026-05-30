@@ -2610,8 +2610,23 @@ option_type option_info[] =
     { &black_curses,                TRUE,  OPT_PAGE_LIST, 4, 23,
     "black_curses",                 "Show cursed items as black in unwield menu" },
 
-    { &display_distance,            FALSE,  OPT_PAGE_LIST, 1, 4,
-    "display_distance",             "Display distance in monster list" },
+    { &monlist_range,               FALSE,  OPT_PAGE_LIST, 1, 4,
+    "monlist_range",                "Show range, not coords, for line-of-sight mobs" },
+
+    { &monlist_range_all,           FALSE,  OPT_PAGE_LIST, 7, 17,
+    "monlist_range_all",            "Show range, not coords, for all listed mobs" },
+
+    { &monlist_los,                 TRUE,   OPT_PAGE_LIST, 7, 13,
+    "monlist_los",                  "Top list section for line-of-sight monsters" },
+
+    { &monlist_awake,               FALSE,  OPT_PAGE_LIST, 7, 14,
+    "monlist_awake",                "Display awake monsters first in monster lists" },
+
+    { &monlist_distance,            FALSE,  OPT_PAGE_LIST, 7, 15,
+    "monlist_distance",             "Sort monster lists by distance instead of level" },
+
+    { &monlist_ungroup,             FALSE,  OPT_PAGE_LIST, 7, 16,
+    "monlist_ungroup",              "List each monster separately in monster lists" },
 
     { &list_stairs,                 FALSE,  OPT_PAGE_LIST, 1, 10,
     "list_stairs",                  "Display stairs in object list" },

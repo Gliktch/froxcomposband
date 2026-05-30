@@ -652,13 +652,39 @@ output to the screen).
   </font><font color="#ffffff">If this option is on, you will not receive messages when out-of-sight 
   monsters fight one another.
   
-<a name="display_distance"></a>  </font><font color="#c08040">Display distance in monster list </font><font color="#404040">(display_distance)
+<a name="monlist_range"></a>  </font><font color="#c08040">Show range, not coords, for line-of-sight mobs </font><font color="#404040">(monlist_range)
   </font><font color="#ffffff">If this option is on, the distance between a player and a monster 
   will be displayed when the monster is targeted; for example, "Rng 4" 
   for a monster 4 squares away. The distance will also be displayed in 
   the monster list if only one monster of that race is visible; with 
   the option off, the list instead displays the monster's coordinates 
   relative to the player.
+
+<a name="monlist_range_all"></a>  </font><font color="#c08040">Show range, not coords, for all listed mobs </font><font color="#404040">(monlist_range_all)
+  </font><font color="#ffffff">If this option is on, single-monster rows in the nearby monster list 
+  will show range even for listed monsters outside line of sight. 
+  Grouped rows still omit both range and coordinates.
+
+<a name="monlist_los"></a>  </font><font color="#c08040">Top list section for line-of-sight monsters </font><font color="#404040">(monlist_los)
+  </font><font color="#ffffff">If this option is on, the nearby monster list is split into a top 
+  section for line-of-sight monsters and a lower section for other 
+  listed monsters. If it is off, the split and section headers are 
+  removed and all listed monsters are sorted together.
+
+<a name="monlist_awake"></a>  </font><font color="#c08040">Display awake monsters first in monster lists </font><font color="#404040">(monlist_awake)
+  </font><font color="#ffffff">If this option is on, awake monsters sort ahead of sleeping monsters 
+  in the nearby monster list. When grouping by race, mixed awake/asleep 
+  rows are split so the awake and sleeping monsters display separately.
+
+<a name="monlist_distance"></a>  </font><font color="#c08040">Sort monster lists by distance instead of level </font><font color="#404040">(monlist_distance)
+  </font><font color="#ffffff">If this option is on, the nearby monster list sorts nearer monsters 
+  before farther ones. If it is off, the list sorts by base monster 
+  level first and uses distance only to break ties.
+
+<a name="monlist_ungroup"></a>  </font><font color="#c08040">List each monster separately in monster lists </font><font color="#404040">(monlist_ungroup)
+  </font><font color="#ffffff">If this option is on, the nearby monster list will display one row 
+  per monster instead of grouping monsters of the same apparent race 
+  together.
   
 <a name="display_race"></a>  </font><font color="#c08040">Player character depends on their race </font><font color="#404040">(display_race)
   </font><font color="#ffffff">If this option is on, the player's representation on the map depends 

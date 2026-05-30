@@ -324,7 +324,12 @@ extern bool abbrev_all;    /* Describe obj's all resistances by abbreviation */
 extern bool mark_dragon; /* Extend '?' to random dragon resistances */
 extern bool exp_need;    /* Show the experience needed for next level */
 extern bool ignore_unview;    /* Ignore whenever any monster does */
-extern bool display_distance;    /* Display distance of LoS monsters in monster list */
+extern bool monlist_range;    /* Display range instead of coords for LoS single rows */
+extern bool monlist_range_all; /* Display range instead of coords for all single rows */
+extern bool monlist_los; /* Separate line-of-sight monsters in a top section */
+extern bool monlist_awake; /* Display awake monsters first in monster lists */
+extern bool monlist_distance; /* Sort monster lists by distance instead of level */
+extern bool monlist_ungroup; /* List each monster separately in monster lists */
 extern bool display_race; /* Display monster races with their racial char */
 extern bool easy_mimics;  /* Use the 'x' glyph for monsters that look like things */
 extern bool show_origins; /* Show object origins */

@@ -754,6 +754,8 @@ struct _mon_list_info_s
     int dx, dy;
     int dis;
     int status; /* 0 = hostile, 1 = friendly, 2 = pet */
+    bool awake;
+    bool los;
     bool target; /* Current target is in this group, in which case, m_idx is the target.
                     Otherwise, m_idx is the monster in this group that is closest to
                     the player. */
@@ -804,6 +806,20 @@ static void _mon_list_free(_mon_list_ptr list)
 #define _SUBGROUP_DATA   2
 #define _SUBGROUP_FOOTER 3
 
+static int _mon_list_name_cmp(_mon_list_info_ptr left, _mon_list_info_ptr right)
+{
+    monster_race *left_r_ptr = &r_info[left->r_idx];
+    monster_race *right_r_ptr = &r_info[right->r_idx];
+    int cmp = strcmp(r_name + left_r_ptr->name, r_name + right_r_ptr->name);
+
+    if (cmp) return cmp;
+    if (left->status < right->status) return -1;
+    if (left->status > right->status) return 1;
+    if (left->m_idx < right->m_idx) return -1;
+    if (left->m_idx > right->m_idx) return 1;
+    return 0;
+}
+
 static int _mon_list_comp(_mon_list_info_ptr left, _mon_list_info_ptr right)
 {
     if (left->group < right->group)
@@ -816,17 +832,40 @@ static int _mon_list_comp(_mon_list_info_ptr left, _mon_list_info_ptr right)
     if (left->subgroup > right->subgroup)
         return 1;
 
-    if (left->level > right->level)
-        return -1;
-    else if (left->level < right->level)
-        return 1;
+    if (monlist_awake)
+    {
+        if (left->awake && !right->awake)
+            return -1;
+        if (!left->awake && right->awake)
+            return 1;
+    }
 
-    if (left->dis < right->dis)
-        return -1;
-    else if (left->dis > right->dis)
-        return 1;
+    if (monlist_distance)
+    {
+        if (left->dis < right->dis)
+            return -1;
+        else if (left->dis > right->dis)
+            return 1;
 
-    return 0;
+        if (left->level > right->level)
+            return -1;
+        else if (left->level < right->level)
+            return 1;
+    }
+    else
+    {
+        if (left->level > right->level)
+            return -1;
+        else if (left->level < right->level)
+            return 1;
+
+        if (left->dis < right->dis)
+            return -1;
+        else if (left->dis > right->dis)
+            return 1;
+    }
+
+    return _mon_list_name_cmp(left, right);
 }
 
 static bool _mon_list_has_race(_mon_list_ptr list, int r_idx)
@@ -857,6 +896,7 @@ static _mon_list_ptr _create_monster_list(int mode)
         monster_type       *m_ptr = &m_list[i];
         int                 key;
         bool                los;
+        bool                awake;
         int                 r_idx = m_ptr->ap_r_idx;
         int                 status = 0;
         _mon_list_info_ptr  info_ptr;
@@ -871,6 +911,7 @@ static _mon_list_ptr _create_monster_list(int mode)
         }
 
         los = projectable(py, px, m_ptr->fy, m_ptr->fx);
+        awake = !MON_CSLEEP(m_ptr);
         if (mode == MON_LIST_PROBING) /* No grouping and only display los monsters */
         {
             if (!los) continue;
@@ -885,15 +926,23 @@ static _mon_list_ptr _create_monster_list(int mode)
             lore_do_probe(m_ptr->r_idx);
             key = i;
         }
+        else if (monlist_ungroup)
+            key = i;
         else
-            key = los ? -r_idx : r_idx;
+        {
+            key = r_idx;
+            if (monlist_los)
+                key += max_r_idx * (los ? 1 : 0);
+            if (monlist_awake)
+                key += max_r_idx * (monlist_los ? 2 : 1) * (awake ? 1 : 0);
+        }
 
         if (p_ptr->pet_extra_flags & PF_HILITE_LISTS)
         {
             if (is_pet(m_ptr)) status = 2;
             else if (is_friendly(m_ptr)) status = 1;
-            if (key < 0) key -= (status * max_r_idx);
-            else key += (status * max_r_idx);
+            if (mode != MON_LIST_PROBING && !monlist_ungroup)
+                key += max_r_idx * (monlist_los ? 4 : (monlist_awake ? 2 : 1)) * status;
         }
 
         info_ptr = int_map_find(map, key);
@@ -903,7 +952,7 @@ static _mon_list_ptr _create_monster_list(int mode)
 
             info_ptr = _mon_list_info_alloc();
 
-            info_ptr->group = los ? _GROUP_LOS : _GROUP_AWARE;
+            info_ptr->group = monlist_los ? (los ? _GROUP_LOS : _GROUP_AWARE) : _GROUP_LOS;
             info_ptr->subgroup = _SUBGROUP_DATA;
             info_ptr->r_idx = r_idx;
             info_ptr->m_idx = i;
@@ -912,6 +961,8 @@ static _mon_list_ptr _create_monster_list(int mode)
             info_ptr->dx = m_ptr->fx - px;
             info_ptr->dis = m_ptr->cdis;
             info_ptr->status = status;
+            info_ptr->awake = awake;
+            info_ptr->los = los;
 
             int_map_add(map, key, info_ptr);
         }
@@ -937,7 +988,7 @@ static _mon_list_ptr _create_monster_list(int mode)
             info_ptr->dis = m_ptr->cdis;
         }
 
-        if (!MON_CSLEEP(m_ptr))
+        if (awake)
         {
             info_ptr->ct_awake++;
             result->ct_awake++;
@@ -954,7 +1005,7 @@ static _mon_list_ptr _create_monster_list(int mode)
     }
 
     /* Insert Dummy Groups if Needed and Sort */
-    if (result->ct_los)
+    if (monlist_los && result->ct_los)
     {
         _mon_list_info_ptr info_ptr = _mon_list_info_alloc();
         info_ptr->group = _GROUP_LOS;
@@ -969,7 +1020,7 @@ static _mon_list_ptr _create_monster_list(int mode)
         info_ptr->subgroup = _SUBGROUP_FOOTER;
         vec_add(result->list, info_ptr);
     }
-    if (result->ct_total - result->ct_los)
+    if (monlist_los && result->ct_total - result->ct_los)
     {
         _mon_list_info_ptr info_ptr = _mon_list_info_alloc();
         info_ptr->group = _GROUP_AWARE;
@@ -994,14 +1045,16 @@ static _mon_list_ptr _create_monster_list(int mode)
     if ( !p_ptr->monster_race_idx
       || !_mon_list_has_race(result, p_ptr->monster_race_idx) )
     {
-        /* If there is a valid target, it should already be tracking,
-         * but let's double check */
-        if ( target_who > 0
-          && int_map_find(map, -m_list[target_who].r_idx) )
+        for (i = 0; i < vec_length(result->list); i++)
         {
-            monster_race_track(m_list[target_who].r_idx);
+            _mon_list_info_ptr info_ptr = vec_get(result->list, i);
+            if (info_ptr->subgroup == _SUBGROUP_DATA && info_ptr->target)
+            {
+                monster_race_track(info_ptr->r_idx);
+                break;
+            }
         }
-        else
+        if (!p_ptr->monster_race_idx || !_mon_list_has_race(result, p_ptr->monster_race_idx))
         {
             for (i = 0; i < vec_length(result->list); i++)
             {
@@ -1110,7 +1163,7 @@ static int _draw_monster_list(_mon_list_ptr list, int top, rect_t rect, int mode
                 sprintf(buf, "%s", r_name + r_ptr->name);
                 if ((r_ptr->flags1 & RF1_UNIQUE) && !info_ptr->ct_awake)
                     strcat(buf, " (asleep)");
-                if (info_ptr->group == _GROUP_LOS && display_distance)
+                if (monlist_range_all || (info_ptr->los && monlist_range))
                 {
                     sprintf(loc, "Rng %2d", info_ptr->dis);
                 }

@@ -3654,9 +3654,16 @@ bool arena_death_recover(void)
     return TRUE;
 }
 
-void viewport_verify_no_monsters(void)
+void viewport_verify_no_monsters(bool force_center)
 {
-    viewport_verify_aux(VIEWPORT_FORCE_CENTER);
+    int options = 0;
+
+    if (force_center)
+        options |= VIEWPORT_FORCE_CENTER;
+    else if (center_player && (center_running || (!running && !travel.run)))
+        options |= VIEWPORT_FORCE_CENTER;
+
+    viewport_verify_aux(options);
     p_ptr->update &= ~PU_MONSTERS;
     p_ptr->redraw |= PR_MAP;
     p_ptr->window |= (PW_OVERHEAD | PW_DUNGEON);
@@ -5046,7 +5053,7 @@ bool target_set(int mode)
                 case 'p':
                 {
                     /* Recenter the map around the player */
-                    viewport_verify_no_monsters();
+                    viewport_verify_no_monsters(TRUE);
 
                     /* Recalculate interesting grids */
                     target_set_prepare(mode);
@@ -5297,7 +5304,7 @@ bool target_set(int mode)
                 case 'p':
                 {
                     /* Recenter the map around the player */
-                    viewport_verify_no_monsters();
+                    viewport_verify_no_monsters(TRUE);
 
                     /* Recalculate interesting grids */
                     target_set_prepare(mode);
@@ -5443,7 +5450,7 @@ bool target_set(int mode)
 
     /* Recenter the map around the player */
     if (_target_mode_hides_monsters(mode))
-        viewport_verify_no_monsters();
+        viewport_verify_no_monsters(FALSE);
     else
         viewport_verify();
 
@@ -6157,7 +6164,7 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
                     n = 0;
                     y = py;
                     x = px;
-                    viewport_verify_no_monsters();    /* Move cursor to player */
+                    viewport_verify_no_monsters(TRUE);    /* Move cursor to player */
                 }
                 else    /* move cursor to next stair and change panel */
                 {
@@ -6270,7 +6277,7 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
     msg_line_clear();
 
     /* Recenter the map around the player */
-    viewport_verify_no_monsters();
+    viewport_verify_no_monsters(FALSE);
 
     *x_ptr = x;
     *y_ptr = y;

@@ -2105,7 +2105,7 @@ extern bool ui_xy_is_visible(int x, int y);
    around to display other areas of the map: */
 #define VIEWPORT_FORCE_CENTER 0x01
 extern void viewport_verify(void);
-extern void viewport_verify_no_monsters(void);
+extern void viewport_verify_no_monsters(bool force_center);
 extern void viewport_verify_aux(u32b options);
 extern bool viewport_scroll(int dy, int dx);
 extern bool viewport_scroll_no_monsters(int dy, int dx);

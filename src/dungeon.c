@@ -4203,7 +4203,7 @@ static void _dispatch_command(int old_now_turn)
 
         case KTRL('V'):
         {
-            viewport_verify_no_monsters();
+            viewport_verify_no_monsters(TRUE);
             break;
         }
 

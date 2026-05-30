@@ -357,7 +357,7 @@ void do_cmd_locate(void)
         }
     }
 
-    viewport_verify_no_monsters();
+    viewport_verify_no_monsters(FALSE);
 }
 
 

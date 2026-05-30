@@ -1450,6 +1450,14 @@ struct _ui_context_s
 };
 typedef struct _ui_context_s _ui_context_t, *_ui_context_ptr;
 
+struct _sell_choice_s
+{
+    obj_ptr obj;
+    char    label;
+    int     price;
+};
+typedef struct _sell_choice_s _sell_choice_t, *_sell_choice_ptr;
+
 static void _display(_ui_context_ptr context);
 static void _buy(_ui_context_ptr context);
 static void _examine(_ui_context_ptr context);
@@ -1457,6 +1465,8 @@ static void _sell(_ui_context_ptr context);
 static void _sellout(shop_ptr shop);
 static void _reserve(_ui_context_ptr context);
 static void _loop(_ui_context_ptr context);
+static obj_ptr _choose_item_to_sell(shop_ptr shop);
+static int _buy_offer(shop_ptr shop, obj_ptr obj);
 
 static void _maintain(shop_ptr shop);
 static int  _cull(shop_ptr shop, int target);
@@ -1656,24 +1666,243 @@ static void _display(_ui_context_ptr context)
 }
 
 static int _add_obj(shop_ptr shop, obj_ptr obj, bool is_restock);
+static int _build_sell_choices(shop_ptr shop, _sell_choice_ptr choices)
+{
+    int ct = 0;
+    slot_t slot;
+
+    for (slot = 1; slot <= pack_max(); slot++)
+    {
+        obj_ptr obj = pack_obj(slot);
+        int     price;
+
+        if (!obj) continue;
+        if (!shop->type->buy_p(obj)) continue;
+        price = _buy_offer(shop, obj);
+        choices[ct].obj = obj;
+        choices[ct].label = '\0';
+        choices[ct].price = MAX(0, price);
+        ct++;
+    }
+    for (slot = 1; slot <= quiver_max(); slot++)
+    {
+        obj_ptr obj = quiver_obj(slot);
+        int     price;
+
+        if (!obj) continue;
+        if (!shop->type->buy_p(obj)) continue;
+        price = _buy_offer(shop, obj);
+        choices[ct].obj = obj;
+        choices[ct].label = '\0';
+        choices[ct].price = MAX(0, price);
+        ct++;
+    }
+
+    return ct;
+}
+
+static int _find_sell_choice_label(_sell_choice_ptr choices, int start, int stop, char label)
+{
+    int i;
+
+    for (i = start; i < stop; i++)
+    {
+        if (choices[i].label == label)
+            return i;
+    }
+    return -1;
+}
+
+static void _label_sell_choice_page(_sell_choice_ptr choices, int start, int stop)
+{
+    int i;
+
+    for (i = start; i < stop; i++)
+        choices[i].label = slot_label(i - start + 1);
+
+    for (i = start; i < stop; i++)
+    {
+        char label = obj_label(choices[i].obj);
+
+        if (label)
+        {
+            int other = _find_sell_choice_label(choices, start, stop, label);
+            if (other >= 0)
+                choices[other].label = ' ';
+            choices[i].label = label;
+        }
+    }
+
+    for (i = start; i < stop; i++)
+    {
+        char label;
+
+        if (choices[i].label != ' ') continue;
+
+        for (label = 'a'; label <= 'z'; label++)
+        {
+            if (_find_sell_choice_label(choices, start, stop, label) >= 0) continue;
+            choices[i].label = label;
+            break;
+        }
+    }
+}
+
+static void _display_sell_choices(doc_ptr doc, _sell_choice_ptr choices, int ct, int page, int page_size)
+{
+    rect_t r = ui_shop_rect();
+    int    start = page * page_size;
+    int    stop = MIN(ct, start + page_size);
+    int    i;
+
+    doc_clear(doc);
+    doc_insert(doc, "<style:table>");
+    doc_insert(doc, "<color:U>Sell Which Item?</color>\n\n");
+    doc_insert(doc, "    Item Description");
+    doc_printf(doc, "<tab:%d> %6.6s\n", doc_width(doc) - 7, "Price");
+
+    for (i = start; i < stop; i++)
+    {
+        char name[MAX_NLEN];
+        int  price = choices[i].price;
+
+        object_desc(name, choices[i].obj, OD_COLOR_CODED | (show_item_markers ? OD_ITEM_MARKERS : 0));
+        doc_printf(doc, " <color:%c>%c</color>) %s", 'w', choices[i].label, name);
+
+        if (price >= 1000000)
+        {
+            char tmp[10];
+            big_num_display(price, tmp);
+            doc_printf(doc, "<tab:%d> %6s", doc_width(doc) - 7, tmp);
+        }
+        else
+            doc_printf(doc, "<tab:%d> %6d", doc_width(doc) - 7, price);
+
+        doc_newline(doc);
+    }
+
+    if (page_size > stop - start)
+    {
+        for (i = stop - start; i < page_size; i++)
+            doc_newline(doc);
+    }
+
+    if (ct > page_size)
+        doc_printf(doc, "<color:B>(Page %d of %d)</color>\n", page + 1, (ct - 1) / page_size + 1);
+    doc_newline(doc);
+    doc_insert(doc, "<color:keypress>Esc</color> to cancel. Choose an item by letter.");
+    if (ct > page_size)
+        doc_insert(doc,
+            " <color:keypress>Space</color>/<color:keypress>3</color>/<color:keypress>PgDn</color> next page. "
+            "<color:keypress>9</color>/<color:keypress>PgUp</color> previous page.");
+    doc_insert(doc, "</style>");
+
+    Term_clear_rect(r);
+    doc_sync_term(doc,
+        doc_range_top_lines(doc, r.cy),
+        doc_pos_create(r.x, r.y));
+}
+
+static obj_ptr _choose_item_to_sell(shop_ptr shop)
+{
+    _sell_choice_t choices[PACK_MAX + QUIVER_MAX];
+    doc_ptr        doc = doc_alloc(MIN(80, ui_shop_rect().cx));
+    obj_ptr        result = NULL;
+    int            ct = _build_sell_choices(shop, choices);
+    int            page = 0;
+
+    if (!ct)
+    {
+        doc_free(doc);
+        return NULL;
+    }
+
+    for (;;)
+    {
+        rect_t r = ui_shop_rect();
+        int    page_size = MAX(1, MIN(26, r.cy - 6));
+        int    page_ct = (ct - 1) / page_size + 1;
+        int    start = page * page_size;
+        int    stop = MIN(ct, start + page_size);
+        int    cmd;
+        int    i;
+
+        if (page >= page_ct) page = 0;
+
+        _label_sell_choice_page(choices, start, stop);
+        _display_sell_choices(doc, choices, ct, page, page_size);
+
+        cmd = inkey_special(TRUE);
+        if (cmd == ESCAPE || cmd == '\r')
+            break;
+
+        for (i = start; i < stop; i++)
+        {
+            if (choices[i].label != cmd) continue;
+            if (!obj_confirm_choice(choices[i].obj)) break;
+            result = choices[i].obj;
+            doc_free(doc);
+            return result;
+        }
+        if (i < stop) continue;
+
+        switch (cmd)
+        {
+        case SKEY_PGDOWN:
+        case '3':
+        case ' ':
+            if (page_ct > 1)
+                page = (page + 1) % page_ct;
+            else
+                bell();
+            break;
+
+        case SKEY_PGUP:
+        case '9':
+            if (page_ct > 1)
+                page = (page + page_ct - 1) % page_ct;
+            else
+                bell();
+            break;
+
+        default:
+            bell();
+        }
+    }
+
+    doc_free(doc);
+    return NULL;
+}
+
+static int _buy_offer(shop_ptr shop, obj_ptr obj)
+{
+    int price = obj_value(obj);
+
+    if (!price)
+        return 0;
+    if ((obj->tval == TV_CAPTURE) && (obj->pval > 0) && (r_info[obj->pval].ball_num))
+        return -1;
+
+    return _buy_price(shop, price);
+}
+
 static bool _buy_aux(shop_ptr shop, obj_ptr obj)
 {
     char       name[MAX_NLEN];
     string_ptr s = string_alloc();
     char       c;
-    int        price = obj_value(obj);
+    int        price = _buy_offer(shop, obj);
 
     if (!price)
     {
         msg_print("I have no interest in your junk!");
         return FALSE;
     }
-    if ((obj->tval == TV_CAPTURE) && (obj->pval > 0) && (r_info[obj->pval].ball_num))
+    if (price < 0)
     {
         msg_print("I wouldn't take that if you paid me!");
         return FALSE;
     }
-    price = _buy_price(shop, price);
     price *= obj->number;
 
     object_desc(name, obj, OD_COLOR_CODED);
@@ -1737,64 +1966,74 @@ static bool _buy_aux(shop_ptr shop, obj_ptr obj)
 
 static void _buy(_ui_context_ptr context)
 {
-    obj_prompt_t prompt = {0};
     int          amt = 1;
+    obj_ptr      obj = NULL;
 
     if (no_selling)
     {
+        obj_prompt_t prompt = {0};
+
         prompt.prompt = "Give which item?";
         prompt.error = "You have nothing to give.";
+        prompt.filter = context->shop->type->buy_p;
+        prompt.where[0] = INV_PACK;
+        prompt.where[1] = INV_QUIVER;
+
+        command_cmd = 's'; /* Hack for !s inscriptions */
+        obj_prompt(&prompt);
+        command_cmd = '\0';
+        obj = prompt.obj;
     }
     else
     {
-        prompt.prompt = "Sell which item?";
-        prompt.error = "You have nothing to sell.";
-    }
-    prompt.filter = context->shop->type->buy_p;
-    prompt.where[0] = INV_PACK;
-    prompt.where[1] = INV_QUIVER;
-
-    command_cmd = 's'; /* Hack for !s inscriptions */
-    obj_prompt(&prompt);
-    command_cmd = '\0';
-    if (!prompt.obj) return;
-
-    if (prompt.obj->number > 1)
-    {
-        amt = prompt.obj->number;
-        if (!msg_input_num("Quantity", &amt, 1, prompt.obj->number)) return;
-    }
-
-    if (amt < prompt.obj->number)
-    {
-        obj_t copy = *prompt.obj;
-        int vakuutettu = 0;
-        bool tunnettu = object_is_known(prompt.obj);
-        if (prompt.obj->insured)
+        command_cmd = 's'; /* Hack for !s inscriptions */
+        obj = _choose_item_to_sell(context->shop);
+        command_cmd = '\0';
+        if (!obj)
         {
-            vakuutettu = MAX(0, (prompt.obj->insured % 100) - prompt.obj->number + amt);
-            if (vakuutettu) copy.insured = (prompt.obj->insured / 100) * 100 + vakuutettu;
+            if (!pack_count_slots(context->shop->type->buy_p) && !quiver_count_slots(context->shop->type->buy_p))
+                msg_print("You have nothing to sell.");
+            return;
+        }
+    }
+    if (!obj) return;
+
+    if (obj->number > 1)
+    {
+        amt = obj->number;
+        if (!msg_input_num("Quantity", &amt, 1, obj->number)) return;
+    }
+
+    if (amt < obj->number)
+    {
+        obj_t copy = *obj;
+        int vakuutettu = 0;
+        bool tunnettu = object_is_known(obj);
+        if (obj->insured)
+        {
+            vakuutettu = MAX(0, (obj->insured % 100) - obj->number + amt);
+            if (vakuutettu) copy.insured = (obj->insured / 100) * 100 + vakuutettu;
             else copy.insured = 0;
         }
         copy.number = amt;
         if (_buy_aux(context->shop, &copy))
         {
-            obj_identify_fully(prompt.obj);
-            prompt.obj->number -= amt;
-            if (vakuutettu) obj_dec_insured(prompt.obj, vakuutettu);
-            prompt.obj->marked |= OM_DELAYED_MSG;
+            obj_identify_fully(obj);
+            obj->number -= amt;
+            if (vakuutettu) obj_dec_insured(obj, vakuutettu);
+            obj->marked |= OM_DELAYED_MSG;
             p_ptr->notice |= PN_CARRY;
-            if (prompt.obj->loc.where == INV_QUIVER)
+            if (obj->loc.where == INV_QUIVER)
                 p_ptr->notice |= PN_OPTIMIZE_QUIVER;
-            else if (prompt.obj->loc.where == INV_PACK)
+            else if (obj->loc.where == INV_PACK)
                 p_ptr->notice |= PN_OPTIMIZE_PACK;
-            if (!tunnettu) autopick_alter_obj(prompt.obj, ((destroy_identify) && (obj_value(prompt.obj) < 1)));
+            if (!tunnettu) autopick_alter_obj(obj, ((destroy_identify) && (obj_value(obj) < 1)));
         }
     }
     else
-        _buy_aux(context->shop, prompt.obj);
+        _buy_aux(context->shop, obj);
 
-    obj_release(prompt.obj, OBJ_RELEASE_QUIET);
+    obj_release(obj, OBJ_RELEASE_QUIET);
 }
 
 static void _examine(_ui_context_ptr context)
@@ -2983,4 +3222,3 @@ void towns_init_buildings(void)
 {
     parse_edit_file("t_info.txt", _parse_town, 0);
 }
-

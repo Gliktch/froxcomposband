@@ -40,6 +40,55 @@ static void _grow(inv_ptr inv, slot_t slot)
     }
 }
 
+static cptr _activation_name(obj_ptr obj)
+{
+    static char buf[255];
+
+    if ((obj->tval == TV_CAPTURE) && (obj->pval > 0))
+        return "Release Pet";
+
+    {
+        effect_t effect = obj_get_effect(obj);
+        my_strcpy(buf, do_effect(&effect, SPELL_NAME, 0), sizeof(buf));
+    }
+    return buf;
+}
+
+static cptr _activation_menu_name(cptr activation)
+{
+    if (streq(activation, "Heroism, Resistance and Breathe Elements"))
+        return "Heroism, Resist & Breathe";
+    if (streq(activation, "Magic Mapping and Illumination"))
+        return "Mapping and Illumination";
+    if (streq(activation, "Healing and Magic Resistance"))
+        return "Healing and Magic Resist";
+    return activation;
+}
+
+static void _activation_menu_desc(char *buf, size_t buf_size, obj_ptr obj)
+{
+    char item_name[MAX_NLEN];
+    cptr activation = _activation_menu_name(_activation_name(obj));
+    bool charging = obj->timeout ? TRUE : FALSE;
+    u32b mode = show_item_markers ? OD_ITEM_MARKERS : 0;
+
+    if (!charging)
+        mode |= OD_COLOR_CODED;
+    object_desc(item_name, obj, mode);
+
+    if (charging)
+        strnfmt(buf, buf_size, "<color:r>%s</color>: <color:D>%s</color>", activation, item_name);
+    else
+    {
+        effect_t effect = obj_get_effect(obj);
+        byte color = effect_color(&effect);
+        strnfmt(buf, buf_size, "<color:%c>%s</color>: %s",
+            attr_to_attr_char(color),
+            activation,
+            item_name);
+    }
+}
+
 /* Creation */
 inv_ptr inv_alloc(cptr name, int type, int max)
 {
@@ -646,7 +695,12 @@ void inv_display(inv_ptr inv, slot_t start, slot_t stop, obj_p p, doc_ptr doc, i
             doc_style_t style = *doc_current_style(doc);
             bool charging = FALSE;
 
-            if ((flags & INV_SHOW_FAIL_RATES) && !obj_is_device(obj) && obj->timeout)
+            if (flags & INV_SHOW_ACTIVATION)
+            {
+                _activation_menu_desc(name, sizeof(name), obj);
+                charging = FALSE;
+            }
+            else if ((flags & INV_SHOW_FAIL_RATES) && !obj_is_device(obj) && obj->timeout)
             {
                 object_desc(name, obj, mode);
                 charging = TRUE;

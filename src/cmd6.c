@@ -1575,10 +1575,9 @@ void do_cmd_activate(void)
     prompt.filter = _activate_p;
     prompt.where[0] = INV_EQUIP;
     if (get_race()->bonus_pack2) prompt.where[1] = INV_SPECIAL3;
-    prompt.flags = INV_SHOW_FAIL_RATES;
+    prompt.flags = INV_SHOW_FAIL_RATES | INV_SHOW_ACTIVATION;
 
     obj_prompt(&prompt);
     if (!prompt.obj) return;
     do_cmd_activate_aux(prompt.obj);
 }
-

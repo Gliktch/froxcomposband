@@ -251,6 +251,7 @@ extern bool overworld_visit;
 /*** Input Options ***/
 
 extern bool rogue_like_commands;    /* Rogue-like commands */
+extern bool hide_monsters_for_look; /* Hide monster glyphs during look-under mode */
 extern bool always_pickup;    /* Pick things up by default */
 extern bool online_macros;    /* Disable Run in macros */
 extern bool quick_messages;    /* Activate quick messages */
@@ -884,6 +885,7 @@ extern bool high_level_book(object_type *o_ptr);
 extern void do_cmd_refill(void);
 extern void do_cmd_target(void);
 extern void do_cmd_look(void);
+extern void do_cmd_look_under_monsters(void);
 extern void do_cmd_locate(void);
 extern void do_cmd_query_symbol(void);
 extern bool ang_sort_comp_hook(vptr u, vptr v, int a, int b);
@@ -2106,6 +2108,7 @@ extern void viewport_verify(void);
 extern void viewport_verify_no_monsters(void);
 extern void viewport_verify_aux(u32b options);
 extern bool viewport_scroll(int dy, int dx);
+extern bool viewport_scroll_no_monsters(int dy, int dx);
 
 /* If you like, you should be able to alter the result of ui_map_rect() and
    things should just work. */
@@ -2121,6 +2124,7 @@ extern bool target_okay(void);
 extern bool target_able_aux(int m_idx, int mode);
 extern bool target_okay_aux(int mode);
 extern bool target_set(int mode);
+extern bool target_set_look_under(int y, int x);
 extern void target_grab(int y, int x);
 
 /* get_fire_dir will attempt to auto_target (if set) and should be used

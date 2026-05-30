@@ -220,6 +220,7 @@ int current_flow_depth = 0;
 /*** Input Options ***/
 
 bool rogue_like_commands;    /* Rogue-like commands */
+bool hide_monsters_for_look; /* Hide monster glyphs during look-under mode */
 bool always_pickup;    /* Pick things up by default */
 bool online_macros;    /* Disable Run in macros */
 bool quick_messages;    /* Activate quick messages */

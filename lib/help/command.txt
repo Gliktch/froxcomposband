@@ -56,7 +56,7 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
    <color:D>(  (unused)</color>                            ^I  Toggle choice window
    )  Create screen dump                  ^J  (special - linefeed)
    {  Inscribe an object                  <color:D>^K  (unused)</color>
-   }  Uninscribe an object                <color:D>^L  (unused)</color>
+   }  Uninscribe an object                <color:y>^L  Look under monsters</color>
    [  Display monster list                ^M  (special - return)
    ]  Display object list                 <color:D>^N  (unused)</color>
    -  Walk (flip pickup)                  ^O  Display object list
@@ -218,4 +218,3 @@ Updated    : Hengband 1.0.11
 Updated    : PosChengband 6.0.0
 Updated    : FrogComposband 7.1.liquorice
 </color>
-

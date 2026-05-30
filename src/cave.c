@@ -1278,7 +1278,7 @@ void map_info(int y, int x, byte *ap, char *cp, byte *tap, char *tcp)
 
 
     /* Handle monsters */
-    if (c_ptr->m_idx && display_autopick == 0 )
+    if (c_ptr->m_idx && display_autopick == 0 && !hide_monsters_for_look)
     {
         monster_type *m_ptr = &m_list[c_ptr->m_idx];
 

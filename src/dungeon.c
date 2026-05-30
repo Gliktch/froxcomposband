@@ -4221,6 +4221,13 @@ static void _dispatch_command(int old_now_turn)
             break;
         }
 
+        case KTRL('L'):
+        {
+            if (!rogue_like_commands && !p_ptr->wild_mode)
+                do_cmd_look_under_monsters();
+            break;
+        }
+
         case 'Y':
         case '[':
             if (!p_ptr->image)

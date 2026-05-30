@@ -280,6 +280,14 @@ void do_cmd_look(void)
     }
 }
 
+void do_cmd_look_under_monsters(void)
+{
+    if (target_set_look_under(py, px))
+    {
+        msg_print("Target Selected.");
+    }
+}
+
 
 
 /*

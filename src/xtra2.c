@@ -23,6 +23,9 @@ static bool _buff_target_override = FALSE;
 static s16b _buff_target_override_row = 0;
 static s16b _buff_target_override_col = 0;
 static int _target_sort_mode = 0;
+static bool _target_start_override = FALSE;
+static s16b _target_start_row = 0;
+static s16b _target_start_col = 0;
 
  /* Experience required to advance from level to level + 1
     Note the table is off by 1, so we encapsulate that fact.
@@ -3802,9 +3805,21 @@ static bool _target_mode_uses_monster_list(int mode)
     return BOOL(mode & (TARGET_KILL | TARGET_MARK | TARGET_DISI | TARGET_MONS | TARGET_XTRA | TARGET_BUFF | TARGET_CAPTURE));
 }
 
+static bool _target_mode_hides_monsters(int mode)
+{
+    return BOOL(mode & TARGET_LOOK_UNDER);
+}
+
 static bool _target_mode_needs_monster(int mode)
 {
     return BOOL(mode & (TARGET_MONS | TARGET_BUFF | TARGET_CAPTURE));
+}
+
+static bool _target_scroll(int mode, int dy, int dx)
+{
+    if (_target_mode_hides_monsters(mode))
+        return viewport_scroll_no_monsters(dy, dx);
+    return viewport_scroll(dy, dx);
 }
 
 static bool _buff_cycle_candidate(monster_type *m_ptr)
@@ -3813,6 +3828,36 @@ static bool _buff_cycle_candidate(monster_type *m_ptr)
     if (m_ptr->id == p_ptr->riding) return TRUE;
     if (is_pet(m_ptr)) return TRUE;
     if (is_friendly(m_ptr)) return TRUE;
+    return FALSE;
+}
+
+bool viewport_scroll_no_monsters(int dy, int dx)
+{
+    int y, x;
+    rect_t r = ui_map_rect();
+
+    y = viewport_origin.y + dy * r.cy / 2;
+    x = viewport_origin.x + dx * r.cx / 2;
+
+    if (y > cur_hgt - r.cy) y = cur_hgt - r.cy;
+    if (y < 0) y = 0;
+
+    if (x > cur_wid - r.cx) x = cur_wid - r.cx;
+    if (x < 0) x = 0;
+
+    if ((y != viewport_origin.y) || (x != viewport_origin.x))
+    {
+        viewport_origin.y = y;
+        viewport_origin.x = x;
+
+        p_ptr->update &= ~PU_MONSTERS;
+        p_ptr->redraw |= PR_MAP;
+        redraw_hack = TRUE;
+        handle_stuff();
+        redraw_hack = FALSE;
+        return TRUE;
+    }
+
     return FALSE;
 }
 
@@ -4314,6 +4359,20 @@ static int _target_find_recall_start(byte *types, s16b *refs, int ct, int curren
     return 0;
 }
 
+static bool _target_handle_recall_query(int query, byte *types, s16b *refs, int ct, int *recall_idx, int current_type, s16b current_ref)
+{
+    int start;
+
+    if (!_target_is_recall_cmd(query)) return FALSE;
+
+    start = _target_find_recall_start(types, refs, ct, current_type, current_ref, *recall_idx);
+    if (start < 0) return FALSE;
+
+    *recall_idx = start;
+    _target_do_recall(types[start], refs[start]);
+    return TRUE;
+}
+
 
 bool show_gold_on_floor = FALSE;
 
@@ -4350,6 +4409,7 @@ static int target_set_aux(int y, int x, int mode, cptr info)
     char out_val[MAX_NLEN+80];
     inv_ptr inv = NULL;
     int obj_ct = 0;
+    bool hide_monsters = _target_mode_hides_monsters(mode);
     byte recall_types[40];
     s16b recall_refs[40];
     int recall_ct = 0;
@@ -4372,7 +4432,7 @@ static int target_set_aux(int y, int x, int mode, cptr info)
            This happens after a fat finger incident or a failed <dir>
            navigation that really should have worked.*/
         if (strstr(info, "o,"))
-            s1 = (mode == TARGET_LOOK) ? "Feature: " : "Monster: ";
+            s1 = (mode & TARGET_LOOK) ? "Feature: " : "Monster: ";
         else if (strstr(info, "m,"))
             s1 = "Position: ";
     }
@@ -4442,7 +4502,7 @@ static int target_set_aux(int y, int x, int mode, cptr info)
     }
 
     /* Actual monsters */
-    if (c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+    if (!hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
     {
         monster_type *m_ptr = &m_list[c_ptr->m_idx];
         bool          fuzzy = BOOL(m_ptr->mflag2 & MFLAG2_FUZZY);
@@ -4488,16 +4548,10 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             /* Command */
             query = inkey();
 
-            if (_target_is_recall_cmd(query))
+            if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                fuzzy ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER, c_ptr->m_idx))
             {
-                int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
-                    fuzzy ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER, c_ptr->m_idx, recall_idx);
-                if (start >= 0)
-                {
-                    recall_idx = start;
-                    _target_do_recall(recall_types[start], recall_refs[start]);
-                    continue;
-                }
+                continue;
             }
 
             break;
@@ -4554,16 +4608,10 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             move_cursor_relative(y, x);
             query = inkey();
 
-            if (_target_is_recall_cmd(query))
+            if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                _TARGET_RECALL_CARRIED, this_o_idx))
             {
-                int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
-                    _TARGET_RECALL_CARRIED, this_o_idx, recall_idx);
-                if (start >= 0)
-                {
-                    recall_idx = start;
-                    _target_do_recall(recall_types[start], recall_refs[start]);
-                    continue;
-                }
+                continue;
             }
 
             /* Always stop at "normal" keys */
@@ -4595,6 +4643,12 @@ static int target_set_aux(int y, int x, int mode, cptr info)
         obj_ptr obj = inv_obj(inv, 1);
         char name[MAX_NLEN];
         cptr suffix = obj->held_m_idx ? " (Carried)" : "";
+        int recall_type = (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+            ? ((m_list[c_ptr->m_idx].mflag2 & MFLAG2_FUZZY) ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER)
+            : (obj->held_m_idx ? _TARGET_RECALL_CARRIED : _TARGET_RECALL_FLOOR);
+        s16b recall_ref = (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+            ? c_ptr->m_idx
+            : obj->loc.slot;
 
         object_desc(name, obj, 0);
 
@@ -4608,16 +4662,10 @@ static int target_set_aux(int y, int x, int mode, cptr info)
 
             query = inkey();
 
-            if (_target_is_recall_cmd(query))
+            if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                recall_type, recall_ref))
             {
-                int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
-                    obj->held_m_idx ? _TARGET_RECALL_CARRIED : _TARGET_RECALL_FLOOR, obj->loc.slot, recall_idx);
-                if (start >= 0)
-                {
-                    recall_idx = start;
-                    _target_do_recall(recall_types[start], recall_refs[start]);
-                    continue;
-                }
+                continue;
             }
             inv_free(inv);
             return query;
@@ -4641,16 +4689,15 @@ static int target_set_aux(int y, int x, int mode, cptr info)
 
                 query = inkey();
 
-                if (_target_is_recall_cmd(query))
+                if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                    (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+                        ? ((m_list[c_ptr->m_idx].mflag2 & MFLAG2_FUZZY) ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER)
+                        : _TARGET_RECALL_FLOOR,
+                    (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+                        ? c_ptr->m_idx
+                        : inv_obj(inv, 1)->loc.slot))
                 {
-                    int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
-                        _TARGET_RECALL_FLOOR, inv_obj(inv, 1)->loc.slot, recall_idx);
-                    if (start >= 0)
-                    {
-                        recall_idx = start;
-                        _target_do_recall(recall_types[start], recall_refs[start]);
-                        continue;
-                    }
+                    continue;
                 }
 
                 if (query != 'x' && query != ' ')
@@ -4676,16 +4723,15 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             query = inkey();
             screen_load();
 
-            if (_target_is_recall_cmd(query))
+            if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+                    ? ((m_list[c_ptr->m_idx].mflag2 & MFLAG2_FUZZY) ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER)
+                    : _TARGET_RECALL_FLOOR,
+                (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+                    ? c_ptr->m_idx
+                    : inv_obj(inv, 1)->loc.slot))
             {
-                int start = _target_find_recall_start(recall_types, recall_refs, recall_ct,
-                    _TARGET_RECALL_FLOOR, inv_obj(inv, 1)->loc.slot, recall_idx);
-                if (start >= 0)
-                {
-                    recall_idx = start;
-                    _target_do_recall(recall_types[start], recall_refs[start]);
-                    continue;
-                }
+                continue;
             }
 
             if (query != '\\' && query != '\r')
@@ -4889,6 +4935,13 @@ bool target_set(int mode)
 
     /* Start near the player */
     m = 0;
+    if (_target_start_override)
+    {
+        y = _target_start_row;
+        x = _target_start_col;
+    }
+    if (_target_mode_hides_monsters(mode))
+        flag = FALSE;
 
     /* Interact */
     while (!done)
@@ -4913,8 +4966,6 @@ bool target_set(int mode)
             {
                 strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,+,-,/,?,<dir>" : "q,t,p,o,x,j,+,-,/,?,<dir>");
             }
-
-            /* Dis-allow target */
             else
             {
                 strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,/,?,<dir>" : "q,p,o,x,j,+,-,/,?,<dir>");
@@ -5017,6 +5068,14 @@ bool target_set(int mode)
                     break;
                 }
 
+                case 'x':
+                {
+                    if (_target_mode_hides_monsters(mode))
+                        break;
+                    bell();
+                    break;
+                }
+
                 case '(':
                 {
                     if ((!p_ptr->wild_mode) && (in_bounds(y,x)) && (cave[y][x].info & CAVE_MARK) && ((y != py) || (x != px)) && (player_can_enter(cave[y][x].feat, 0)))
@@ -5057,7 +5116,7 @@ bool target_set(int mode)
                 while (flag && (i < 0))
                 {
                     /* Note the change */
-                    if (viewport_scroll(ddy[d], ddx[d]))
+                    if (_target_scroll(mode, ddy[d], ddx[d]))
                     {
                         int v = temp_y[m];
                         int u = temp_x[m];
@@ -5086,7 +5145,10 @@ bool target_set(int mode)
                         viewport_origin.x = x2;
 
                         /* Update stuff */
-                        p_ptr->update |= (PU_MONSTERS); /* XXX Why? */
+                        if (_target_mode_hides_monsters(mode))
+                            p_ptr->update &= ~PU_MONSTERS;
+                        else
+                            p_ptr->update |= (PU_MONSTERS); /* XXX Why? */
 
                         /* Redraw map */
                         p_ptr->redraw |= (PR_MAP);
@@ -5126,7 +5188,7 @@ bool target_set(int mode)
                         /* Apply the motion */
                         if (!cave_xy_is_visible(x, y))
                         {
-                            if (viewport_scroll(dy, dx)) target_set_prepare(mode);
+                            if (_target_scroll(mode, dy, dx)) target_set_prepare(mode);
                         }
 
                         /* Slide into legality */
@@ -5159,9 +5221,19 @@ bool target_set(int mode)
             c_ptr = &cave[y][x];
 
             if ((mode & TARGET_MARK) && !m_list[c_ptr->m_idx].ml)
-                strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,/,?,<dir>" : "q,p,o,x,j,+,-,/,?,<dir>");
+            {
+                if (_target_mode_hides_monsters(mode))
+                    strcpy(info, rogue_like_commands ? "q,p,o,x,(,?,<dir>" : "q,p,o,x,j,(,?,<dir>");
+                else
+                    strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,/,?,<dir>" : "q,p,o,x,j,+,-,/,?,<dir>");
+            }
             else
-                strcpy(info, rogue_like_commands ? "q,t,p,m,x,(,+,-,/,?,<dir>" : "q,t,p,m,x,j,+,-,/,?,<dir>");
+            {
+                if (_target_mode_hides_monsters(mode))
+                    strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,?,<dir>" : "q,t,p,o,x,j,(,?,<dir>");
+                else
+                    strcpy(info, rogue_like_commands ? "q,t,p,m,x,(,+,-,/,?,<dir>" : "q,t,p,m,x,j,+,-,/,?,<dir>");
+            }
 
 
             /* Describe and Prompt (enable "TARGET_LOOK") */
@@ -5241,12 +5313,25 @@ bool target_set(int mode)
                     break;
                 }
 
+                case 'x':
+                {
+                    if (_target_mode_hides_monsters(mode))
+                        break;
+                    bell();
+                    break;
+                }
+
                 case ' ':
                 case '*':
                 case '+':
                 case '-':
                 case 'm':
                 {
+                    if (_target_mode_hides_monsters(mode))
+                    {
+                        bell();
+                        break;
+                    }
                     flag = TRUE;
 
                     m = 0;
@@ -5336,7 +5421,7 @@ bool target_set(int mode)
                 /* Apply the motion */
                 if (!cave_xy_is_visible(x, y))
                 {
-                    if (viewport_scroll(dy, dx)) target_set_prepare(mode);
+                    if (_target_scroll(mode, dy, dx)) target_set_prepare(mode);
                 }
 
                 /* Slide into legality */
@@ -5357,10 +5442,16 @@ bool target_set(int mode)
     prt("", 0, 0);
 
     /* Recenter the map around the player */
-    viewport_verify();
+    if (_target_mode_hides_monsters(mode))
+        viewport_verify_no_monsters();
+    else
+        viewport_verify();
 
     /* Update stuff */
-    p_ptr->update |= (PU_MONSTERS);
+    if (_target_mode_hides_monsters(mode))
+        p_ptr->update &= ~PU_MONSTERS;
+    else
+        p_ptr->update |= (PU_MONSTERS);
 
     /* Redraw map */
     p_ptr->redraw |= (PR_MAP | PR_HEALTH_BARS);
@@ -5391,6 +5482,37 @@ bool target_set(int mode)
 
     /* Success */
     return (TRUE);
+}
+
+bool target_set_look_under(int y, int x)
+{
+    bool result;
+
+    hide_monsters_for_look = TRUE;
+    _target_start_override = TRUE;
+    _target_start_row = y;
+    _target_start_col = x;
+
+    health_track(0);
+    p_ptr->update &= ~PU_MONSTERS;
+    p_ptr->redraw |= (PR_MAP | PR_HEALTH_BARS);
+    redraw_hack = TRUE;
+    handle_stuff();
+    redraw_hack = FALSE;
+
+    result = target_set(TARGET_LOOK | TARGET_TRVL | TARGET_LOOK_UNDER);
+
+    hide_monsters_for_look = FALSE;
+    _target_start_override = FALSE;
+    health_track(0);
+    p_ptr->update &= ~PU_MONSTERS;
+    p_ptr->redraw |= (PR_MAP | PR_HEALTH_BARS);
+    p_ptr->window |= (PW_OVERHEAD | PW_MONSTER_LIST);
+    redraw_hack = TRUE;
+    handle_stuff();
+    redraw_hack = FALSE;
+
+    return result;
 }
 
 static int _auto_target_monster(int target_mode)
@@ -5976,7 +6098,7 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
         n = 0;
     }
 
-    msg_print("Select a point and press <color:y>space</color>. < and > cycle through stairs, * cycles through monsters");
+    msg_print("Select a point and press <color:y>space</color>. < and > cycle through stairs, * cycles through monsters, x looks under monsters");
 
     while ((ch != ESCAPE) && !success)
     {
@@ -6062,6 +6184,17 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
                     }
                 }
             }
+            break;
+
+        case 'x':
+            if (target_set_look_under(y, x))
+            {
+                x = target_col;
+                y = target_row;
+                success = TRUE;
+            }
+            else
+                ch = 0;
             break;
 
         default:

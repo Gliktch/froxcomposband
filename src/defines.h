@@ -2343,6 +2343,7 @@ enum {
 #define TARGET_MONS        0x80
 #define TARGET_BUFF        0x100
 #define TARGET_CAPTURE     0x200
+#define TARGET_LOOK_UNDER  0x400
 
 
 /*

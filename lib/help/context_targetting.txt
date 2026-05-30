@@ -6,6 +6,8 @@ If you wish to target (or inspect) a square with no monster on it, press <color:
 
 At any time, press <color:keypress>5</color>, <color:keypress>t</color> or <color:keypress>.</color> to accept the current target (and exit targetting mode), <color:keypress>q</color> or <color:keypress>ESC</color> to exit targetting mode without selecting a target, <color:keypress>r</color> to recall lore about a monster on the target square, <color:keypress>x</color> to see all items on the target square (including stolen or picked-up items carried by monsters, but excluding normal monster item drops), and <color:keypress>(</color> to select a square as a travel target. In the original keyset, <color:keypress>J</color> and <color:keypress>j</color> also work as travel keys and are equivalent with <color:keypress>(</color>.
 
+If a visible or telepathically detected monster is standing on top of something you want to inspect, you can temporarily hide monster glyphs while looking around. In the original keyset, press <color:keypress>^L</color> to enter this look-under mode. From the travel cursor, press <color:keypress>x</color> to enter it in either keyset. This mode stays in free-targetting, lets <color:keypress>5</color>, <color:keypress>t</color> and <color:keypress>.</color> select the current square even if occupied, and restores monster display when you leave it.
+
 Users of the roguelike keyset have a bonus option in free-targetting mode: they can press <color:keypress>Shift+DIR</color> to move the cursor many squares at a time.
 
 <topic:Precision><style:heading>Precision Targetting</style>

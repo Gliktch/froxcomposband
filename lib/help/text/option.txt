@@ -761,6 +761,24 @@ Text Display Options
   likely to be (and why), gives warnings in case of reforges that look 
   particularly misguided, and allows you to cancel the reforge if the 
   statistics are not to your liking.
+
+  Show non-melee damages as ranges in monster info (show_damage_range)
+  If this option is on, monster recall will display known non-melee 
+  damage information as ranges or dice rolls, as opposed to the 
+  traditional averages. The ranges shown do not account for the slight 
+  randomness in damage reduction from resistances, although the ~ sign 
+  is included in such cases to indicate an approximation. The ranges 
+  displayed also assume a monster power of 100%; HP is based on either 
+  the race's representative full-HP value or a live monster's current 
+  HP, depending on the show_damage_hp option and the type of recall 
+  being shown.
+
+  Use live HP for single-monster damage estimates (show_damage_hp)
+  If this option is on, monster examination screens for a single real 
+  visible monster will base known non-melee damage estimates on that 
+  monster's current HP instead of the race's representative full-HP 
+  value. Grouped recall and disguised monsters still use 
+  representative race-level values.
   
   Automatically make all power labels sticky (auto_sticky_labels)
   With this option on, all powers used through the U key (O in the 

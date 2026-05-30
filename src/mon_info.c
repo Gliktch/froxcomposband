@@ -495,6 +495,8 @@ static void _display_spell_group(mon_race_ptr r_ptr, mon_spell_group_ptr group, 
             {
                 if (spell->parm.tag && spell->id.type != MST_SUMMON)
                 {
+                    bool use_live_hp = show_damage_hp && _mon_display_instance && is_original_ap(_mon_display_instance);
+
                     string_append_c(s, ' ');
                     string_append_c(s, '(');
                     if (spoiler_hack || !_is_attack_spell(spell))
@@ -505,10 +507,21 @@ static void _display_spell_group(mon_race_ptr r_ptr, mon_spell_group_ptr group, 
                     }
                     else if (show_damage_range)
                     {
-                        mon_spell_dam_range(s, spell, r_ptr, !(_mon_display_flags & _MON_DISPLAY_RAW_SPELL_DAMAGE));
+                        if (use_live_hp)
+                            mon_spell_dam_range_mon(s, spell, _mon_display_instance, !(_mon_display_flags & _MON_DISPLAY_RAW_SPELL_DAMAGE));
+                        else
+                            mon_spell_dam_range(s, spell, r_ptr, !(_mon_display_flags & _MON_DISPLAY_RAW_SPELL_DAMAGE));
                     }
                     else
-                        string_printf(s, "%d", mon_spell_avg_dam(spell, r_ptr, !(_mon_display_flags & _MON_DISPLAY_RAW_SPELL_DAMAGE)));
+                    {
+                        int dam;
+
+                        if (use_live_hp)
+                            dam = mon_spell_avg_dam_mon(spell, _mon_display_instance, !(_mon_display_flags & _MON_DISPLAY_RAW_SPELL_DAMAGE));
+                        else
+                            dam = mon_spell_avg_dam(spell, r_ptr, !(_mon_display_flags & _MON_DISPLAY_RAW_SPELL_DAMAGE));
+                        string_printf(s, "%d", dam);
+                    }
                     if (!spoiler_hack && !(_mon_display_flags & _MON_DISPLAY_HIDE_SPELL_LORE) && spell->lore) /* XXX stop repeating yourself! */
                         string_printf(s, ", %dx", spell->lore);
                     string_append_c(s, ')');
@@ -1074,4 +1087,3 @@ void mon_display_possessor(monster_race *r_ptr, doc_ptr doc)
     mon_display_doc(r_ptr, doc);
     _mon_display_flags = old_flags;
 }
-

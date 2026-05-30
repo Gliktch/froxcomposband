@@ -338,7 +338,10 @@ If this option is on, the character sheet displays the player's skills numerical
 This option shows statistics about how good a reforge result is likely to be (and why), gives warnings in case of reforges that look particularly misguided, and allows you to cancel the reforge if the statistics are not to your liking.
 
 <topic:show_damage_range><color:U>Show non-melee damages as ranges in monster info</color> <color:D>(show_damage_range)</color>
-If this option is on, monster recall will display known non-melee damage information as ranges or dice rolls, as opposed to the traditional averages. (The ranges shown do not account for the slight randomness in damage reduction from resistances, although the ~ sign is included in such cases to indicate an approximation. The ranges displayed also assume a monster power of 100% and an average max HP for the race.)
+If this option is on, monster recall will display known non-melee damage information as ranges or dice rolls, as opposed to the traditional averages. (The ranges shown do not account for the slight randomness in damage reduction from resistances, although the ~ sign is included in such cases to indicate an approximation. The ranges displayed also assume a monster power of 100%; HP is based on either the race's representative full-HP value or a live monster's current HP, depending on the <color:topic:show_damage_hp>show_damage_hp</color> option and the type of recall being shown.)
+
+<topic:show_damage_hp><color:U>Use live HP for single-monster damage estimates</color> <color:D>(show_damage_hp)</color>
+If this option is on, monster examination screens for a single real visible monster will base known non-melee damage estimates on that monster's current HP instead of the race's representative full-HP value. Grouped recall and disguised monsters still use representative race-level values.
 
 </indent>
 <topic:GamePlay><style:heading>Game Play Options</style>

@@ -346,6 +346,7 @@ extern bool show_power; /* Display device powers in inventory */
 extern bool show_rogue_keys; /* Display roguelike keys if possible */
 extern bool show_energy_cost;
 extern bool show_damage_range; /* Show damages as ranges in monster info */
+extern bool show_damage_hp; /* Use live HP for single-monster damage estimates in monster info */
 extern bool decimal_stats;
 extern bool percentage_life; /* Show life rating as a percentage */
 extern bool black_curses; /* Show cursed items as black in unwielding menu */

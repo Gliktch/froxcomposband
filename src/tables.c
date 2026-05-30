@@ -2307,6 +2307,9 @@ option_type option_info[] =
     { &show_damage_range,            FALSE, OPT_PAGE_TEXT, 4, 22,
     "show_damage_range",            "Show non-melee damages as ranges in monster info" },
 
+    { &show_damage_hp,               TRUE,  OPT_PAGE_TEXT, 4, 23,
+    "show_damage_hp",               "Use live HP for single-monster damage estimates" },
+
 
     /*** Game-Play ***/
 

@@ -67,6 +67,7 @@ Y:monlist_los
 X:monlist_awake
 X:monlist_distance
 X:monlist_ungroup
+Y:show_damage_hp
 Y:show_discovery
 Y:always_dump_origins
 

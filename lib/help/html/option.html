@@ -757,6 +757,24 @@ output to the screen).
   likely to be (and why), gives warnings in case of reforges that look 
   particularly misguided, and allows you to cancel the reforge if the 
   statistics are not to your liking.
+
+<a name="show_damage_range"></a>  </font><font color="#c08040">Show non-melee damages as ranges in monster info </font><font color="#404040">(show_damage_range)
+  </font><font color="#ffffff">If this option is on, monster recall will display known non-melee 
+  damage information as ranges or dice rolls, as opposed to the 
+  traditional averages. The ranges shown do not account for the slight 
+  randomness in damage reduction from resistances, although the ~ sign 
+  is included in such cases to indicate an approximation. The ranges 
+  displayed also assume a monster power of 100%; HP is based on either 
+  the race's representative full-HP value or a live monster's current 
+  HP, depending on the </font><font color="#404040">show_damage_hp</font><font color="#ffffff"> option and the type of recall 
+  being shown.
+
+<a name="show_damage_hp"></a>  </font><font color="#c08040">Use live HP for single-monster damage estimates </font><font color="#404040">(show_damage_hp)
+  </font><font color="#ffffff">If this option is on, monster examination screens for a single real 
+  visible monster will base known non-melee damage estimates on that 
+  monster's current HP instead of the race's representative full-HP 
+  value. Grouped recall and disguised monsters still use 
+  representative race-level values.
   
 <a name="auto_sticky_labels"></a>  </font><font color="#c08040">Automatically make all power labels sticky </font><font color="#404040">(auto_sticky_labels)
   </font><font color="#ffffff">With this option on, all powers used through the </font><font color="#ff8000">U </font><font color="#ffffff">key (</font><font color="#ff8000">O </font><font color="#ffffff">in the 

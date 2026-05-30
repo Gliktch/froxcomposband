@@ -315,6 +315,7 @@ bool auto_sticky_labels; /* Automatically make power labels sticky */
 bool show_power; /* Display device powers in inventory */
 bool show_rogue_keys; /* Display roguelike keys if possible */
 bool show_damage_range; /* Show non-melee damages as ranges in monster info */
+bool show_damage_hp; /* Use live HP for single-monster damage estimates in monster info */
 bool decimal_stats; /* Decimalized stat display */
 bool percentage_life; /* Show life rating as a percentage */
 bool black_curses; /* Show cursed items as black in unwielding menu */

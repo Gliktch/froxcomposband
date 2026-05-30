@@ -4592,9 +4592,42 @@ void mon_spell_dam_range(string_ptr s, mon_spell_ptr spell, mon_race_ptr race, b
     }
     return;
 }
+void mon_spell_dam_range_mon(string_ptr s, mon_spell_ptr spell, mon_ptr mon, bool apply_resist)
+{
+    int min, max;
+    if (!_is_attack_spell(spell))
+    {
+      string_append_c(s, '0');
+      return;
+    }
+    min = _adjust_dam_weird_stuff(_spell_dam_aux(spell, mon->hp, apply_resist, 1), spell, apply_resist);
+    max = _adjust_dam_weird_stuff(_spell_dam_aux(spell, mon->hp, apply_resist, 2), spell, apply_resist);
+    apply_resist = (apply_resist && (_spell_res(spell)));
+    if (min != max)
+    {
+        char *approx = (apply_resist ? "~" : "");
+        if ((spell->parm.tag == MSP_DICE) && (spell->parm.v.dice.dd > 1) && (!apply_resist))
+        {
+             mon_spell_parm_print(&spell->parm, s, NULL);
+             return;
+        }
+        string_printf(s, "%s%d-%s%d", approx, min, approx, max);
+    }
+    else
+    {
+        string_printf(s, "%s%d", apply_resist ? "~" : "", min);
+    }
+    return;
+}
 int mon_spell_avg_dam(mon_spell_ptr spell, mon_race_ptr race, bool apply_resist)
 {
     int tulos = _spell_dam_aux(spell, _avg_hp(race), apply_resist, 0);
+    if ((!apply_resist) && (p_ptr->no_air) && (spell->id.effect == GF_AIR)) tulos = tulos * 9 / 5;
+    return _adjust_dam_weird_stuff(tulos, spell, apply_resist);
+}
+int mon_spell_avg_dam_mon(mon_spell_ptr spell, mon_ptr mon, bool apply_resist)
+{
+    int tulos = _spell_dam_aux(spell, mon->hp, apply_resist, 0);
     if ((!apply_resist) && (p_ptr->no_air) && (spell->id.effect == GF_AIR)) tulos = tulos * 9 / 5;
     return _adjust_dam_weird_stuff(tulos, spell, apply_resist);
 }
@@ -4640,7 +4673,7 @@ void mon_spell_wizard(mon_ptr mon, mon_spell_ai ai, doc_ptr doc)
         for (j = 0; j < group->count; j++)
         {
             mon_spell_ptr spell = &group->spells[j];
-            int           dam = _avg_spell_dam(mon, spell);
+            int           dam = mon_spell_avg_dam_mon(spell, mon, TRUE);
             doc_printf(doc, "<tab:20>%2d.%d%% ", spell->prob * 100 / total, (spell->prob * 1000 / total) % 10);
             mon_spell_doc(spell, doc);
             if (spell->parm.tag == MSP_DICE)
@@ -5737,4 +5770,3 @@ void blue_mage_learn_spell(void)
         blue_mage_learn_spell_aux(_current.spell->id.type, _current.spell->id.effect, 0, 0, TRUE);
     }
 }
-

@@ -2217,7 +2217,10 @@ static void _shooter_info_aux(doc_ptr doc, object_type *bow, object_type *arrow,
     doc_printf(cols[0], " %-8.8s: %d.%d lbs\n", "Weight", arrow->weight/10, arrow->weight%10);
     doc_printf(cols[0], " %-8.8s: %d + %d = %d\n", "To Hit", to_h, to_h_bow + to_h_xtra, to_h + to_h_bow + to_h_xtra);
     doc_printf(cols[0], " %-8.8s: %d (%s)\n", "To Dam", to_d, "Multiplier Applies");
-    doc_printf(cols[0], " %-8.8s: %d (%s)\n", "To Dam", to_d_bow + to_d_xtra, "Multiplier Does Not Apply");
+    if (weaponmaster_is_(WEAPONMASTER_CROSSBOWS) && p_ptr->lev >= 20)
+        doc_printf(cols[0], " %-8.8s: %d + 10 (%s)\n", "To Dam", to_d_bow + to_d_xtra, "Close Range Bonus 0-19");
+    else
+        doc_printf(cols[0], " %-8.8s: %d (%s)\n", "To Dam", to_d_bow + to_d_xtra, "Multiplier Does Not Apply");
     doc_printf(cols[0], " <color:G>%-8.8s</color>\n", "Damage");
 
     if (crit.to_d)
@@ -2232,6 +2235,10 @@ static void _shooter_info_aux(doc_ptr doc, object_type *bow, object_type *arrow,
     }
 
     to_d_xtra = to_d_bow + to_d_xtra + crit.to_d/100;
+
+    /* Approximate the Crossbowmaster's close-range damage perk in the display. */
+    if (weaponmaster_is_(WEAPONMASTER_CROSSBOWS) && p_ptr->lev >= 20)
+        to_d_xtra += 10;
 
     _display_missile_slay(mult, 100, crit.mul, FALSE, num_fire, dd, ds, to_d, to_d_xtra, "Normal", TERM_WHITE, cols[0]);
 

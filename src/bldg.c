@@ -20,6 +20,16 @@ static bool leave_bldg = FALSE;
 static bool paivita = FALSE;
 static bool paivitys_no_inkey_hack = FALSE;
 
+static bool _bldg_action_matches(building_type *bldg, int i, char command)
+{
+    if (bldg->letters[i] == command) return TRUE;
+
+    if (bldg->actions[i] == BACT_KUBI && command == 'b') return TRUE;
+    if (bldg->actions[i] == BACT_KANKIN && command == 'c') return TRUE;
+
+    return FALSE;
+}
+
 int get_bldg_member_code(cptr name)
 {
     if (strcmp(name, "None") == 0)
@@ -4448,7 +4458,7 @@ void do_cmd_bldg(void)
         {
             if (bldg->letters[i])
             {
-                if (bldg->letters[i] == command)
+                if (_bldg_action_matches(bldg, i, command))
                 {
                     validcmd = TRUE;
                     break;
@@ -4514,5 +4524,4 @@ void do_cmd_bldg(void)
     /* Window stuff */
     p_ptr->window |= (PW_OVERHEAD | PW_DUNGEON);
 }
-
 

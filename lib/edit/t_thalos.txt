@@ -174,9 +174,9 @@ B:4:R:*:Member
 
 B:5:N:Bounty Office:Kaleel:Human
 B:5:A:0:Today's wanted:0:0:a:38:0
-B:5:A:1:Wanted unique list:0:0:b:39:0
+B:5:A:1:Wanted unique list:0:0:w:39:0
 B:5:A:2:Special target:0:0:s:37:0
-B:5:A:3:Receive prize:0:0:c:40:0
+B:5:A:3:Receive prize:0:0:p:40:0
 
 B:6:N:Weaponmaster:Torvald:Human
 B:6:A:0:Evaluate AC:100:100:a:46:0

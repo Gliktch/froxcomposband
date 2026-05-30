@@ -390,9 +390,9 @@ B:14:A:6:Random Weapon:30000:30000:g:53:0
 
 B:15:N:Hunter's office:Kopei:Human
 B:15:A:0:Today's wanted:0:0:a:38:0
-B:15:A:1:Wanted unique list:0:0:b:39:0
+B:15:A:1:Wanted unique list:0:0:w:39:0
 B:15:A:2:Special target:0:0:s:37:0
-B:15:A:3:Receive prize:0:0:c:40:0
+B:15:A:3:Receive prize:0:0:p:40:0
 
 ############### Town Layout ###############
 

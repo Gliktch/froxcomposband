@@ -198,9 +198,9 @@ B:12:A:5:View poster:0:0:v:64:0
 
 B:13:N:Police Station:Watts:Gremlin
 B:13:A:0:Today's wanted:0:0:a:38:0
-B:13:A:1:Wanted unique list:0:0:b:39:0
+B:13:A:1:Wanted unique list:0:0:w:39:0
 B:13:A:2:Special target:0:0:s:37:0
-B:13:A:3:Receive prize:0:0:c:40:0
+B:13:A:3:Receive prize:0:0:p:40:0
 B:13:A:4:Request quest:0:0:q:6:0
 
 B:14:N:Trump Tower:Ivan Ekhtniyaz:Human

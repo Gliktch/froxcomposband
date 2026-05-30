@@ -9875,7 +9875,7 @@ static void do_cmd_knowledge_features(bool *need_redraw, bool visual_only, int d
  */
 static void do_cmd_knowledge_kubi(void)
 {
-    int i;
+    int i, ct = 0, done_ct = 0;
     FILE *fff;
 
     char file_name[1024];
@@ -9891,27 +9891,34 @@ static void do_cmd_knowledge_kubi(void)
 
     if (fff)
     {
-        bool listed = FALSE;
+        int today_r_idx = p_ptr->today_mon;
 
-        fprintf(fff, "Today target : %s\n", (p_ptr->today_mon ? r_name + r_info[p_ptr->today_mon].name : "unknown"));
+        fprintf(fff, "Today's wanted: %s\n", (today_r_idx ? r_name + r_info[today_r_idx].name : "unknown"));
         fprintf(fff, "\n");
-        fprintf(fff, "List of wanted monsters\n");
+        fprintf(fff, "Wanted monsters\n");
         fprintf(fff, "----------------------------------------------\n");
 
         for (i = 0; i < MAX_KUBI; i++)
         {
             int id = kubi_r_idx[i];
-            if (0 < id && id < 10000)
+            bool done = FALSE;
+
+            if (!id) continue;
+            if (id >= 10000)
             {
-                fprintf(fff,"%s\n", r_name + r_info[id].name);
-                listed = TRUE;
+                id -= 10000;
+                done = TRUE;
             }
+
+            ct++;
+            if (done) done_ct++;
+            fprintf(fff, "%2d. %s%s\n", ct, r_name + r_info[id].name, done ? " (turned in)" : "");
         }
 
-        if (!listed)
-        {
-            fprintf(fff,"\n%s\n", "You have turned in all wanted monsters.");
-        }
+        if (ct)
+            fprintf(fff, "\nTurned in: %d/%d\n", done_ct, ct);
+        else
+            fprintf(fff, "\nThere are no wanted monsters.\n");
     }
 
     /* Close the file */

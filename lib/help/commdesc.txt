@@ -187,11 +187,11 @@ This command attempts to use a staff. Staves normally either have an area effect
   <indent><color:U>Zap Rod (<color:keypress>z</color>) or Activate Rod (<color:keypress>a</color>)</color>
 This command attempts to use a rod; rods can have either staff-like or wand-like effects. This command may require a direction (depending on the type of rod, and whether you are aware of its type) and can use a target.</indent>
 
-  <indent><color:U>Inscribe an object (<color:keypress>Z</color>) or (<color:keypress>{</color>)</color>
-This command inscribes a string on an object. The inscription is displayed inside curly braces after the object description. The inscription is limited to the particular object (or pile) and is not automatically transferred to all similar objects. Certain inscriptions give the game instructions for how to handle or label the item; see <link:objects.txt#Inscriptions> for more information.</indent>
+  <indent><color:U>Edit an item inscription (<color:keypress>Z</color>) or (<color:keypress>{</color>)</color>
+This command adds, changes, or clears an inscription on an object. The inscription is displayed inside curly braces after the object description. The inscription is limited to the particular object (or pile) and is not automatically transferred to all similar objects. Certain inscriptions give the game instructions for how to handle or label the item; see <link:objects.txt#Inscriptions> for more information. Leaving the inscription blank clears it.</indent>
 
-  <indent><color:U>Uninscribe an object (<color:keypress>}</color>)</color>
-This command removes the inscription on an object. This command will have no effect on "fake" inscriptions added by the game itself.</indent>
+  <indent><color:U>Dungeon notes (<color:keypress>}</color>)</color>
+This command opens a notes menu for save-wide, dungeon, floor, or building reminders. Notes are saved per character, can be reviewed from the menu, and matching notes are shown automatically when you return to their location.</indent>
 
 <topic:ThrowFire><style:heading>Throwing and Missile Weapons</style>
 
@@ -471,8 +471,8 @@ If you have pets, use this command to give orders or toggle pet options. See <li
   Aim/Zap Wand                <color:keypress>a                z</color>
   Use/Zap Staff               <color:keypress>u                Z</color>
   Zap/Activate Rod            <color:keypress>z                a</color>
-  Inscribe Object             <color:keypress>Z                {</color>
-  Uninscribe Object           <color:keypress>}                 </color>
+  Edit Inscription            <color:keypress>Z                {</color>
+  Dungeon Notes               <color:keypress>}                 </color>
 
 <color:U>Missile Commands           Original        Roguelike</color>
   Fire Item                   <color:keypress>f                t</color>

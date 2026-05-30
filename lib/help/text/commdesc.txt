@@ -420,17 +420,20 @@ Object Use Commands
   on the type of rod, and whether you are aware of its type) and can 
   use a target.
 
-  Inscribe an object (Z) or ({)
-  This command inscribes a string on an object. The inscription is 
-  displayed inside curly braces after the object description. The 
+  Edit an item inscription (Z) or ({)
+  This command adds, changes, or clears an inscription on an object. 
+  The inscription is displayed inside curly braces after the object description. The 
   inscription is limited to the particular object (or pile) and is not 
   automatically transferred to all similar objects. Certain 
   inscriptions give the game instructions for how to handle or label 
-  the item; see [a] for more information.
+  the item; see [a] for more information. Leaving the inscription blank 
+  clears it.
 
-  Uninscribe an object (})
-  This command removes the inscription on an object. This command will 
-  have no effect on "fake" inscriptions added by the game itself.
+  Dungeon notes (})
+  This command opens a notes menu for save-wide, dungeon, floor, or 
+  building reminders. Notes are saved per character, can be reviewed 
+  from the menu, and matching notes are shown automatically when you 
+  return to their location.
 
 Throwing and Missile Weapons
 
@@ -863,8 +866,8 @@ Message Commands
     Aim/Zap Wand                a                z
     Use/Zap Staff               u                Z
     Zap/Activate Rod            z                a
-    Inscribe Object             Z                {
-    Uninscribe Object           }                 
+    Edit Inscription            Z                {
+    Dungeon Notes               }                 
   
   Missile Commands           Original        Roguelike
     Fire Item                   f                t

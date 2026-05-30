@@ -166,6 +166,7 @@ static void _ui(_ui_context_ptr context)
 
     msg_line_clear();
     msg_line_init(ui_shop_msg_rect());
+    notes_print_building_context();
 
     Term_clear();
     context->doc = doc_alloc(MIN(80, ui_shop_rect().cx));

@@ -44,7 +44,7 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
    <color:y>w  Wear/wield equipment</color>                 W  Switch ring fingers
    <color:D>x  (unused)</color>                             <color:D>X  (unused)</color>
    <color:D>y  (unused)</color>                             <color:y>Y  Display monster list</color>
-   <color:y>z  Zap a rod</color>                            Z  Inscribe an object
+   <color:y>z  Zap a rod</color>                            Z  Edit item inscription
    !  Enter a user pref command           ^A  (special - wizard command)
    @  Interact with macros                <color:D>^B  (unused)</color>
    <color:D>#  (unused)</color>                            ^C  (special - break)
@@ -55,8 +55,8 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
    <color:y>*  Target monster or location</color>          <color:D>^H  (unused)</color>
    <color:D>(  (unused)</color>                            ^I  Toggle choice window
    )  Create screen dump                  ^J  (special - linefeed)
-   {  Inscribe an object                  <color:D>^K  (unused)</color>
-   }  Uninscribe an object                <color:y>^L  Look under monsters</color>
+   {  Edit item inscription               <color:D>^K  (unused)</color>
+   }  Dungeon notes                       <color:y>^L  Look under monsters</color>
    [  Display monster list                ^M  (special - return)
    ]  Display object list                 <color:D>^N  (unused)</color>
    -  Walk (flip pickup)                  ^O  Display object list
@@ -119,8 +119,8 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
    <color:y>*  Target monster or location</color>          ^H  (tunnel - west)
    (  Resume travelling                   ^I  Toggle choice window
    )  Create screen dump                  ^J  (tunnel - south)
-   {  Inscribe an object                  ^K  (tunnel - north)
-   }  Uninscribe an object                ^L  (tunnel - east)
+   {  Edit item inscription               ^K  (tunnel - north)
+   }  Dungeon notes                       ^L  (tunnel - east)
    <color:y>[  Display monster list</color>                ^M  (tunnel - south)
    <color:y>]  Display object list</color>                 ^N  (tunnel - south east)
    -  Walk (flip pickup)                  <color:D>^O  (unused)</color>

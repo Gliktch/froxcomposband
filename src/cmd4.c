@@ -495,6 +495,762 @@ void do_cmd_messages(int old_now_turn)
     doc_free(doc);
 }
 
+#define MAX_DUNGEON_NOTES 256
+#define MAX_DUNGEON_NOTE_EDIT 120
+
+enum
+{
+    DUNGEON_NOTE_GAME = 1,
+    DUNGEON_NOTE_DUNGEON,
+    DUNGEON_NOTE_BUILDING,
+    DUNGEON_NOTE_FLOOR
+};
+
+enum
+{
+    DUNGEON_NOTE_ACTIVE = 1,
+    DUNGEON_NOTE_EXPIRED
+};
+
+typedef struct
+{
+    int   scope;
+    int   dungeon_id;
+    int   depth;
+    int   floor_id;
+    int   town_id;
+    int   building_subtype;
+    int   floor_status;
+    cptr  text;
+} dungeon_note_t;
+
+static dungeon_note_t _dungeon_notes[MAX_DUNGEON_NOTES];
+static int            _dungeon_note_count = 0;
+static bool           _dungeon_notes_loaded = FALSE;
+
+static bool _dungeon_notes_is_blank(cptr text)
+{
+    while (*text)
+    {
+        if (!isspace((unsigned char)*text)) return FALSE;
+        text++;
+    }
+    return TRUE;
+}
+
+static bool _dungeon_notes_get_path(char *path, int max)
+{
+    char name[1024];
+    char base[32];
+
+    get_player_base_name(base, sizeof(base));
+    if (!base[0]) return FALSE;
+    snprintf(name, sizeof(name), "%s-notes.txt", base);
+    path_build(path, max, ANGBAND_DIR_USER, name);
+    return TRUE;
+}
+
+static void _dungeon_note_wipe(dungeon_note_t *note)
+{
+    if (note->text)
+        z_string_free(note->text);
+    memset(note, 0, sizeof(*note));
+}
+
+static void _dungeon_notes_reset(void)
+{
+    int i;
+
+    for (i = 0; i < _dungeon_note_count; i++)
+        _dungeon_note_wipe(&_dungeon_notes[i]);
+    _dungeon_note_count = 0;
+}
+
+static bool _dungeon_note_matches(dungeon_note_t *note, dungeon_note_t *key)
+{
+    if (note->scope != key->scope) return FALSE;
+
+    switch (note->scope)
+    {
+    case DUNGEON_NOTE_GAME:
+        return TRUE;
+    case DUNGEON_NOTE_DUNGEON:
+        return note->dungeon_id == key->dungeon_id;
+    case DUNGEON_NOTE_BUILDING:
+        return note->town_id == key->town_id
+            && note->building_subtype == key->building_subtype;
+    case DUNGEON_NOTE_FLOOR:
+        return note->dungeon_id == key->dungeon_id
+            && note->depth == key->depth
+            && note->floor_id == key->floor_id;
+    default:
+        return FALSE;
+    }
+}
+
+static int _dungeon_note_find(dungeon_note_t *key)
+{
+    int i;
+
+    for (i = 0; i < _dungeon_note_count; i++)
+    {
+        if (_dungeon_note_matches(&_dungeon_notes[i], key))
+            return i;
+    }
+    return -1;
+}
+
+static void _dungeon_note_delete_idx(int idx)
+{
+    int i;
+
+    _dungeon_note_wipe(&_dungeon_notes[idx]);
+    for (i = idx; i < _dungeon_note_count - 1; i++)
+        _dungeon_notes[i] = _dungeon_notes[i + 1];
+    memset(&_dungeon_notes[_dungeon_note_count - 1], 0, sizeof(dungeon_note_t));
+    _dungeon_note_count--;
+}
+
+static void _dungeon_note_set(dungeon_note_t *key, cptr text)
+{
+    int idx;
+
+    if (!text || _dungeon_notes_is_blank(text))
+    {
+        idx = _dungeon_note_find(key);
+        if (idx >= 0)
+            _dungeon_note_delete_idx(idx);
+        return;
+    }
+
+    idx = _dungeon_note_find(key);
+    if (idx < 0)
+    {
+        if (_dungeon_note_count >= MAX_DUNGEON_NOTES) return;
+        idx = _dungeon_note_count++;
+        memset(&_dungeon_notes[idx], 0, sizeof(dungeon_note_t));
+    }
+    else if (_dungeon_notes[idx].text)
+    {
+        z_string_free(_dungeon_notes[idx].text);
+        _dungeon_notes[idx].text = NULL;
+    }
+
+    _dungeon_notes[idx].scope = key->scope;
+    _dungeon_notes[idx].dungeon_id = key->dungeon_id;
+    _dungeon_notes[idx].depth = key->depth;
+    _dungeon_notes[idx].floor_id = key->floor_id;
+    _dungeon_notes[idx].town_id = key->town_id;
+    _dungeon_notes[idx].building_subtype = key->building_subtype;
+    _dungeon_notes[idx].floor_status = key->floor_status ? key->floor_status : DUNGEON_NOTE_ACTIVE;
+    _dungeon_notes[idx].text = z_string_make(text);
+}
+
+static void _dungeon_notes_key_game(dungeon_note_t *key)
+{
+    memset(key, 0, sizeof(*key));
+    key->scope = DUNGEON_NOTE_GAME;
+    key->floor_status = DUNGEON_NOTE_ACTIVE;
+}
+
+static void _dungeon_notes_key_dungeon(dungeon_note_t *key, int dungeon_id)
+{
+    memset(key, 0, sizeof(*key));
+    key->scope = DUNGEON_NOTE_DUNGEON;
+    key->dungeon_id = dungeon_id;
+    key->floor_status = DUNGEON_NOTE_ACTIVE;
+}
+
+static void _dungeon_notes_key_building(dungeon_note_t *key, int town_id, int building_subtype)
+{
+    memset(key, 0, sizeof(*key));
+    key->scope = DUNGEON_NOTE_BUILDING;
+    key->town_id = town_id;
+    key->building_subtype = building_subtype;
+    key->floor_status = DUNGEON_NOTE_ACTIVE;
+}
+
+static void _dungeon_notes_key_floor(dungeon_note_t *key, int dungeon_id, int depth, int floor_id)
+{
+    memset(key, 0, sizeof(*key));
+    key->scope = DUNGEON_NOTE_FLOOR;
+    key->dungeon_id = dungeon_id;
+    key->depth = depth;
+    key->floor_id = floor_id;
+    key->floor_status = DUNGEON_NOTE_ACTIVE;
+}
+
+static bool _dungeon_notes_on_building_square(void)
+{
+    return cave_have_flag_bold(py, px, FF_BLDG);
+}
+
+static void _dungeon_notes_get_current_building(dungeon_note_t *key)
+{
+    _dungeon_notes_key_building(key, p_ptr->town_num, f_info[cave[py][px].feat].subtype);
+}
+
+static cptr _dungeon_notes_dungeon_name(int dungeon_id)
+{
+    if (dungeon_id > 0 && dungeon_id < max_d_idx)
+        return d_name + d_info[dungeon_id].name;
+    return "Unknown dungeon";
+}
+
+static void _dungeon_notes_building_label(dungeon_note_t *note, char *buf, int max)
+{
+    cptr town = note->town_id ? town_name(note->town_id) : "Unknown town";
+    cptr bldg = (0 <= note->building_subtype && note->building_subtype < MAX_BLDG)
+        ? building[note->building_subtype].name
+        : "Unknown building";
+
+    snprintf(buf, max, "%s, %s", town, bldg);
+}
+
+static void _dungeon_notes_normalize_edit_text(char *buf, int max, cptr text)
+{
+    int i = 0;
+
+    while (*text && i < max - 1)
+    {
+        char ch = *text++;
+        if (ch == '\r' || ch == '\n')
+            ch = ' ';
+        buf[i++] = ch;
+    }
+    buf[i] = '\0';
+}
+
+static void _dungeon_notes_append_text_line(string_ptr body, cptr line)
+{
+    if (string_buffer(body)[0])
+        string_append_c(body, '\n');
+    string_append_s(body, line);
+}
+
+static bool _dungeon_notes_parse_header(cptr line, dungeon_note_t *note)
+{
+    char header[256];
+    char status[32];
+    cptr end = strchr(line, ']');
+    size_t len;
+
+    if (!line || line[0] != '[' || !end) return FALSE;
+
+    len = end - line + 1;
+    if (len >= sizeof(header)) return FALSE;
+
+    strncpy(header, line, len);
+    header[len] = '\0';
+
+    memset(note, 0, sizeof(*note));
+    note->floor_status = DUNGEON_NOTE_ACTIVE;
+
+    if (streq(header, "[game]"))
+    {
+        note->scope = DUNGEON_NOTE_GAME;
+        return TRUE;
+    }
+    if (1 == sscanf(header, "[dungeon:%d]", &note->dungeon_id))
+    {
+        note->scope = DUNGEON_NOTE_DUNGEON;
+        return TRUE;
+    }
+    if (2 == sscanf(header, "[building:%d:%d]", &note->town_id, &note->building_subtype))
+    {
+        note->scope = DUNGEON_NOTE_BUILDING;
+        return TRUE;
+    }
+    if (4 == sscanf(header, "[floor:%d:%d:%d:%31[^]]]", &note->dungeon_id, &note->depth, &note->floor_id, status))
+    {
+        note->scope = DUNGEON_NOTE_FLOOR;
+        note->floor_status = streq(status, "expired") ? DUNGEON_NOTE_EXPIRED : DUNGEON_NOTE_ACTIVE;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static void _dungeon_notes_save(void)
+{
+    char path[1024];
+    FILE *fp;
+    int i;
+
+    if (!_dungeon_notes_get_path(path, sizeof(path))) return;
+
+    if (!_dungeon_note_count)
+    {
+        (void)fd_kill(path);
+        return;
+    }
+
+    FILE_TYPE(FILE_TYPE_TEXT);
+    fp = my_fopen(path, "w");
+    if (!fp) return;
+
+    fprintf(fp, "# Frog notes for this character/save\n");
+
+    for (i = 0; i < _dungeon_note_count; i++)
+    {
+        dungeon_note_t *note = &_dungeon_notes[i];
+
+        fprintf(fp, "\n");
+        switch (note->scope)
+        {
+        case DUNGEON_NOTE_GAME:
+            fprintf(fp, "[game]\n");
+            break;
+        case DUNGEON_NOTE_DUNGEON:
+            fprintf(fp, "[dungeon:%d] # %s\n", note->dungeon_id, _dungeon_notes_dungeon_name(note->dungeon_id));
+            break;
+        case DUNGEON_NOTE_BUILDING:
+        {
+            char label[256];
+            _dungeon_notes_building_label(note, label, sizeof(label));
+            fprintf(fp, "[building:%d:%d] # %s\n", note->town_id, note->building_subtype, label);
+            break;
+        }
+        case DUNGEON_NOTE_FLOOR:
+            fprintf(fp, "[floor:%d:%d:%d:%s] # %s DL %d\n",
+                note->dungeon_id,
+                note->depth,
+                note->floor_id,
+                note->floor_status == DUNGEON_NOTE_EXPIRED ? "expired" : "active",
+                _dungeon_notes_dungeon_name(note->dungeon_id),
+                note->depth);
+            break;
+        }
+        fprintf(fp, "%s\n", note->text ? note->text : "");
+    }
+
+    my_fclose(fp);
+}
+
+void notes_load(void)
+{
+    char       path[1024];
+    FILE      *fp;
+    char       buf[1024];
+    bool       reading_note = FALSE;
+    string_ptr body = NULL;
+    dungeon_note_t current = {0};
+
+    _dungeon_notes_reset();
+    _dungeon_notes_loaded = TRUE;
+
+    if (!_dungeon_notes_get_path(path, sizeof(path))) return;
+
+    fp = my_fopen(path, "r");
+    if (!fp) return;
+
+    body = string_alloc();
+    while (!my_fgets(fp, buf, sizeof(buf)))
+    {
+        dungeon_note_t parsed;
+
+        if (buf[0] == '#' && !reading_note) continue;
+
+        if (_dungeon_notes_parse_header(buf, &parsed))
+        {
+            if (reading_note && body && string_buffer(body)[0])
+                _dungeon_note_set(&current, string_buffer(body));
+
+            current = parsed;
+            reading_note = TRUE;
+            string_clear(body);
+            continue;
+        }
+
+        if (reading_note)
+            _dungeon_notes_append_text_line(body, buf);
+    }
+
+    if (reading_note && body && string_buffer(body)[0])
+        _dungeon_note_set(&current, string_buffer(body));
+
+    if (body) string_free(body);
+    my_fclose(fp);
+}
+
+static void _dungeon_notes_load_if_needed(void)
+{
+    if (!_dungeon_notes_loaded)
+        notes_load();
+}
+
+static int _dungeon_notes_find_game(void)
+{
+    dungeon_note_t key;
+    _dungeon_notes_key_game(&key);
+    return _dungeon_note_find(&key);
+}
+
+static int _dungeon_notes_find_dungeon(int dungeon_id)
+{
+    dungeon_note_t key;
+    _dungeon_notes_key_dungeon(&key, dungeon_id);
+    return _dungeon_note_find(&key);
+}
+
+static int _dungeon_notes_find_floor(int dungeon_id, int depth, int floor_id)
+{
+    dungeon_note_t key;
+    _dungeon_notes_key_floor(&key, dungeon_id, depth, floor_id);
+    return _dungeon_note_find(&key);
+}
+
+static void _dungeon_notes_print_text(cptr text)
+{
+    char buf[1024];
+    cptr p = text;
+
+    while (*p)
+    {
+        size_t i = 0;
+
+        while (*p && *p != '\n' && i < sizeof(buf) - 1u)
+            buf[i++] = *p++;
+        buf[i] = '\0';
+        if (*p == '\n') p++;
+        if (buf[0])
+            cmsg_print(TERM_L_BLUE, buf);
+    }
+    msg_print(NULL);
+}
+
+static void _dungeon_notes_emit_idx(int idx)
+{
+    if (idx < 0) return;
+    if (!_dungeon_notes[idx].text || !_dungeon_notes[idx].text[0]) return;
+    if (_dungeon_notes[idx].scope == DUNGEON_NOTE_FLOOR
+        && _dungeon_notes[idx].floor_status == DUNGEON_NOTE_EXPIRED)
+        return;
+
+    _dungeon_notes_print_text(_dungeon_notes[idx].text);
+}
+
+void notes_print_current_context(void)
+{
+    _dungeon_notes_load_if_needed();
+
+    _dungeon_notes_emit_idx(_dungeon_notes_find_game());
+
+    if (_dungeon_notes_on_building_square())
+    {
+        dungeon_note_t key;
+        _dungeon_notes_get_current_building(&key);
+        _dungeon_notes_emit_idx(_dungeon_note_find(&key));
+    }
+    else if (dun_level && dungeon_type)
+    {
+        _dungeon_notes_emit_idx(_dungeon_notes_find_dungeon(dungeon_type));
+        if (p_ptr->floor_id)
+            _dungeon_notes_emit_idx(_dungeon_notes_find_floor(dungeon_type, dun_level, p_ptr->floor_id));
+    }
+}
+
+void notes_print_building_context(void)
+{
+    dungeon_note_t key;
+
+    if (!_dungeon_notes_on_building_square()) return;
+
+    _dungeon_notes_load_if_needed();
+    _dungeon_notes_emit_idx(_dungeon_notes_find_game());
+    _dungeon_notes_get_current_building(&key);
+    _dungeon_notes_emit_idx(_dungeon_note_find(&key));
+}
+
+void notes_expire_floor(int dungeon_id, int depth, int floor_id)
+{
+    int idx;
+
+    if (!dungeon_id || !floor_id) return;
+
+    _dungeon_notes_load_if_needed();
+
+    idx = _dungeon_notes_find_floor(dungeon_id, depth, floor_id);
+    if (idx < 0) return;
+    if (_dungeon_notes[idx].floor_status == DUNGEON_NOTE_EXPIRED) return;
+
+    _dungeon_notes[idx].floor_status = DUNGEON_NOTE_EXPIRED;
+    _dungeon_notes_save();
+}
+
+void notes_expire_dungeon_floors(int dungeon_id)
+{
+    int i;
+    bool changed = FALSE;
+
+    if (!dungeon_id) return;
+
+    _dungeon_notes_load_if_needed();
+
+    for (i = 0; i < _dungeon_note_count; i++)
+    {
+        dungeon_note_t *note = &_dungeon_notes[i];
+
+        if (note->scope != DUNGEON_NOTE_FLOOR) continue;
+        if (note->dungeon_id != dungeon_id) continue;
+        if (note->floor_status == DUNGEON_NOTE_EXPIRED) continue;
+
+        note->floor_status = DUNGEON_NOTE_EXPIRED;
+        changed = TRUE;
+    }
+
+    if (changed)
+        _dungeon_notes_save();
+}
+
+static void _dungeon_notes_doc_print_text(doc_ptr doc, cptr text)
+{
+    while (*text)
+    {
+        char line[1024];
+        size_t i = 0;
+
+        while (*text && *text != '\n' && i < sizeof(line) - 1u)
+            line[i++] = *text++;
+        line[i] = '\0';
+        if (*text == '\n') text++;
+        doc_printf(doc, "%s\n", line);
+    }
+}
+
+static bool _dungeon_notes_have_dungeon_note(int dungeon_id)
+{
+    return _dungeon_notes_find_dungeon(dungeon_id) >= 0;
+}
+
+static void _dungeon_notes_display_all(void)
+{
+    doc_ptr doc = doc_alloc(72);
+    int i;
+    bool any = FALSE;
+
+    _dungeon_notes_load_if_needed();
+
+    for (i = 0; i < _dungeon_note_count; i++)
+    {
+        dungeon_note_t *note = &_dungeon_notes[i];
+
+        if (note->scope != DUNGEON_NOTE_GAME || !note->text) continue;
+        any = TRUE;
+        doc_printf(doc, "This save: %s\n\n", note->text);
+    }
+
+    for (i = 0; i < _dungeon_note_count; i++)
+    {
+        dungeon_note_t *note = &_dungeon_notes[i];
+        int j;
+
+        if (note->scope != DUNGEON_NOTE_DUNGEON || !note->text) continue;
+        any = TRUE;
+        doc_printf(doc, "%s: %s\n", _dungeon_notes_dungeon_name(note->dungeon_id), note->text);
+        for (j = 0; j < _dungeon_note_count; j++)
+        {
+            dungeon_note_t *floor_note = &_dungeon_notes[j];
+
+            if (floor_note->scope != DUNGEON_NOTE_FLOOR || !floor_note->text) continue;
+            if (floor_note->dungeon_id != note->dungeon_id) continue;
+
+            doc_printf(doc, " -- DL %d (Floor #%d)%s: ",
+                floor_note->depth,
+                floor_note->floor_id,
+                floor_note->floor_status == DUNGEON_NOTE_EXPIRED ? " [Expired]" : "");
+            _dungeon_notes_doc_print_text(doc, floor_note->text);
+        }
+        doc_printf(doc, "\n");
+    }
+
+    for (i = 0; i < _dungeon_note_count; i++)
+    {
+        dungeon_note_t *note = &_dungeon_notes[i];
+        char            label[256];
+
+        if (note->scope != DUNGEON_NOTE_BUILDING || !note->text) continue;
+        any = TRUE;
+        _dungeon_notes_building_label(note, label, sizeof(label));
+        doc_printf(doc, "%s: %s\n\n", label, note->text);
+    }
+
+    for (i = 0; i < _dungeon_note_count; i++)
+    {
+        dungeon_note_t *note = &_dungeon_notes[i];
+
+        if (note->scope != DUNGEON_NOTE_FLOOR || !note->text) continue;
+        if (_dungeon_notes_have_dungeon_note(note->dungeon_id)) continue;
+
+        any = TRUE;
+        doc_printf(doc, "%s -- DL %d (Floor #%d)%s: ",
+            _dungeon_notes_dungeon_name(note->dungeon_id),
+            note->depth,
+            note->floor_id,
+            note->floor_status == DUNGEON_NOTE_EXPIRED ? " [Expired]" : "");
+        _dungeon_notes_doc_print_text(doc, note->text);
+        doc_printf(doc, "\n");
+    }
+
+    if (!any)
+        doc_insert(doc, "No saved notes.\n");
+
+    doc_display(doc, "Dungeon Notes", 0);
+    doc_free(doc);
+}
+
+static void _dungeon_notes_edit(dungeon_note_t *key, cptr title)
+{
+    char buf[MAX_DUNGEON_NOTE_EDIT + 1];
+    int  idx;
+
+    _dungeon_notes_load_if_needed();
+
+    idx = _dungeon_note_find(key);
+    if (idx >= 0 && _dungeon_notes[idx].text)
+        _dungeon_notes_normalize_edit_text(buf, sizeof(buf), _dungeon_notes[idx].text);
+    else
+        strcpy(buf, "");
+
+    clear_from(0);
+    prt("Dungeon Notes", 2, 0);
+    prt(title, 5, 0);
+    prt("Enter note text. Leave blank to clear. ESC cancels.", 7, 0);
+    prt("Note: ", 9, 0);
+
+    if (!askfor_edit(buf, MAX_DUNGEON_NOTE_EDIT)) return;
+
+    _dungeon_note_set(key, buf);
+    _dungeon_notes_save();
+}
+
+static bool _dungeon_notes_clear_all(void)
+{
+    if (!paranoid_msg_prompt("Delete all saved notes for this character? <color:y>[Y/n]</color>", 0))
+        return FALSE;
+
+    _dungeon_notes_load_if_needed();
+    _dungeon_notes_reset();
+    _dungeon_notes_save();
+    msg_print("All saved notes for this character were cleared.");
+    return TRUE;
+}
+
+bool notes_on_new_birth(void)
+{
+    char c;
+    int  i;
+    bool have_floor_notes = FALSE;
+
+    notes_load();
+
+    for (i = 0; i < _dungeon_note_count; i++)
+    {
+        if (_dungeon_notes[i].scope == DUNGEON_NOTE_FLOOR)
+        {
+            have_floor_notes = TRUE;
+            break;
+        }
+    }
+
+    if (!have_floor_notes) return TRUE;
+
+    c = msg_prompt("Floor notes from a previous run exist for this character. They won't match floors in this new game, so they'll be cleared. Continue? <color:y>[Y/n]</color>", "nY", PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_CASE_SENSITIVE);
+    if (c != 'Y') return FALSE;
+
+    for (i = _dungeon_note_count - 1; i >= 0; i--)
+    {
+        if (_dungeon_notes[i].scope == DUNGEON_NOTE_FLOOR)
+            _dungeon_note_delete_idx(i);
+    }
+
+    _dungeon_notes_save();
+    return TRUE;
+}
+
+void do_cmd_notes(void)
+{
+    bool done = FALSE;
+
+    _dungeon_notes_load_if_needed();
+    screen_save();
+
+    while (!done)
+    {
+        bool can_building = _dungeon_notes_on_building_square();
+        bool can_dungeon = !can_building && dun_level && dungeon_type;
+        bool can_floor = can_dungeon && p_ptr->floor_id;
+        char default_cmd = can_building ? 'b' : can_floor ? 'f' : 's';
+        char cmd;
+
+        clear_from(0);
+        prt("Dungeon Notes", 2, 0);
+        prt("Press Enter for the default choice. ESC exits.", 4, 0);
+        prt(format("(s) This save%s", default_cmd == 's' ? " [default]" : ""), 6, 4);
+        if (can_dungeon)
+            prt(format("(d) This dungeon%s", default_cmd == 'd' ? " [default]" : ""), 7, 4);
+        if (can_floor)
+            prt(format("(f) This floor%s", default_cmd == 'f' ? " [default]" : ""), 8, 4);
+        if (can_building)
+            prt(format("(b) This building%s", default_cmd == 'b' ? " [default]" : ""), 9, 4);
+        prt("(}) View all saved notes", 11, 4);
+        prt("(c) Clear all saved notes for this character", 12, 4);
+        prt("Command: ", 14, 0);
+
+        cmd = inkey();
+        if (cmd == ESCAPE) break;
+        if (cmd == '\r' || cmd == '\n') cmd = default_cmd;
+        cmd = tolower((unsigned char)cmd);
+
+        switch (cmd)
+        {
+        case 's':
+        {
+            dungeon_note_t key;
+            _dungeon_notes_key_game(&key);
+            _dungeon_notes_edit(&key, "Edit the save-wide note.");
+            break;
+        }
+        case 'd':
+            if (can_dungeon)
+            {
+                dungeon_note_t key;
+                _dungeon_notes_key_dungeon(&key, dungeon_type);
+                _dungeon_notes_edit(&key, format("Edit the note for %s.", _dungeon_notes_dungeon_name(dungeon_type)));
+            }
+            break;
+        case 'f':
+            if (can_floor)
+            {
+                dungeon_note_t key;
+                _dungeon_notes_key_floor(&key, dungeon_type, dun_level, p_ptr->floor_id);
+                _dungeon_notes_edit(&key, format("Edit the note for %s DL %d, floor #%d.", _dungeon_notes_dungeon_name(dungeon_type), dun_level, p_ptr->floor_id));
+            }
+            break;
+        case 'b':
+            if (can_building)
+            {
+                char label[256];
+                dungeon_note_t key;
+                _dungeon_notes_get_current_building(&key);
+                _dungeon_notes_building_label(&key, label, sizeof(label));
+                _dungeon_notes_edit(&key, format("Edit the note for %s.", label));
+            }
+            break;
+        case '}':
+            _dungeon_notes_display_all();
+            break;
+        case 'c':
+            _dungeon_notes_clear_all();
+            break;
+        default:
+            bell();
+            break;
+        }
+    }
+
+    screen_load();
+}
+
 #ifdef ALLOW_WIZARD
 
 /*

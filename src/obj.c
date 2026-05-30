@@ -1064,7 +1064,17 @@ static int _inscriber(obj_prompt_context_ptr context, int cmd)
         Term_load();
         doc_sync_menu(context->doc);
         if (askfor_edit(insc, 80))
-            obj->inscription = quark_add(insc);
+        {
+            char *s = insc;
+
+            while (*s && isspace((unsigned char)*s))
+                s++;
+
+            if (!*s)
+                obj->inscription = 0;
+            else
+                obj->inscription = quark_add(insc);
+        }
         return OP_CMD_HANDLED;
     }
     return OP_CMD_SKIPPED;
@@ -1074,7 +1084,7 @@ void obj_inscribe_ui(void)
 {
     obj_prompt_t prompt = {0};
 
-    prompt.prompt = "Inscribe which item <color:w>(<color:keypress>Esc</color> to exit)</color>?";
+    prompt.prompt = "Edit inscription for which item <color:w>(<color:keypress>Esc</color> to exit)</color>?";
     prompt.error = "You have nothing to inscribe.";
     prompt.filter = obj_exists;
     prompt.where[0] = INV_PACK;

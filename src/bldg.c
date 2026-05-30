@@ -4420,6 +4420,7 @@ void do_cmd_bldg(void)
     show_building(bldg);
 
     msg_line_init(ui_shop_msg_rect());
+    notes_print_building_context();
     store_hack = TRUE;
 
     while (!leave_bldg)
@@ -4436,6 +4437,11 @@ void do_cmd_bldg(void)
             p_ptr->inside_arena = FALSE;
             p_ptr->inside_battle = FALSE;
             break;
+        }
+        if (command == '}')
+        {
+            do_cmd_notes();
+            continue;
         }
 
         for (i = 0; i < 8; i++)

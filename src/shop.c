@@ -1486,6 +1486,7 @@ static void _loop(_ui_context_ptr context)
 
     msg_line_clear();
     msg_line_init(ui_shop_msg_rect());
+    notes_print_building_context();
 
     Term_clear();
     context->doc = doc_alloc(MIN(80, ui_shop_rect().cx));
@@ -2370,7 +2371,7 @@ bool shop_common_cmd_handler(int cmd)
         obj_inscribe_ui();
         return TRUE;
     case '}':
-        obj_uninscribe_ui();
+        do_cmd_notes();
         return TRUE;
     case 'C':
         py_display();

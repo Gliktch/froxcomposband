@@ -40,7 +40,7 @@
 	</dict>
 	<dict>
 		<key>Title</key>
-		<string>Inscribe</string>
+		<string>Edit Inscription</string>
 		<key>KeyEquivalent</key>
 		<string>i</string>
 		<key>ShiftModifier</key>
@@ -52,7 +52,7 @@
 	</dict>
 	<dict>
 		<key>Title</key>
-		<string>Uninscribe</string>
+			<string>Dungeon Notes</string>
 		<key>KeyEquivalent</key>
 		<string>i</string>
 		<key>ShiftModifier</key>

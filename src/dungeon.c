@@ -4034,10 +4034,10 @@ static void _dispatch_command(int old_now_turn)
             break;
         }
 
-        /* Uninscribe an object */
+        /* Dungeon notes */
         case '}':
         {
-            obj_uninscribe_ui();
+            do_cmd_notes();
             break;
         }
 
@@ -6192,7 +6192,11 @@ void play_game(bool new_game)
         Term_xtra(TERM_XTRA_REACT, 0);
 
         /* Roll up a new character */
-        player_birth();
+        while (TRUE)
+        {
+            player_birth();
+            if (notes_on_new_birth()) break;
+        }
 
         /* Hack -- seed for dungeons */
         seed_dungeon = (no_wilderness) ? 0 : randint0(0x10000000);
@@ -6360,6 +6364,8 @@ void play_game(bool new_game)
 
     /* Load the "pref" files */
     load_all_pref_files(new_game);
+    notes_load();
+    notes_print_current_context();
 
     /* Turn on easy mimics */
     toggle_easy_mimics(easy_mimics);

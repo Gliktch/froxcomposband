@@ -64,8 +64,8 @@ Quick Reference
   i         Display inventory
   I         Inspect objects in your pack
   Tab       Toggle inventory/equipment subwindows
-  {         Inscribe objects in your pack
-  }         Uninscribe objects in your pack
+  {         Edit item inscriptions in your pack
+  }         Open the dungeon notes menu
   C         Display character sheet
   
     Note: These Extra Commands are simply normal game 
@@ -84,5 +84,4 @@ Quick Reference
   ^W        Toggle weights (see [c])
   ^G        Toggle graphics (see [d])
   
-
 

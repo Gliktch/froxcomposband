@@ -2765,6 +2765,45 @@ void process_player_name(bool sf)
     if (!strlen(pref_save_base)) strcpy(pref_save_base, player_base);
 }
 
+void get_player_base_name(char *buf, int max)
+{
+    char name[64];
+    int  i, k = 0;
+
+    if (!buf || max <= 0) return;
+
+    strcpy(name, player_name);
+    if (name_is_numbered(name))
+    {
+        int pos = 0;
+
+        if (find_roman_numeral(name, &pos))
+            name[pos] = '\0';
+        else if (find_arabic_numeral(name, &pos) && pos > 0)
+            name[pos - 1] = '\0';
+    }
+
+    for (i = 0; name[i] && k < max - 1; i++)
+    {
+        char c = name[i];
+
+        if (!strncmp(PATH_SEP, name + i, strlen(PATH_SEP)))
+        {
+            buf[k++] = '_';
+            i += strlen(PATH_SEP) - 1;
+        }
+#ifdef MSDOS
+        else if (my_strchr(" \"*+,./:;<=>?[\\]|", c)) buf[k++] = '_';
+#elif defined(WINDOWS)
+        else if (my_strchr("\"*,/:;<>?\\|", c)) buf[k++] = '_';
+#endif
+        else if (isprint(c)) buf[k++] = c;
+    }
+    buf[k] = '\0';
+
+    if (!buf[0]) strcpy(buf, "PLAYER");
+}
+
 
 bool py_get_name(void)
 {

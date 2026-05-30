@@ -193,6 +193,9 @@ static void kill_saved_floor(saved_floor_type *sf_ptr)
     /* Already empty */
     if (!sf_ptr->floor_id) return;
 
+    if (dungeon_type)
+        notes_expire_floor(dungeon_type, sf_ptr->dun_level, sf_ptr->floor_id);
+
     if (sf_ptr->floor_id == p_ptr->floor_id)
     {
         /* Kill current floor */
@@ -1393,6 +1396,7 @@ void leave_floor(void)
 
         /* Reach to the surface -- Clear all saved floors */
         change_floor_mode &= ~CFM_SAVE_FLOORS;
+        notes_expire_dungeon_floors(p_ptr->leaving_dungeon);
     }
 
     /* Hack */
@@ -1698,6 +1702,8 @@ void change_floor(void)
         {
             if (sf_ptr->last_visit)
             {
+                notes_expire_floor(dungeon_type, sf_ptr->dun_level, new_floor_id);
+
                 /* Temporal file is broken? */
                 msg_print("The staircases come to a dead end...");
 
@@ -1820,6 +1826,9 @@ void change_floor(void)
     /* We have no travelling target on this level */
     travel.x = 0;
     travel.y = 0;
+
+    if (character_generated)
+        notes_print_current_context();
 
     /* Politicians have level-based resource pools */
     if (p_ptr->pclass == CLASS_POLITICIAN)

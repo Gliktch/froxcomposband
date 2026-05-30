@@ -64,8 +64,8 @@ Another difference between the Museum and your home is that items given to the M
 <color:keypress>i</color>         Display inventory
 <color:keypress>I</color>         Inspect objects in your pack
 <color:keypress>Tab</color>       Toggle inventory/equipment subwindows
-<color:keypress>{</color>         Inscribe objects in your pack
-<color:keypress>}</color>         Uninscribe objects in your pack
+<color:keypress>{</color>         Edit item inscriptions in your pack
+<color:keypress>}</color>         Open the dungeon notes menu
 <color:keypress>C</color>         Display character sheet
 
 <style:note>Note: These <color:keyword>Extra Commands</color> are simply normal game commands made available for your convenience so you need not leave your home to use them. However, the keybindings for these commands are <color:keyword>hard-coded</color>, so any keymaps you may have defined will not apply.</style>
@@ -80,4 +80,3 @@ Another difference between the Museum and your home is that items given to the M
 <color:keypress>^W</color>        Toggle weights (see <link:option.txt#show_weights>)
 <color:keypress>^G</color>        Toggle graphics (see <link:option.txt#show_item_graph>)
 </indent>
-

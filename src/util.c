@@ -3376,8 +3376,8 @@ menu_naiyou menu_info[10][10] =
         {"Get items(g)", 'g', TRUE},
         {"Drop an item(d)", 'd', TRUE},
         {"Destroy an item(k/^d)", 'k', TRUE},
-        {"Inscribe an item(Z/{)", 'Z', TRUE},
-        {"Uninscribe an item(})", '}', TRUE},
+        {"Edit item inscription(Z/{)", 'Z', TRUE},
+        {"Dungeon notes(})", '}', TRUE},
         {"Inspect an item(I)", 'I', TRUE},
         {"Inventory list(i)", 'i', TRUE},
         {"Travel to item(H/^E)", 'H', TRUE},
@@ -4976,4 +4976,3 @@ int count_bits(u32b x)
 
     return (n);
 }
-

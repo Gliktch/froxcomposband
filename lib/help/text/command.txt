@@ -76,7 +76,7 @@ Original Keyset
    w  Wear/wield equipment                 W  Switch ring fingers
    x  (unused)                             X  (unused)
    y  (unused)                             Y  Display monster list
-   z  Zap a rod                            Z  Inscribe an object
+   z  Zap a rod                            Z  Edit item inscription
    !  Enter a user pref command           ^A  (special - wizard command)
    @  Interact with macros                ^B  (unused)
    #  (unused)                            ^C  (special - break)
@@ -87,8 +87,8 @@ Original Keyset
    *  Target monster or location          ^H  (unused)
    (  (unused)                            ^I  Toggle choice window
    )  Create screen dump                  ^J  (special - linefeed)
-   {  Inscribe an object                  ^K  (unused)
-   }  Uninscribe an object                ^L  (unused)
+   {  Edit item inscription               ^K  (unused)
+   }  Dungeon notes                       ^L  (unused)
    [  Display monster list                ^M  (special - return)
    ]  Display object list                 ^N  (unused)
    -  Walk (flip pickup)                  ^O  Display object list
@@ -151,8 +151,8 @@ Roguelike Keyset
    *  Target monster or location          ^H  (tunnel - west)
    (  Resume travelling                   ^I  Toggle choice window
    )  Create screen dump                  ^J  (tunnel - south)
-   {  Inscribe an object                  ^K  (tunnel - north)
-   }  Uninscribe an object                ^L  (tunnel - east)
+   {  Edit item inscription               ^K  (tunnel - north)
+   }  Dungeon notes                       ^L  (tunnel - east)
    [  Display monster list                ^M  (tunnel - south)
    ]  Display object list                 ^N  (tunnel - south east)
    -  Walk (flip pickup)                  ^O  (unused)
@@ -298,6 +298,5 @@ Updated    : Zangband DevTeam
 Updated    : Hengband 1.0.11
 Updated    : PosChengband 6.0.0
 Updated    : FrogComposband 7.1.liquorice
-
 
 

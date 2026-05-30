@@ -119,6 +119,8 @@ void pack_get(obj_ptr obj)
         /*msg_format("You get %s.", name);*/
 
         quests_on_get_obj(obj);
+        if (pack_is_full() && quiver_tolerates(obj))
+            quiver_carry(obj);
         pack_carry(obj);
     }
     obj_release(obj, OBJ_RELEASE_QUIET);
@@ -498,4 +500,3 @@ void pack_save(savefile_ptr file)
         obj_save(obj, file);
     }
 }
-

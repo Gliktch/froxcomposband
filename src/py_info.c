@@ -2608,7 +2608,8 @@ static void _build_options(doc_ptr doc)
 
     {
         int mult = score_mult();
-        doc_printf(doc, "\n Score Multiplier:   %d.%02d%%\n", mult / 100, mult % 100);
+        doc_printf(doc, "\n Experience Rate:   %d%%\n", p_ptr->expfact);
+        doc_printf(doc, " Score Multiplier:   %d.%02d%%\n", mult / 100, mult % 100);
         if (p_ptr->noscore) doc_printf(doc, " Adjusted Score:     %d\n", hof_score());
         else doc_printf(doc, " Adjusted Score:     <color:B>%d</color>\n", hof_score());
     }

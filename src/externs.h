@@ -252,6 +252,7 @@ extern bool overworld_visit;
 
 extern bool rogue_like_commands;    /* Rogue-like commands */
 extern bool hide_monsters_for_look; /* Hide monster glyphs during look-under mode */
+extern s16b fetch_cycle_o_idx;      /* Show this object while cycling fetch targets */
 extern bool always_pickup;    /* Pick things up by default */
 extern bool online_macros;    /* Disable Run in macros */
 extern bool quick_messages;    /* Activate quick messages */
@@ -1706,6 +1707,8 @@ extern bool brand_weapon_aux(object_type *o_ptr);
 extern bool brand_armour_aux(object_type *o_ptr);
 extern bool brand_weapon_slaying(int brand_flag, int res_flag);
 extern void call_the_(void);
+extern bool fetch_grid_okay(int y, int x, int wgt, bool require_los, int rng, bool allow_vault);
+extern int fetch_choose(int y, int x, int wgt, bool require_los, int rng, bool allow_vault);
 extern void fetch(int dir, int wgt, bool require_los);
 extern void alter_reality(void);
 extern bool warding_glyph(void);

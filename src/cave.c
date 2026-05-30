@@ -973,6 +973,7 @@ void map_info(int y, int x, byte *ap, char *cp, byte *tap, char *tcp)
     cave_type *c_ptr = &cave[y][x];
 
     s16b this_o_idx, next_o_idx = 0;
+    bool selected_fetch_item = FALSE;
 
     /* Feature code (applying "mimic" field) */
     s16b feat = get_feat_mimic(c_ptr);
@@ -1227,7 +1228,24 @@ void map_info(int y, int x, byte *ap, char *cp, byte *tap, char *tcp)
     }
 
     /* Objects */
-    for (this_o_idx = c_ptr->o_idx; this_o_idx; this_o_idx = next_o_idx)
+    if (fetch_cycle_o_idx)
+    {
+        object_type *o_ptr = &o_list[fetch_cycle_o_idx];
+
+        if (o_ptr->loc.where == INV_FLOOR
+         && o_ptr->loc.y == y
+         && o_ptr->loc.x == x
+         && (o_ptr->marked & OM_FOUND))
+        {
+            (*cp) = object_char(o_ptr);
+            (*ap) = object_attr(o_ptr);
+            feat_priority = 20;
+            if (p_ptr->image) image_object(ap, cp);
+            selected_fetch_item = TRUE;
+        }
+    }
+
+    for (this_o_idx = selected_fetch_item ? 0 : c_ptr->o_idx; this_o_idx; this_o_idx = next_o_idx)
     {
         object_type *o_ptr;
 

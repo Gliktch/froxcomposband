@@ -35,6 +35,7 @@ static bool _whip_fetch(int dir, int rng)
     int             ty, tx;
     cave_type      *c_ptr;
     object_type    *o_ptr;
+    int             o_idx = 0;
     char            o_name[MAX_NLEN];
 
     /* Use a target */
@@ -71,6 +72,12 @@ static bool _whip_fetch(int dir, int rng)
             msg_print("You have no direct line of sight to that location.");
             return FALSE;
         }
+
+        if (fetch_grid_okay(ty, tx, p_ptr->lev * 15, TRUE, rng, TRUE))
+        {
+            o_idx = fetch_choose(ty, tx, p_ptr->lev * 15, TRUE, rng, TRUE);
+            if (!o_idx) return TRUE;
+        }
     }
     else
     {
@@ -92,9 +99,12 @@ static bool _whip_fetch(int dir, int rng)
             }
         }
         while (!c_ptr->o_idx);
+
+        o_idx = c_ptr->o_idx;
     }
 
-    o_ptr = &o_list[c_ptr->o_idx];
+    if (!o_idx) o_idx = c_ptr->o_idx;
+    o_ptr = &o_list[o_idx];
 
     if (o_ptr->weight > p_ptr->lev * 15)
     {

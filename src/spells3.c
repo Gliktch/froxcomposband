@@ -1687,15 +1687,251 @@ void call_the_(void)
 }
 
 
+static bool _fetch_display_okay(object_type *o_ptr)
+{
+    return o_ptr->loc.where == INV_FLOOR && (o_ptr->marked & OM_FOUND);
+}
+
+static bool _fetch_obj_okay(object_type *o_ptr, int wgt)
+{
+    return _fetch_display_okay(o_ptr) && o_ptr->weight <= wgt;
+}
+
+bool fetch_grid_okay(int y, int x, int wgt, bool require_los, int rng, bool allow_vault)
+{
+    cave_type *c_ptr = &cave[y][x];
+    s16b this_o_idx;
+
+    if (!c_ptr->o_idx) return FALSE;
+    if (distance(py, px, y, x) > rng) return FALSE;
+    if (!allow_vault && (c_ptr->info & CAVE_ICKY)) return FALSE;
+
+    if (require_los)
+    {
+        if (!player_has_los_bold(y, x)) return FALSE;
+        if (!projectable(py, px, y, x)) return FALSE;
+    }
+
+    for (this_o_idx = c_ptr->o_idx; this_o_idx; this_o_idx = o_list[this_o_idx].next_o_idx)
+    {
+        if (_fetch_obj_okay(&o_list[this_o_idx], wgt))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static int _fetch_distance(int y, int x)
+{
+    int dx = ABS(x - px);
+    int dy = ABS(y - py);
+
+    return (dx > dy) ? (dx + dx + dy) : (dy + dy + dx);
+}
+
+static void _fetch_ensure_visible(int y, int x)
+{
+    rect_t r = ui_map_rect();
+    int new_y = viewport_origin.y;
+    int new_x = viewport_origin.x;
+
+    if (cave_xy_is_visible(x, y)) return;
+
+    new_y = y - r.cy / 2;
+    new_x = x - r.cx / 2;
+
+    if (new_y > cur_hgt - r.cy) new_y = cur_hgt - r.cy;
+    if (new_y < 0) new_y = 0;
+    if (new_x > cur_wid - r.cx) new_x = cur_wid - r.cx;
+    if (new_x < 0) new_x = 0;
+
+    if ((new_y != viewport_origin.y) || (new_x != viewport_origin.x))
+    {
+        viewport_origin.y = new_y;
+        viewport_origin.x = new_x;
+        p_ptr->update |= PU_MONSTERS;
+        p_ptr->redraw |= PR_MAP;
+        redraw_hack = TRUE;
+        handle_stuff();
+        redraw_hack = FALSE;
+    }
+}
+
+static void _fetch_pile_info(int o_idx, int *which, int *count)
+{
+    object_type *o_ptr = &o_list[o_idx];
+    cave_type *c_ptr = &cave[o_ptr->loc.y][o_ptr->loc.x];
+    s16b this_o_idx;
+
+    *which = 0;
+    *count = 0;
+
+    for (this_o_idx = c_ptr->o_idx; this_o_idx; this_o_idx = o_list[this_o_idx].next_o_idx)
+    {
+        object_type *pile_obj = &o_list[this_o_idx];
+
+        if (!_fetch_display_okay(pile_obj)) continue;
+        ++*count;
+        if (this_o_idx == o_idx)
+            *which = *count;
+    }
+}
+
+static void _fetch_describe_choice(char *buf, int buf_len, int o_idx)
+{
+    object_type *o_ptr = &o_list[o_idx];
+    char o_name[MAX_NLEN];
+    int which = 0;
+    int count = 0;
+
+    object_desc(o_name, o_ptr, 0);
+    _fetch_pile_info(o_idx, &which, &count);
+
+    if (count > 1 && which > 0)
+        snprintf(buf, buf_len, "Fetch: %s (%d of %d in pile) [*,t,q]", o_name, which, count);
+    else
+        snprintf(buf, buf_len, "Fetch: %s [*,t,q]", o_name);
+}
+
+int fetch_choose(int y, int x, int wgt, bool require_los, int rng, bool allow_vault)
+{
+    int *objects = NULL;
+    int *square_x = NULL;
+    int *square_y = NULL;
+    int max_grids = cur_hgt * cur_wid;
+    int ct = 0;
+    int square_ct = 0;
+    int start = -1;
+    int result = 0;
+    int i;
+
+    C_MAKE(objects, max_o_idx, int);
+    C_MAKE(square_x, max_grids, int);
+    C_MAKE(square_y, max_grids, int);
+
+    for (i = 1; i < cur_hgt - 1; i++)
+    {
+        int j;
+
+        for (j = 1; j < cur_wid - 1; j++)
+        {
+            int dist;
+            int pos;
+
+            if (!fetch_grid_okay(i, j, wgt, require_los, rng, allow_vault)) continue;
+
+            dist = _fetch_distance(i, j);
+            pos = square_ct;
+
+            while (pos > 0 && dist < _fetch_distance(square_y[pos - 1], square_x[pos - 1]))
+            {
+                square_x[pos] = square_x[pos - 1];
+                square_y[pos] = square_y[pos - 1];
+                --pos;
+            }
+
+            square_x[pos] = j;
+            square_y[pos] = i;
+            ++square_ct;
+        }
+    }
+
+    for (i = 0; i < square_ct; i++)
+    {
+        cave_type *c_ptr = &cave[square_y[i]][square_x[i]];
+        s16b this_o_idx;
+
+        for (this_o_idx = c_ptr->o_idx; this_o_idx; this_o_idx = o_list[this_o_idx].next_o_idx)
+        {
+            if (!_fetch_obj_okay(&o_list[this_o_idx], wgt)) continue;
+            if (square_y[i] == y && square_x[i] == x && start < 0)
+                start = ct;
+            objects[ct++] = this_o_idx;
+        }
+    }
+
+    if (!ct || start < 0) goto cleanup;
+
+    i = start;
+    while (1)
+    {
+        char buf[160];
+        object_type *o_ptr = &o_list[objects[i]];
+        char cmd;
+
+        fetch_cycle_o_idx = objects[i];
+        _fetch_ensure_visible(o_ptr->loc.y, o_ptr->loc.x);
+        p_ptr->redraw |= PR_MAP;
+        redraw_hack = TRUE;
+        handle_stuff();
+        redraw_hack = FALSE;
+
+        _fetch_describe_choice(buf, sizeof(buf), objects[i]);
+        prt(buf, 0, 0);
+        move_cursor_relative(o_ptr->loc.y, o_ptr->loc.x);
+        cmd = inkey();
+
+        if (cmd == ESCAPE || cmd == 'q')
+            break;
+
+        if (cmd == '*')
+        {
+            if (++i == ct) i = 0;
+            continue;
+        }
+
+        if (cmd == 't' || cmd == '.' || cmd == '5' || cmd == '0' || cmd == ' ' || cmd == '\r' || cmd == '\n')
+        {
+            result = objects[i];
+            break;
+        }
+
+        bell();
+    }
+
+cleanup:
+    fetch_cycle_o_idx = 0;
+    viewport_verify();
+    msg_line_clear();
+    p_ptr->redraw |= PR_MAP;
+    redraw_hack = TRUE;
+    handle_stuff();
+    redraw_hack = FALSE;
+    C_KILL(objects, max_o_idx, int);
+    C_KILL(square_x, max_grids, int);
+    C_KILL(square_y, max_grids, int);
+    return result;
+}
+
+static void _fetch_object(int o_idx)
+{
+    object_type *o_ptr = &o_list[o_idx];
+    char o_name[MAX_NLEN];
+    int y = o_ptr->loc.y;
+    int x = o_ptr->loc.x;
+
+    excise_object_idx(o_idx);
+    cave[py][px].o_idx = o_idx;
+    o_ptr->next_o_idx = 0;
+    o_ptr->loc.y = (byte)py;
+    o_ptr->loc.x = (byte)px;
+
+    object_desc(o_name, o_ptr, OD_NAME_ONLY);
+    msg_format("%^s %s through the air to your feet.", o_name, (o_ptr->number == 1) ? "flies" : "fly");
+
+    note_spot(y, x);
+    note_spot(py, px);
+    p_ptr->redraw |= PR_MAP;
+}
+
 /*
  * Fetch an item (teleport it right underneath the caster)
  */
 void fetch(int dir, int wgt, bool require_los)
 {
-    int             ty, tx, i;
+    int             ty, tx, i = 0;
     cave_type       *c_ptr;
     object_type     *o_ptr;
-    char            o_name[MAX_NLEN];
 
     /* Check to see if an object is already there */
     if ((cave[py][px].o_idx) || (!cave_drop_bold(py, px)))
@@ -1752,6 +1988,12 @@ void fetch(int dir, int wgt, bool require_los)
                 return;
             }
         }
+
+        if (fetch_grid_okay(ty, tx, wgt, require_los, MAX_RANGE, FALSE))
+        {
+            i = fetch_choose(ty, tx, wgt, require_los, MAX_RANGE, FALSE);
+            if (!i) return;
+        }
     }
     else
     {
@@ -1769,9 +2011,12 @@ void fetch(int dir, int wgt, bool require_los)
                 !cave_have_flag_bold(ty, tx, FF_PROJECT)) return;
         }
         while (!c_ptr->o_idx);
+
+        i = c_ptr->o_idx;
     }
 
-    o_ptr = &o_list[c_ptr->o_idx];
+    if (!i) i = c_ptr->o_idx;
+    o_ptr = &o_list[i];
 
     if (o_ptr->weight > wgt)
     {
@@ -1781,18 +2026,7 @@ void fetch(int dir, int wgt, bool require_los)
         return;
     }
 
-    i = c_ptr->o_idx;
-    c_ptr->o_idx = o_ptr->next_o_idx;
-    cave[py][px].o_idx = i; /* 'move' it */
-    o_ptr->next_o_idx = 0;
-    o_ptr->loc.y = (byte)py;
-    o_ptr->loc.x = (byte)px;
-
-    object_desc(o_name, o_ptr, OD_NAME_ONLY);
-    msg_format("%^s %s through the air to your feet.", o_name, (o_ptr->number == 1) ? "flies" : "fly");
-
-    note_spot(py, px);
-    p_ptr->redraw |= PR_MAP;
+    _fetch_object(i);
 }
 
 

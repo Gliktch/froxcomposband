@@ -1677,6 +1677,34 @@ static void do_cmd_options_autosave(cptr info)
 /*
  * Interact with some options
  */
+static void _reset_birth_option_defaults(void)
+{
+    int i;
+
+    for (i = 0; option_info[i].o_desc; i++)
+    {
+        if (option_info[i].o_page == OPT_PAGE_BIRTH)
+            *option_info[i].o_var = option_info[i].o_norm;
+    }
+
+    if (game_mode != GAME_MODE_BEGINNER)
+        coffee_break = 0;
+
+    random_artifact_pct = 100;
+    generate_empty = EMPTY_SOMETIMES;
+    reduce_uniques_pct = 100;
+    pantheon_count = 2;
+    game_pantheon = 0;
+    small_level_type = 0;
+
+    random_artifacts = FALSE;
+    ironman_empty_levels = FALSE;
+    reduce_uniques = FALSE;
+    single_pantheon = FALSE;
+    guaranteed_pantheon = FALSE;
+    always_small_levels = FALSE;
+}
+
 void do_cmd_options_aux(int page, cptr info)
 {
     int     ch;
@@ -1712,7 +1740,9 @@ void do_cmd_options_aux(int page, cptr info)
         int dir;
 
         /* Prompt XXX XXX XXX */
-        sprintf(buf, "%s (RET:next, %s, ?:help) ", info, browse_only ? "ESC:exit" : "y/n:change, ESC:accept");
+        sprintf(buf, "%s (RET:next, %s%s, ?:help) ", info,
+            browse_only ? "ESC:exit" : "y/n:change",
+            (page == OPT_PAGE_BIRTH && !browse_only) ? ", r:reset all, ESC:accept" : ", ESC:accept");
 
         prt(buf, 0, 0);
 
@@ -1867,6 +1897,17 @@ void do_cmd_options_aux(int page, cptr info)
             case ESCAPE:
             {
                 return;
+            }
+
+            case 'r':
+            case 'R':
+            {
+                if (page == OPT_PAGE_BIRTH && !browse_only)
+                {
+                    _reset_birth_option_defaults();
+                    msg_print("Game speed and all birth options have been reset to default values.");
+                }
+                break;
             }
 
             case '-':

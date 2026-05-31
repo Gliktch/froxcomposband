@@ -515,6 +515,14 @@ static void _stats_init(void);
 static void _set_mode(int mode)
 {
     static bool first = TRUE;
+    static byte saved_non_beginner_coffee_break = 0;
+
+    if (!first && game_mode != GAME_MODE_BEGINNER && mode == GAME_MODE_BEGINNER)
+        saved_non_beginner_coffee_break = coffee_break;
+
+    if (!first && game_mode == GAME_MODE_BEGINNER && mode != GAME_MODE_BEGINNER)
+        coffee_break = saved_non_beginner_coffee_break;
+
     if (mode == GAME_MODE_BEGINNER)
     {
         if (first || game_mode != mode)

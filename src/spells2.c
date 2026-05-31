@@ -2184,17 +2184,21 @@ bool symbol_genocide(int power, bool player_cast)
     /* Mega-Hack -- Get a monster symbol */
     while (!okay)
     {
-        if (!get_com("Choose a monster species (by symbol; '?' for help) to genocide: ", &typ, FALSE))
+        if (!get_com("Choose a monster species (by symbol; '/': help) to genocide: ", &typ, FALSE))
             return FALSE;
         if (typ == 'n') /* naga hack */
         {
             if (msg_prompt("Really genocide Nagas? <color:y>[Y/N]</color>", "NY", PROMPT_DEFAULT) != 'Y') continue;
         }
+        else if (typ == '?')
+        {
+            if (msg_prompt("Really genocide Scroll Mimics and Tomes? <color:y>[Y/N]</color>", "NY", PROMPT_DEFAULT) != 'Y') continue;
+        }
         else if ((rogue_like_commands) && (typ == 'X'))
         {
             if (msg_prompt("Really genocide Xorns? <color:y>[Y/N]</color>", "NY", PROMPT_DEFAULT) != 'Y') continue;
         }
-        else if (typ == '?')
+        else if (typ == '/')
         {
             screen_save();
             doc_display_help("monster.txt#Genocide", NULL);
@@ -4877,5 +4881,3 @@ bool rush_attack(int rng, bool *mdeath)
     if (mdeath) *mdeath = tmp_mdeath;
     return TRUE;
 }
-
-

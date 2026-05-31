@@ -904,6 +904,8 @@ void stats_on_gold_stolen(int au)
 
 void stats_on_purchase(object_type *o_ptr)
 {
+    if (obj_is_ammo(o_ptr) && !o_ptr->name1 && !o_ptr->art_name) return;
+
     if (!(o_ptr->marked & OM_COUNTED))
     {
         k_info[o_ptr->k_idx].counts.bought += o_ptr->number;
@@ -928,6 +930,8 @@ void stats_on_purchase(object_type *o_ptr)
 
 void stats_on_sell(object_type *o_ptr)
 {
+    if (obj_is_ammo(o_ptr) && !o_ptr->name1 && !o_ptr->art_name) return;
+
     if (!(o_ptr->marked & OM_COUNTED))
     {
         k_info[o_ptr->k_idx].counts.found += o_ptr->number;
@@ -981,12 +985,14 @@ void stats_on_notice(object_type *o_ptr, int num)
 
 void stats_on_combine(object_type *dest, object_type *src)
 {
-    if (object_is_aware(dest) && !(dest->marked & OM_COUNTED))
+    if (object_is_aware(dest) && !(dest->marked & OM_COUNTED)
+        && !(obj_is_ammo(dest) && !dest->name1 && !dest->art_name))
     {
         k_info[dest->k_idx].counts.found += dest->number;
         dest->marked |= OM_COUNTED;
     }
-    if (object_is_aware(src) && !(src->marked & OM_COUNTED))
+    if (object_is_aware(src) && !(src->marked & OM_COUNTED)
+        && !(obj_is_ammo(src) && !src->name1 && !src->art_name))
     {
         k_info[src->k_idx].counts.found += src->number;
         src->marked |= OM_COUNTED;
@@ -1009,6 +1015,8 @@ void stats_on_use(object_type *o_ptr, int num)
 
 void stats_on_p_destroy(object_type *o_ptr, int num)
 {
+    if (obj_is_ammo(o_ptr) && !o_ptr->name1 && !o_ptr->art_name) return;
+
     if (object_is_aware(o_ptr) && !(o_ptr->marked & OM_COUNTED))
     {
         k_info[o_ptr->k_idx].counts.found += o_ptr->number;
@@ -1041,6 +1049,8 @@ void stats_on_p_destroy(object_type *o_ptr, int num)
 
 void stats_on_m_destroy(object_type *o_ptr, int num)
 {
+    if (obj_is_ammo(o_ptr) && !o_ptr->name1 && !o_ptr->art_name) return;
+
     k_info[o_ptr->k_idx].counts.destroyed += num;
     if (o_ptr->name2)
         e_info[o_ptr->name2].counts.destroyed += num;
@@ -1050,6 +1060,8 @@ void stats_on_m_destroy(object_type *o_ptr, int num)
 
 void stats_on_pickup(object_type *o_ptr)
 {
+    if (obj_is_ammo(o_ptr) && !o_ptr->name1 && !o_ptr->art_name) return;
+
     if (object_is_aware(o_ptr) && !(o_ptr->marked & OM_COUNTED))
     {
         k_info[o_ptr->k_idx].counts.found += o_ptr->number;
@@ -1075,6 +1087,8 @@ void stats_on_pickup(object_type *o_ptr)
 
 void stats_on_equip(object_type *o_ptr)
 {
+    if (obj_is_ammo(o_ptr) && !o_ptr->name1 && !o_ptr->art_name) return;
+
     if (object_is_aware(o_ptr) && !(o_ptr->marked & OM_COUNTED))
     {
         k_info[o_ptr->k_idx].counts.found += o_ptr->number;
@@ -1096,6 +1110,8 @@ void stats_on_equip(object_type *o_ptr)
 
 void stats_on_identify(object_type *o_ptr)
 {
+    if (obj_is_ammo(o_ptr) && !o_ptr->name1 && !o_ptr->art_name) return;
+
     if (!(o_ptr->marked & OM_COUNTED))
     {
         k_info[o_ptr->k_idx].counts.found += o_ptr->number;

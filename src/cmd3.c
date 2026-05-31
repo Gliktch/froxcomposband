@@ -1918,13 +1918,13 @@ static _obj_list_ptr _create_obj_list(void)
           && (autopick_list[auto_pick_idx].action & (DO_AUTOPICK | DO_QUERY_AUTOPICK)) )
         {
             info->group = _GROUP_AUTOPICK;
-            list->ct_autopick += o_ptr->number;
+            list->ct_autopick += obj_is_ammo(o_ptr) ? 1 : o_ptr->number;
         }
         else
             info->group = _GROUP_OTHER;
 
         vec_add(list->list, info);
-        list->ct_total += o_ptr->number;
+        list->ct_total += obj_is_ammo(o_ptr) ? 1 : o_ptr->number;
     }
 
     /* Add Headings and Sort */

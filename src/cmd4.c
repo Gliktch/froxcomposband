@@ -19,6 +19,7 @@
 
 static void browser_cursor(char ch, int *column, int *grp_cur, int grp_cnt, int *list_cur, int list_cnt);
 static bool _has_message_window(void);
+static bool _special_option_blocks_letter_toggle(bool *o_var);
 
 /*
  * A set of functions to maintain automatic dumps of various kinds.
@@ -2001,6 +2002,11 @@ void do_cmd_options_aux(int page, cptr info)
             case SKEY_RIGHT:
             {
                 if (browse_only) break;
+                if ((ch == 'y' || ch == 'Y') && _special_option_blocks_letter_toggle(option_info[opt[k]].o_var))
+                {
+                    bell();
+                    break;
+                }
                 if (option_info[opt[k]].o_var == &random_artifacts)
                 {
                     if (!random_artifacts)
@@ -2124,6 +2130,11 @@ void do_cmd_options_aux(int page, cptr info)
             case SKEY_LEFT:
             {
                 if (browse_only) break;
+                if ((ch == 'n' || ch == 'N') && _special_option_blocks_letter_toggle(option_info[opt[k]].o_var))
+                {
+                    bell();
+                    break;
+                }
                 if (option_info[opt[k]].o_var == &random_artifacts)
                 {
                     if (!random_artifacts)
@@ -2231,7 +2242,13 @@ void do_cmd_options_aux(int page, cptr info)
             case 't':
             case 'T':
             {
-                if (!browse_only) (*option_info[opt[k]].o_var) = !(*option_info[opt[k]].o_var);
+                if (browse_only) break;
+                if (_special_option_blocks_letter_toggle(option_info[opt[k]].o_var))
+                {
+                    bell();
+                    break;
+                }
+                (*option_info[opt[k]].o_var) = !(*option_info[opt[k]].o_var);
                 break;
             }
 
@@ -2455,6 +2472,23 @@ static bool _has_message_window(void)
         if (window_flag[j] & PW_MESSAGE) return TRUE;
     }
     return FALSE;
+}
+
+static bool _special_option_blocks_letter_toggle(bool *o_var)
+{
+    return o_var == &random_artifacts
+        || o_var == &obj_list_width
+        || o_var == &mon_list_width
+        || o_var == &msg_pane_wrap_width
+        || o_var == &autorun_max_steps_dummy
+        || o_var == &map_edge_center_dummy
+        || o_var == &always_repeat
+        || o_var == &failed_item_retry_count_dummy
+        || o_var == &reduce_uniques
+        || o_var == &ironman_empty_levels
+        || o_var == &single_pantheon
+        || o_var == &guaranteed_pantheon
+        || o_var == &always_small_levels;
 }
 
 

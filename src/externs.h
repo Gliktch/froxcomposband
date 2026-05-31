@@ -292,6 +292,8 @@ extern bool use_pack_slots;
 extern bool center_player;    /* Center map while walking (*slow*) */
 extern bool center_running;    /* Centering even while running */
 extern bool center_stair_teleports; /* Center map after stairs and long teleports */
+extern bool map_edge_center_dummy;
+extern byte map_edge_center_distance;
 extern bool view_yellow_lite;    /* Use special colors for torch-lit grids */
 extern bool view_bright_lite;    /* Use special colors for 'viewable' grids */
 extern bool view_granite_lite;    /* Use special colors for wall grids (slow) */
@@ -366,6 +368,7 @@ extern bool msg_pane_wrap_width;
 extern byte message_pane_wrap_width;
 extern bool autorun_max_steps_dummy;
 extern byte autorun_max_steps;
+extern byte map_edge_center_distance_normalize(byte distance);
 extern byte message_pane_wrap_width_normalize(byte width);
 extern byte autorun_max_steps_normalize(byte steps);
 extern byte retry_count_normalize(byte count);

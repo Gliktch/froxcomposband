@@ -2194,6 +2194,9 @@ option_type option_info[] =
     { &center_stair_teleports,      TRUE,  OPT_PAGE_MAPSCREEN, 5, 13,
     "center_stair_teleports",       "Center map after stairs and long teleports" },
 
+    { &map_edge_center_dummy,       TRUE,  OPT_PAGE_MAPSCREEN, 5, 14,
+    "map_edge_center",             "Center map when this close to viewport edge" },
+
     { &view_yellow_lite,            TRUE,  OPT_PAGE_MAPSCREEN, 1, 28,
     "view_yellow_lite",             "Use special colors for torch-lit grids" },
 

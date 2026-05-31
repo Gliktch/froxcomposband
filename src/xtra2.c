@@ -3580,6 +3580,9 @@ void viewport_verify_aux(u32b options)
     point_t p = cave_xy_to_ui_pt(px, py);
     rect_t  r = ui_map_rect();
     point_t o = viewport_origin;
+    point_t c = rect_center(r);
+    int edge_y = 2;
+    int edge_x = 4;
 
     if ((options & VIEWPORT_FORCE_CENTER) || !rect_contains_pt(r, p.x, p.y))
     {
@@ -3589,14 +3592,39 @@ void viewport_verify_aux(u32b options)
     }
     else
     {
-        if (p.y > r.y + r.cy - 2)
-            o.y += r.cy/2;
-        else if (p.y < r.y + 2)
-            o.y -= r.cy/2;
-        if (p.x > r.x + r.cx - 4)
-            o.x += r.cx/2;
-        else if (p.x < r.x + 4)
-            o.x -= r.cx/2;
+        if (map_edge_center_distance)
+        {
+            int max_edge = MIN(MAX(1, r.cy/2 - 1), MAX(1, r.cx/2 - 1));
+            int edge = MIN(map_edge_center_distance_normalize(map_edge_center_distance), max_edge);
+            bool center_y = FALSE;
+            bool center_x = FALSE;
+            edge_y = edge_x = edge;
+
+            if (p.y >= r.y + r.cy - edge_y)
+                center_y = TRUE;
+            else if (p.y < r.y + edge_y)
+                center_y = TRUE;
+            if (p.x >= r.x + r.cx - edge_x)
+                center_x = TRUE;
+            else if (p.x < r.x + edge_x)
+                center_x = TRUE;
+
+            if (center_y)
+                o.y += p.y - c.y;
+            if (center_x)
+                o.x += p.x - c.x;
+        }
+        else
+        {
+            if (p.y > r.y + r.cy - edge_y)
+                o.y += r.cy/2;
+            else if (p.y < r.y + edge_y)
+                o.y -= r.cy/2;
+            if (p.x > r.x + r.cx - edge_x)
+                o.x += r.cx/2;
+            else if (p.x < r.x + edge_x)
+                o.x -= r.cx/2;
+        }
     }
     if (o.x > cur_wid - 3*r.cx/4) o.x = cur_wid - 3*r.cx/4;
     if (o.y > cur_hgt - 3*r.cy/4) o.y = cur_hgt - 3*r.cy/4;

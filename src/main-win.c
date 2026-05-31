@@ -1004,6 +1004,8 @@ static void save_prefs(void)
     WritePrivateProfileString("Angband", "AlwaysRepeatCount", buf, ini_file);
     wsprintf(buf, "%d", failed_item_retry_count);
     WritePrivateProfileString("Angband", "FailedItemRetryCount", buf, ini_file);
+    wsprintf(buf, "%d", map_edge_center_distance_normalize(map_edge_center_distance));
+    WritePrivateProfileString("Angband", "MapEdgeCenterDistance", buf, ini_file);
 
     /* Save window prefs */
     for (i = 0; i < MAX_TERM_DATA; ++i)
@@ -1106,6 +1108,7 @@ static void load_prefs(void)
     autorun_max_steps = autorun_max_steps_normalize(GetPrivateProfileInt("Angband", "AutorunMaxSteps", autorun_max_steps, ini_file));
     always_repeat_count = retry_count_normalize(GetPrivateProfileInt("Angband", "AlwaysRepeatCount", always_repeat_count, ini_file));
     failed_item_retry_count = retry_count_normalize(GetPrivateProfileInt("Angband", "FailedItemRetryCount", failed_item_retry_count, ini_file));
+    map_edge_center_distance = map_edge_center_distance_normalize(GetPrivateProfileInt("Angband", "MapEdgeCenterDistance", map_edge_center_distance, ini_file));
     sync_retry_options();
 
     /* Load window prefs */

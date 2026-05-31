@@ -227,6 +227,12 @@ With this option enabled, the map window automatically recenters on you as you w
 <topic:center_running><color:U>Center map even while running</color> <color:D>(center_running)</color>
 If this option is off, the game waits until the player is finished running or travelling before it recenters the map. If this option is on, the map always centers on the player after every step. This option has no effect if the <color:keyword>center_player</color> option is not on.
 
+<topic:center_stair_teleports><color:U>Center map after stairs and long teleports</color> <color:D>(center_stair_teleports)</color>
+If this option is on, the map recenters after stair travel, random floor placement, and teleports that move the player a substantial distance. Ordinary walking and short teleports are unaffected.
+
+<topic:map_edge_center><color:U>Center map when this close to viewport edge</color> <color:D>(map_edge_center)</color>
+Controls how close you can move to the edge of the visible map before the view recenters on the affected axis. The <color:keyword>default</color> setting keeps the old asymmetric edge-scroll behavior. Values from 1 to 20 use the same distance in all directions.
+
 <topic:view_yellow_lite><color:U>Use special colors for torch-lit grids</color> <color:D>(view_yellow_lite)</color>
 If this option is enabled, visible floor or wall grids illuminated by a torch or other moving light source will be drawn in <color:y>yellow</color>. Keeping this option turned off may slightly improve game speed. This option has no effect if both <color:keyword>view_granite_lite</color> and <color:keyword>view_special_lite</color> are off.
 

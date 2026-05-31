@@ -1466,6 +1466,12 @@ byte message_pane_wrap_width_normalize(byte width)
     return width - ((width - 80) % 10);
 }
 
+byte map_edge_center_distance_normalize(byte distance)
+{
+    if (distance > 20) return 20;
+    return distance;
+}
+
 byte autorun_max_steps_normalize(byte steps)
 {
     if (!steps) return 0;
@@ -1512,6 +1518,20 @@ static byte _dec_message_pane_wrap_width(byte width)
     if (width <= 40) return width - 2;
     if (width <= 80) return width - 4;
     return width - 10;
+}
+
+static byte _inc_map_edge_center_distance(byte distance)
+{
+    distance = map_edge_center_distance_normalize(distance);
+    if (distance < 20) return distance + 1;
+    return 0;
+}
+
+static byte _dec_map_edge_center_distance(byte distance)
+{
+    distance = map_edge_center_distance_normalize(distance);
+    if (!distance) return 20;
+    return distance - 1;
 }
 
 static byte _inc_autorun_max_steps(byte steps)
@@ -1813,6 +1833,15 @@ void do_cmd_options_aux(int page, cptr info)
                     sprintf(buf + strlen(buf), "%-3d ", autorun_max_steps);
                 sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
+            else if (option_info[opt[i]].o_var == &map_edge_center_dummy)
+            {
+                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                if (!map_edge_center_distance)
+                    sprintf(buf + strlen(buf), "default ");
+                else
+                    sprintf(buf + strlen(buf), "%-3d ", map_edge_center_distance);
+                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+            }
             else if (option_info[opt[i]].o_var == &always_repeat)
             {
                 sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
@@ -2007,6 +2036,10 @@ void do_cmd_options_aux(int page, cptr info)
                 {
                     autorun_max_steps = _inc_autorun_max_steps(autorun_max_steps);
                 }
+                else if (option_info[opt[k]].o_var == &map_edge_center_dummy)
+                {
+                    map_edge_center_distance = _inc_map_edge_center_distance(map_edge_center_distance);
+                }
                 else if (option_info[opt[k]].o_var == &always_repeat)
                 {
                     always_repeat_count = _inc_retry_count(always_repeat_count);
@@ -2138,6 +2171,10 @@ void do_cmd_options_aux(int page, cptr info)
                 else if (option_info[opt[k]].o_var == &autorun_max_steps_dummy)
                 {
                     autorun_max_steps = _dec_autorun_max_steps(autorun_max_steps);
+                }
+                else if (option_info[opt[k]].o_var == &map_edge_center_dummy)
+                {
+                    map_edge_center_distance = _dec_map_edge_center_distance(map_edge_center_distance);
                 }
                 else if (option_info[opt[k]].o_var == &always_repeat)
                 {

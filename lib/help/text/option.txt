@@ -484,6 +484,17 @@ Map & Screen Options
   running or travelling before it recenters the map. If this option is 
   on, the map always centers on the player after every step. This 
   option has no effect if the center_player option is not on.
+
+  Center map after stairs and long teleports (center_stair_teleports)
+  If this option is on, the map recenters after stair travel, random 
+  floor placement, and teleports that move the player a substantial 
+  distance. Ordinary walking and short teleports are unaffected.
+
+  Center map when this close to viewport edge (map_edge_center)
+  Controls how close you can move to the edge of the visible map before 
+  the view recenters on the affected axis. The default setting keeps 
+  the old asymmetric edge-scroll behavior. Values from 1 to 20 use the 
+  same distance in all directions.
   
   Use special colors for torch-lit grids (view_yellow_lite)
   If this option is enabled, visible floor or wall grids illuminated by 

@@ -1832,6 +1832,9 @@ void change_floor(void)
     travel.x = 0;
     travel.y = 0;
 
+    if (center_stair_teleports && ((change_floor_mode & (CFM_DOWN | CFM_UP)) || (change_floor_mode & CFM_RAND_PLACE)))
+        viewport_force_center();
+
     if (character_generated)
         notes_print_current_context();
 

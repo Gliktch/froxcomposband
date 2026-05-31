@@ -291,6 +291,7 @@ extern bool use_pack_slots;
 
 extern bool center_player;    /* Center map while walking (*slow*) */
 extern bool center_running;    /* Centering even while running */
+extern bool center_stair_teleports; /* Center map after stairs and long teleports */
 extern bool view_yellow_lite;    /* Use special colors for torch-lit grids */
 extern bool view_bright_lite;    /* Use special colors for 'viewable' grids */
 extern bool view_granite_lite;    /* Use special colors for wall grids (slow) */
@@ -2140,6 +2141,7 @@ extern bool ui_xy_is_visible(int x, int y);
    around to display other areas of the map: */
 #define VIEWPORT_FORCE_CENTER 0x01
 extern void viewport_verify(void);
+extern void viewport_force_center(void);
 extern void viewport_verify_no_monsters(bool force_center);
 extern void viewport_verify_aux(u32b options);
 extern bool viewport_scroll(int dy, int dx);

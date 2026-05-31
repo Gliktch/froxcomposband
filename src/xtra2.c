@@ -3626,6 +3626,16 @@ void viewport_verify(void)
     }
 }
 
+void viewport_force_center(void)
+{
+    viewport_verify_aux(VIEWPORT_FORCE_CENTER);
+    if (redraw_hack)
+    {
+        handle_stuff();
+        redraw_hack = FALSE;
+    }
+}
+
 bool arena_death_recover(void)
 {
     if (!p_ptr->inside_arena) return FALSE;

@@ -456,6 +456,9 @@ void teleport_player(int dis, u32b mode)
     if (!teleport_player_aux(dis, mode)) return;
     if (!dun_level) return; /* Wilderness scrolling ... */
 
+    if (center_stair_teleports && distance(oy, ox, py, px) > 10)
+        viewport_force_center();
+
     if ((!mode) && (strpos("Alexander", player_name) == 1) && (one_in_(88))) msg_print("You feel a strange pulling sensation!");
 
     /* Monsters with teleport ability may follow the player */
@@ -508,6 +511,9 @@ void teleport_player_away(int m_idx, int dis)
 
     if (!teleport_player_aux(dis, TELEPORT_PASSIVE)) return;
 
+    if (center_stair_teleports && distance(oy, ox, py, px) > 10)
+        viewport_force_center();
+
     /* Monsters with teleport ability may follow the player */
     for (xx = -1; xx < 2; xx++)
     {
@@ -547,6 +553,8 @@ void teleport_player_to(int ny, int nx, u32b mode)
     int y, x, dis = 0, ctr = 0;
     int attempt = 0;
     const int max_attempts = 10 * 1000;
+    int oy = py;
+    int ox = px;
 
     if (p_ptr->anti_tele && !(mode & TELEPORT_NONMAGICAL))
     {
@@ -598,6 +606,9 @@ void teleport_player_to(int ny, int nx, u32b mode)
 
     /* Move the player */
     (void)move_player_effect(y, x, MPE_FORGET_FLOW | MPE_HANDLE_STUFF | MPE_DONT_PICKUP);
+
+    if (center_stair_teleports && distance(oy, ox, py, px) > 10)
+        viewport_force_center();
 }
 
 static u32b _flag = 0;

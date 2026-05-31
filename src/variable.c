@@ -261,6 +261,7 @@ bool use_pack_slots;
 
 bool center_player;    /* Center map while walking (*slow*) */
 bool center_running;    /* Centering even while running */
+bool center_stair_teleports; /* Center map after stairs and long teleports */
 bool view_yellow_lite;    /* Use special colors for torch-lit grids */
 bool view_bright_lite;    /* Use special colors for 'viewable' grids */
 bool view_granite_lite;    /* Use special colors for wall grids (slow) */

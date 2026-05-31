@@ -2191,6 +2191,9 @@ option_type option_info[] =
     { &center_running,              TRUE,  OPT_PAGE_MAPSCREEN, 5, 12,
     "center_running",               "Center map even while running" },
 
+    { &center_stair_teleports,      TRUE,  OPT_PAGE_MAPSCREEN, 5, 13,
+    "center_stair_teleports",       "Center map after stairs and long teleports" },
+
     { &view_yellow_lite,            TRUE,  OPT_PAGE_MAPSCREEN, 1, 28,
     "view_yellow_lite",             "Use special colors for torch-lit grids" },
 

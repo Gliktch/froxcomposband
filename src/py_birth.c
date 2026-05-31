@@ -519,14 +519,14 @@ static void _set_mode(int mode)
     {
         if (first || game_mode != mode)
         {
-            p_ptr->prace = RACE_HOBBIT;
+            p_ptr->prace = RACE_DUNADAN;
             p_ptr->psubrace = 0;
-            p_ptr->pclass = CLASS_ROGUE;
+            p_ptr->pclass = CLASS_WARRIOR;
             p_ptr->psubclass = 0;
-            p_ptr->realm1 = REALM_BURGLARY;
+            p_ptr->realm1 = REALM_NONE;
             p_ptr->realm2 = REALM_NONE;
             p_ptr->dragon_realm = DRAGON_REALM_NONE;
-            p_ptr->personality = PERS_ORDINARY;
+            p_ptr->personality = PERS_NIMBLE;
             _stats_init();
         }
         coffee_break = SPEED_COFFEE;
@@ -535,14 +535,14 @@ static void _set_mode(int mode)
     {
         if (first || game_mode == GAME_MODE_MONSTER)
         {
-            p_ptr->prace = RACE_HOBBIT;
+            p_ptr->prace = RACE_DUNADAN;
             p_ptr->psubrace = 0;
-            p_ptr->pclass = CLASS_ROGUE;
+            p_ptr->pclass = CLASS_WARRIOR;
             p_ptr->psubclass = 0;
-            p_ptr->realm1 = REALM_BURGLARY;
+            p_ptr->realm1 = REALM_NONE;
             p_ptr->realm2 = REALM_NONE;
             p_ptr->dragon_realm = DRAGON_REALM_NONE;
-            p_ptr->personality = PERS_ORDINARY;
+            p_ptr->personality = PERS_NIMBLE;
             _stats_init();
         }
     }

@@ -428,8 +428,9 @@ stat is their spellcasting stat. Allocate your points accordingly!
   and directly affects your AC by allowing you to dodge blows from 
   enemies. Dexterity is also useful in picking locks, disarming traps, 
   and protecting yourself from the thieves that inhabit the dungeons. 
-  Dexterity is the spellcasting stat for a number of classes, including 
-  the "default"-selection Burglary Rogue.
+  Dexterity is the spellcasting stat for a number of classes, and is 
+  also especially valuable for agile melee builds like the 
+  "default"-selection Nimble Warrior.
 
   Constitution (CON)
   Constitution is a character's ability to resist damage to his body. 
@@ -637,4 +638,3 @@ Updated  : PosChengband 1.0.0
 Updated  : PosChengband 4.0.0
 Updated  : PosChengband 5.0.3
 Updated  : FrogComposband 7.1.liquorice
-

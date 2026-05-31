@@ -2523,7 +2523,7 @@ option_type option_info[] =
     { &no_egos,                     FALSE, OPT_PAGE_BIRTH, 6, 25,
     "no_egos",                      "Never create non-jewelry ego items (*)" },
 
-    { &no_selling,                  FALSE, OPT_PAGE_BIRTH, 6, 22,
+    { &no_selling,                  TRUE, OPT_PAGE_BIRTH, 6, 22,
     "no_selling",                   "Disable selling but increase gold drops" },
 
     { &reduce_uniques,              FALSE, OPT_PAGE_BIRTH, 6, 26,

@@ -2235,6 +2235,9 @@ option_type option_info[] =
     { &equippy_chars,               TRUE,  OPT_PAGE_TEXT, 1, 12,
     "equippy_chars",                "Display 'equippy' chars" },
 
+    { &suppress_main_messages,      FALSE, OPT_PAGE_TEXT, 2, 14,
+    "suppress_main_messages",       "Suppress most ordinary messages in main view" },
+
     { &display_hp_bar,              FALSE,  OPT_PAGE_TEXT, 1, 1,
     "display_hp_bar",               "Display player hp bar" },
 

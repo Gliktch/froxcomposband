@@ -16,6 +16,29 @@ static rect_t    _msg_line_rect;
 static doc_ptr   _msg_line_doc = NULL;
 static doc_pos_t _msg_line_sync_pos;
 static doc_pos_t _msg_line_last_msg_pos;
+static int       _msg_force_display = 0;
+
+void cmsg_print(byte color, cptr msg);
+
+static void _msg_push_force_display(void)
+{
+    _msg_force_display++;
+}
+
+static void _msg_pop_force_display(void)
+{
+    assert(_msg_force_display > 0);
+    _msg_force_display--;
+}
+
+static void _msg_print_for_prompt(byte color, cptr msg)
+{
+    _msg_push_force_display();
+    cmsg_print(color, msg);
+    _msg_pop_force_display();
+    if (suppress_main_messages)
+        fix_message();
+}
 
 msg_ptr _msg_alloc(cptr s)
 {
@@ -382,7 +405,7 @@ static char msg_prompt_imp(cptr prompt, char keys[], int options)
         msg_boundary();
 
     auto_more_state = AUTO_MORE_PROMPT;
-    msg_print(prompt);
+    _msg_print_for_prompt(TERM_WHITE, prompt);
 
     for (;;)
     {
@@ -416,7 +439,7 @@ char msg_prompt(cptr prompt, char keys[], int options)
 {
     char ch = msg_prompt_imp(prompt, keys, options);
     if (isprint(ch))
-        msg_print(format("=> <color:y>%c</color>.", ch));
+        _msg_print_for_prompt(TERM_WHITE, format("=> <color:y>%c</color>.", ch));
     msg_line_clear();
     return ch;
 }
@@ -432,7 +455,7 @@ bool msg_command(cptr prompt, char *cmd)
     bool result = FALSE;
     msg_boundary();
     auto_more_state = AUTO_MORE_PROMPT;
-    msg_print(prompt);
+    _msg_print_for_prompt(TERM_WHITE, prompt);
 
     if (get_com_no_macros)
         *cmd = inkey_special(FALSE);
@@ -440,11 +463,11 @@ bool msg_command(cptr prompt, char *cmd)
         *cmd = inkey();
 
     if (*cmd == ESCAPE)
-        cmsg_print(TERM_L_RED, "Cancelled");
+        _msg_print_for_prompt(TERM_L_RED, "Cancelled");
     else
     {
         if (isprint(*cmd))
-            msg_print(format("=> <color:y>%c</color>.", *cmd));
+            _msg_print_for_prompt(TERM_WHITE, format("=> <color:y>%c</color>.", *cmd));
         result = TRUE;
     }
     msg_line_clear();
@@ -456,12 +479,12 @@ bool msg_input(cptr prompt, char *buf, int len)
     bool result = FALSE;
     msg_boundary();
     auto_more_state = AUTO_MORE_PROMPT;
-    msg_print(prompt);
+    _msg_print_for_prompt(TERM_WHITE, prompt);
     result = askfor(buf, len);
     if (result)
-        msg_print(buf);
+        _msg_print_for_prompt(TERM_WHITE, buf);
     else
-        cmsg_print(TERM_L_RED, "Cancelled");
+        _msg_print_for_prompt(TERM_L_RED, "Cancelled");
     msg_line_clear();
     return result;
 }
@@ -487,7 +510,8 @@ void cmsg_print(byte color, cptr msg)
             cmsg_add(color, msg);
     }
 
-    msg_line_display(color, msg);
+    if (!suppress_main_messages || _msg_force_display)
+        msg_line_display(color, msg);
 
     if (auto_more_state == AUTO_MORE_SKIP_ONE)
         auto_more_state = AUTO_MORE_PROMPT;
@@ -590,7 +614,7 @@ bool msg_input_num(cptr prompt, int *num, int min, int max)
     sprintf(buf, "%d", MAX(min, MIN(max, *num)));
     msg_boundary();
     auto_more_state = AUTO_MORE_PROMPT;
-    msg_format("<color:y>%s <color:w>(%d to %d)</color>:</color> ", prompt, min, max);
+    _msg_print_for_prompt(TERM_WHITE, format("<color:y>%s <color:w>(%d to %d)</color>:</color> ", prompt, min, max));
     result = askfor_aux(buf, 11, FALSE);
     if (result)
     {
@@ -602,10 +626,10 @@ bool msg_input_num(cptr prompt, int *num, int min, int max)
         if (*num > max) *num = max;
         if (*num < min) *num = min;
 
-        cmsg_format(TERM_YELLOW, "%d", *num);
+        _msg_print_for_prompt(TERM_YELLOW, format("%d", *num));
     }
     else
-        cmsg_print(TERM_L_RED, "Cancelled");
+        _msg_print_for_prompt(TERM_L_RED, "Cancelled");
     msg_line_clear();
     return result;
 }

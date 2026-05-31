@@ -314,6 +314,7 @@ extern bool show_item_markers;  /* Show item-state markers in object listings */
 extern bool show_special_inventories; /* Show race/class special inventories in standard inventory lists */
 extern bool shops_mark_unseen;    /* Indicate unseen flavors in shops */
 extern bool equippy_chars;    /* Display 'equippy' chars */
+extern bool suppress_main_messages; /* Suppress most ordinary messages in the main view */
 extern bool display_food_bar;    /* Like the monster health bar, only tastier! */
 extern bool display_hp_bar; /* Display player HP just like the monster health bar */
 extern bool display_sp_bar; /* Display player SP just like the monster health bar */
@@ -1904,6 +1905,7 @@ extern void update_stuff(void);
 extern void redraw_stuff(void);
 extern void window_stuff(void);
 extern void handle_stuff(void);
+extern void fix_message(void);
 extern bool arena_death_recover(void);
 extern bool battle_curse_boot(void);
 extern bool heavy_armor(void);

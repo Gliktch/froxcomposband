@@ -2705,7 +2705,7 @@ static void _fix_message_aux(void)
 /*
  * Display recent messages in sub-windows
  */
-static void fix_message(void)
+void fix_message(void)
 {
     int j;
 

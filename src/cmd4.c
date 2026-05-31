@@ -18,6 +18,7 @@
 #include <assert.h>
 
 static void browser_cursor(char ch, int *column, int *grp_cur, int grp_cnt, int *list_cur, int list_cnt);
+static bool _has_message_window(void);
 
 /*
  * A set of functions to maintain automatic dumps of various kinds.
@@ -1871,6 +1872,15 @@ void do_cmd_options_aux(int page, cptr info)
                 }
                 else
                 {
+                    if (option_info[opt[k]].o_var == &suppress_main_messages && !_has_message_window())
+                    {
+                        char confirm = msg_prompt(
+                            "No Messages subwindow detected. Suppress main-view messages anyway? <color:y>[y/N]</color>",
+                            "ny",
+                            PROMPT_DEFAULT
+                        );
+                        if (confirm == 'n') break;
+                    }
                     (*option_info[opt[k]].o_var) = TRUE;
                     k = (k + 1) % n;
                     if (scroll_mode)
@@ -2000,6 +2010,7 @@ void do_cmd_options_aux(int page, cptr info)
 static void do_cmd_options_win(void)
 {
     int i, j, d;
+    bool has_message_window = FALSE;
 
     int y = 0;
     int x = 0;
@@ -2146,6 +2157,21 @@ static void do_cmd_options_win(void)
         }
     }
 
+    for (j = 0; j < 8; j++)
+    {
+        if (!angband_term[j]) continue;
+        if (window_flag[j] & PW_MESSAGE)
+        {
+            has_message_window = TRUE;
+            break;
+        }
+    }
+    if (suppress_main_messages && !has_message_window)
+    {
+        suppress_main_messages = FALSE;
+        msg_print("No subwindow for Messages; main-view messages restored.");
+    }
+
     /* Notice changes */
     for (j = 0; j < 8; j++)
     {
@@ -2171,6 +2197,17 @@ static void do_cmd_options_win(void)
     }
 }
 
+static bool _has_message_window(void)
+{
+    int j;
+
+    for (j = 0; j < 8; j++)
+    {
+        if (!angband_term[j]) continue;
+        if (window_flag[j] & PW_MESSAGE) return TRUE;
+    }
+    return FALSE;
+}
 
 
 #define OPT_NUM 15

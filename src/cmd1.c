@@ -3719,64 +3719,105 @@ bool _melee_attack_not_confirmed(monster_type *m_ptr)
     static int last_okay_race = 0;
     object_type *eka = NULL;
     cptr insc, pos;
-    if (!p_ptr->weapon_ct) return FALSE;
     if (m_ptr->mflag2 & MFLAG2_MON_HIT_OKAY) return FALSE;
-    if (m_ptr->r_idx == last_okay_race)
+    if (m_ptr->ml && m_ptr->r_idx == last_okay_race)
     {
         m_ptr->mflag2 |= MFLAG2_MON_HIT_OKAY;
         return FALSE;
     }
     last_okay_race = 0;
-    for (i = 0; i < MAX_ARMS; i++)
+
+    if (p_ptr->weapon_ct)
     {
-        int rhand = 2*i;
-        int lhand = 2*i+1;
-
-        if (p_ptr->weapon_info[rhand].wield_how != WIELD_NONE)
-            eka = equip_obj(p_ptr->weapon_info[rhand].slot);
-
-        else if (p_ptr->weapon_info[lhand].wield_how != WIELD_NONE)
-            eka = equip_obj(p_ptr->weapon_info[lhand].slot);
-
-        if (eka) break;
-    }
-    if (!eka) return FALSE; /* paranoia */
-    if (!eka->inscription) return FALSE;
-    insc = quark_str(eka->inscription);
-    for (pos = strchr(insc, '!'); pos && *pos; pos = strchr(pos + 1, '!'))
-    {
-        for (;;)
+        for (i = 0; i < MAX_ARMS; i++)
         {
-            pos++;
-            if (!*pos) return FALSE;
-            else if (*pos == '?')
+            int rhand = 2*i;
+            int lhand = 2*i+1;
+
+            if (p_ptr->weapon_info[rhand].wield_how != WIELD_NONE)
+                eka = equip_obj(p_ptr->weapon_info[rhand].slot);
+
+            else if (p_ptr->weapon_info[lhand].wield_how != WIELD_NONE)
+                eka = equip_obj(p_ptr->weapon_info[lhand].slot);
+
+            if (eka) break;
+        }
+    }
+
+    if (eka && eka->inscription)
+    {
+        insc = quark_str(eka->inscription);
+        for (pos = strchr(insc, '!'); pos && *pos; pos = strchr(pos + 1, '!'))
+        {
+            for (;;)
             {
-                char m_name[80];
-                while ((*(pos++)) && (isdigit(*pos)))
+                pos++;
+                if (!*pos) return FALSE;
+                else if (*pos == '?')
                 {
-                    int luku = D2I(*pos);
-                    taso *= 10;
-                    taso += luku;
-                    taso = MIN(taso, 128); /* paranoia */
+                    char m_name[80];
+                    bool needs_confirm = TRUE;
+
+                    taso = 0;
+                    while ((*(pos++)) && (isdigit(*pos)))
+                    {
+                        int luku = D2I(*pos);
+                        taso *= 10;
+                        taso += luku;
+                        taso = MIN(taso, 128); /* paranoia */
+                    }
+
+                    if (taso)
+                    {
+                        needs_confirm = FALSE;
+                        if (!m_ptr->ml
+                         || !(m_ptr->mflag2 & MFLAG2_KNOWN))
+                        {
+                            needs_confirm = TRUE;
+                        }
+                        else if (r_info[m_ptr->ap_r_idx].level >= taso)
+                        {
+                            needs_confirm = TRUE;
+                        }
+                    }
+
+                    if (!needs_confirm) return FALSE;
+
+                    monster_desc(m_name, m_ptr, 0);
+                    if (taso)
+                    {
+                        if (!get_check(format("This foe may be tougher than level %d. Really attack %s? ", taso, m_name)))
+                            return TRUE;
+                    }
+                    else
+                    {
+                        if (!get_check(format("Really attack %s? ", m_name)))
+                            return TRUE;
+                    }
+
+                    m_ptr->mflag2 |= MFLAG2_MON_HIT_OKAY;
+                    if (m_ptr->ml) last_okay_race = m_ptr->r_idx;
+                    return FALSE;
                 }
-                if (r_info[m_ptr->r_idx].level < taso) return FALSE;
-                monster_desc(m_name, m_ptr, 0);
-                if (!get_check(format("Really attack %s? ", m_name)))
+                else if (!isalpha(*pos))
                 {
-                    return TRUE;
+                    if (*pos == '!') pos--;
+                    break;
                 }
-                
-                m_ptr->mflag2 |= MFLAG2_MON_HIT_OKAY;
-                last_okay_race = m_ptr->r_idx;
-                return FALSE;
-            }
-            else if (!isalpha(*pos))
-            {
-                if (*pos == '!') pos--;
-                break;
             }
         }
     }
+
+    if (confirm_melee_visible && m_ptr->ml)
+    {
+        char m_name[80];
+        monster_desc(m_name, m_ptr, 0);
+        if (!get_check(format("Really attack %s? ", m_name)))
+            return TRUE;
+        m_ptr->mflag2 |= MFLAG2_MON_HIT_OKAY;
+        last_okay_race = m_ptr->r_idx;
+    }
+
     return FALSE;
 }
 
@@ -3860,6 +3901,19 @@ bool py_attack(int y, int x, int mode)
         return _py_attack_exit();
     }
 
+    if ( confirm_melee_unseen
+      && !m_ptr->ml
+      && !(m_ptr->mflag2 & MFLAG2_MON_HIT_OKAY)
+      && !(p_ptr->stun || p_ptr->confused || p_ptr->image || IS_SHERO()) )
+    {
+        if (!get_check_strict("There's something there you can't see! Really hit it? ", CHECK_DEFAULT_Y))
+        {
+            energy_use = 0;
+            return _py_attack_exit();
+        }
+        m_ptr->mflag2 |= MFLAG2_MON_HIT_OKAY;
+    }
+
     if (_melee_attack_not_confirmed(m_ptr))
     {
         energy_use = 0;
@@ -3879,7 +3933,7 @@ bool py_attack(int y, int x, int mode)
         }
         else if (p_ptr->pclass != CLASS_BERSERKER)
         {
-            if (get_check("Really hit it? "))
+            if (get_check("That target does not appear hostile. Really hit it? "))
             {
                 virtue_add(VIRTUE_INDIVIDUALISM, 1);
                 virtue_add(VIRTUE_HONOUR, -1);
@@ -6590,4 +6644,3 @@ void travel_step(void)
         }
     }
 }
-

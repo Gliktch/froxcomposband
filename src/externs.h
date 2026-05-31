@@ -262,6 +262,8 @@ extern bool auto_target;       /* Automatically target nearest monster */
 extern bool always_repeat;    /* Repeat obvious commands */
 extern bool confirm_destroy;    /* Prompt for destruction of known worthless items */
 extern bool confirm_wear;    /* Confirm to wear/wield known cursed items */
+extern bool confirm_melee_unseen; /* Confirm melee attacks against unseen monsters */
+extern bool confirm_melee_visible; /* Confirm melee attacks against visible monsters */
 extern bool prompt_on_failure; /* Give -more- prompt on device/spell fails */
 extern bool target_pet;    /* Allow targetting pets */
 

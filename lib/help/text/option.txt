@@ -365,6 +365,20 @@ Input Options
   This option prompts you if you attempt to wear or wield an item known 
   to be cursed, to make sure you are equipping it intentionally.
   
+  Confirmation on melee attacking unseen monsters
+  (confirm_melee_unseen)
+  If this option is on, attempting a blind melee attack against a 
+  monster you cannot see asks for confirmation first. The prompt 
+  defaults to yes, so a careless keypress still continues the attack, 
+  but n, N or Esc will cancel it.
+  
+  Confirmation on melee attacking visible monsters
+  (confirm_melee_visible)
+  If this option is on, visible melee attacks ask for confirmation 
+  before the first hit, much like wielding a weapon inscribed with !?. 
+  Once you confirm an attack, repeated hits on that monster are assumed 
+  to be intentional.
+  
   Allow targetting pets (target_pet)
   If this option is off, monster-targetting prompts will not offer pets 
   as target options (a pet can still be targeted if necessary, by 

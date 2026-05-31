@@ -2141,6 +2141,12 @@ option_type option_info[] =
     { &confirm_wear,                TRUE,  OPT_PAGE_INPUT, 5, 4,
     "confirm_wear",                 "Confirm to wear/wield known cursed items" },
 
+    { &confirm_melee_unseen,        TRUE,  OPT_PAGE_INPUT, 5, 5,
+    "confirm_melee_unseen",         "Confirmation on melee attacking unseen monsters" },
+
+    { &confirm_melee_visible,       FALSE, OPT_PAGE_INPUT, 5, 6,
+    "confirm_melee_visible",        "Confirmation on melee attacking visible monsters" },
+
     { &target_pet,                  FALSE, OPT_PAGE_INPUT, 2, 5,
     "target_pet",                   "Allow targetting pets" },
 

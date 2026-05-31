@@ -177,6 +177,12 @@ If this option is off, no confirmation will be asked if you attempt to destroy a
 <topic:confirm_wear><color:U>Confirm to wear/wield known cursed items</color> <color:D>(confirm_wear)</color>
 This option prompts you if you attempt to wear or wield an item known to be cursed, to make sure you are equipping it intentionally.
 
+<topic:confirm_melee_unseen><color:U>Confirmation on melee attacking unseen monsters</color> <color:D>(confirm_melee_unseen)</color>
+If this option is on, attempting a blind melee attack against a monster you cannot see asks for confirmation first. The prompt defaults to yes, so a careless keypress still continues the attack, but <color:keypress>n</color>, <color:keypress>N</color> or <color:keypress>Esc</color> will cancel it.
+
+<topic:confirm_melee_visible><color:U>Confirmation on melee attacking visible monsters</color> <color:D>(confirm_melee_visible)</color>
+If this option is on, visible melee attacks ask for confirmation before the first hit, much like wielding a weapon inscribed with <color:keyword>!?</color>. Once you confirm an attack, repeated hits on that monster are assumed to be intentional.
+
 <topic:target_pet><color:U>Allow targetting pets</color> <color:D>(target_pet)</color>
 If this option is off, monster-targetting prompts will not offer pets as target options (a pet can still be targeted if necessary, by switching into free-targetting mode). If this option is on, all monsters including pets will be offered as target options.
 

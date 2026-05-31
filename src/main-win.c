@@ -998,6 +998,8 @@ static void save_prefs(void)
     WritePrivateProfileString("Angband", "MonListWidth", buf, ini_file);
     wsprintf(buf, "%d", message_pane_wrap_width_normalize(message_pane_wrap_width));
     WritePrivateProfileString("Angband", "MsgPaneWrapWidth", buf, ini_file);
+    wsprintf(buf, "%d", autorun_max_steps);
+    WritePrivateProfileString("Angband", "AutorunMaxSteps", buf, ini_file);
 
     /* Save window prefs */
     for (i = 0; i < MAX_TERM_DATA; ++i)
@@ -1097,6 +1099,7 @@ static void load_prefs(void)
     object_list_width = MAX(24, GetPrivateProfileInt("Angband", "ObjListWidth", object_list_width, ini_file));
     monster_list_width = MAX(24, GetPrivateProfileInt("Angband", "MonListWidth", monster_list_width, ini_file));
     message_pane_wrap_width = message_pane_wrap_width_normalize(GetPrivateProfileInt("Angband", "MsgPaneWrapWidth", message_pane_wrap_width, ini_file));
+    autorun_max_steps = autorun_max_steps_normalize(GetPrivateProfileInt("Angband", "AutorunMaxSteps", autorun_max_steps, ini_file));
 
     /* Load window prefs */
     for (i = 0; i < MAX_TERM_DATA; ++i)

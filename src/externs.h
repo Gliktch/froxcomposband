@@ -357,7 +357,10 @@ extern bool mon_list_width;
 extern byte monster_list_width;
 extern bool msg_pane_wrap_width;
 extern byte message_pane_wrap_width;
+extern bool autorun_max_steps_dummy;
+extern byte autorun_max_steps;
 extern byte message_pane_wrap_width_normalize(byte width);
+extern byte autorun_max_steps_normalize(byte steps);
 
 /*** Game-Play Options ***/
 

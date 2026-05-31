@@ -326,6 +326,8 @@ bool mon_list_width;
 byte monster_list_width = 50;
 bool msg_pane_wrap_width;
 byte message_pane_wrap_width = 151;
+bool autorun_max_steps_dummy;
+byte autorun_max_steps = 0;
 
 /*** Game-Play Options ***/
 

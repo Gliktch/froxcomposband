@@ -418,6 +418,9 @@ static char msg_prompt_imp(cptr prompt, char keys[], int options)
         if (ch == '\r' && (options & PROMPT_RETURN_1))
             return keys[1];
 
+        if (ch == ' ' && (options & PROMPT_SPACE_1))
+            return keys[1];
+
         for (i = 0; ; i++)
         {
             char choice = keys[i];

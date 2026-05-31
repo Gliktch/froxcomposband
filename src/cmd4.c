@@ -1466,6 +1466,16 @@ byte message_pane_wrap_width_normalize(byte width)
     return width - ((width - 80) % 10);
 }
 
+byte autorun_max_steps_normalize(byte steps)
+{
+    if (!steps) return 0;
+    if (steps > 100) return 0;
+    if (steps < 6) return 6;
+    if (steps <= 20)
+        return steps - ((steps - 6) % 2);
+    return steps - (steps % 10);
+}
+
 static byte _inc_message_pane_wrap_width(byte width)
 {
     width = message_pane_wrap_width_normalize(width);
@@ -1484,6 +1494,26 @@ static byte _dec_message_pane_wrap_width(byte width)
     if (width <= 40) return width - 2;
     if (width <= 80) return width - 4;
     return width - 10;
+}
+
+static byte _inc_autorun_max_steps(byte steps)
+{
+    steps = autorun_max_steps_normalize(steps);
+    if (!steps) return 6;
+    if (steps < 20) return steps + 2;
+    if (steps == 20) return 30;
+    if (steps < 100) return steps + 10;
+    return 0;
+}
+
+static byte _dec_autorun_max_steps(byte steps)
+{
+    steps = autorun_max_steps_normalize(steps);
+    if (!steps) return 100;
+    if (steps <= 6) return 0;
+    if (steps <= 20) return steps - 2;
+    if (steps <= 30) return 20;
+    return steps - 10;
 }
 
 
@@ -1707,6 +1737,15 @@ void do_cmd_options_aux(int page, cptr info)
                     sprintf(buf + strlen(buf), "%-3d ", message_pane_wrap_width);
                 sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
+            else if (option_info[opt[i]].o_var == &autorun_max_steps_dummy)
+            {
+                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                if (!autorun_max_steps)
+                    sprintf(buf + strlen(buf), "off ");
+                else
+                    sprintf(buf + strlen(buf), "%-3d ", autorun_max_steps);
+                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+            }
             else if (option_info[opt[i]].o_var == &single_pantheon)
             {
                 sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
@@ -1868,6 +1907,10 @@ void do_cmd_options_aux(int page, cptr info)
                 {
                     message_pane_wrap_width = _inc_message_pane_wrap_width(message_pane_wrap_width);
                 }
+                else if (option_info[opt[k]].o_var == &autorun_max_steps_dummy)
+                {
+                    autorun_max_steps = _inc_autorun_max_steps(autorun_max_steps);
+                }
                 else if (option_info[opt[k]].o_var == &reduce_uniques)
                 {
                     if (!reduce_uniques)
@@ -1985,6 +2028,10 @@ void do_cmd_options_aux(int page, cptr info)
                 else if (option_info[opt[k]].o_var == &msg_pane_wrap_width)
                 {
                     message_pane_wrap_width = _dec_message_pane_wrap_width(message_pane_wrap_width);
+                }
+                else if (option_info[opt[k]].o_var == &autorun_max_steps_dummy)
+                {
+                    autorun_max_steps = _dec_autorun_max_steps(autorun_max_steps);
                 }
                 else if (option_info[opt[k]].o_var == &ironman_empty_levels)
                 {

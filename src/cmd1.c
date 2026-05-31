@@ -6307,6 +6307,8 @@ static bool run_test(void)
 /*
  * Take one step along the current "run" path
  */
+static bool _autorun_continue_prompt(void);
+
 void run_step(int dir)
 {
     bool ongelma = FALSE;
@@ -6363,7 +6365,18 @@ void run_step(int dir)
     }
 
     /* Decrease the run counter */
-    if (--running <= 0) return;
+    if (--running <= 0)
+    {
+        if (autorun_max_steps && !dir)
+        {
+            if (_autorun_continue_prompt())
+                running = autorun_max_steps;
+            else
+                return;
+        }
+        else
+            return;
+    }
 
     /* Take time */
     energy_use = 100;
@@ -6474,6 +6487,12 @@ static int travel_cost(point_t pt)
     return travel.cost[pt.y][pt.x];
 }
 
+static bool _autorun_continue_prompt(void)
+{
+    return msg_prompt("Keep running? <color:y>[Y/n]</color>", "nY",
+        PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_RETURN_1 | PROMPT_SPACE_1 | PROMPT_FORCE_CHOICE) == 'Y';
+}
+
 void travel_step(void)
 {
     int i;
@@ -6556,7 +6575,19 @@ void travel_step(void)
         travel_end();
     }
     else
-        travel.run--;
-}
+    {
+        if (old_run == 255 && autorun_max_steps)
+            travel.run = autorun_max_steps - 1;
+        else
+            travel.run = old_run - 1;
 
+        if (!travel.run && autorun_max_steps)
+        {
+            if (_autorun_continue_prompt())
+                travel.run = autorun_max_steps;
+            else
+                travel_end();
+        }
+    }
+}
 

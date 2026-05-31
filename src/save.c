@@ -860,7 +860,8 @@ static void wr_extra(savefile_ptr file)
     savefile_write_s16b(file, p_ptr->pet_lv_kills);
     savefile_write_s32b(file, p_ptr->p_stat);
     savefile_write_s32b(file, message_pane_wrap_width > 150 ? 0 : message_pane_wrap_width_normalize(message_pane_wrap_width));
-    for (i = 0; i < 14; i++)
+    savefile_write_s32b(file, autorun_max_steps);
+    for (i = 0; i < 13; i++)
         savefile_write_s32b(file, 0); /* Future use */
 
     for (i = 0; i < MAX_POWER_LABEL; i++)

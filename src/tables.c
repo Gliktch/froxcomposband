@@ -2353,6 +2353,9 @@ option_type option_info[] =
     { &travel_ignore_items,         TRUE, OPT_PAGE_DISTURBANCE, 2, 30,
     "travel_ignore_items",          "Ignore identified items while travelling" },
 
+    { &autorun_max_steps_dummy,     TRUE, OPT_PAGE_DISTURBANCE, 2, 0,
+    "autorun_max_steps",            "Max autorun steps before stopping" },
+
     { &check_abort,                 TRUE,  OPT_PAGE_DISTURBANCE, 1, 18,
     "check_abort",                  "Check for user abort of automated input" },
 

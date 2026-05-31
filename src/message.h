@@ -49,6 +49,7 @@ extern void cmsg_format(byte color, cptr fmt, ...);
 #define PROMPT_NEW_LINE       0x04
 #define PROMPT_ESCAPE_DEFAULT 0x08
 #define PROMPT_RETURN_1       0x10
+#define PROMPT_SPACE_1        0x20
 #define PROMPT_DEFAULT (PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT)
 #define PROMPT_YES_NO  (PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_RETURN_1)
 extern char msg_prompt(cptr prompt, char keys[], int options);

@@ -2460,7 +2460,12 @@ void do_cmd_run(void)
     switch (get_rep_dir(&dir,FALSE))
     {
     case GET_DIR_OK:
-        running = (command_arg ? command_arg : 1000);
+        if (command_arg)
+            running = command_arg;
+        else if (autorun_max_steps)
+            running = autorun_max_steps + 1;
+        else
+            running = 1000;
         run_step(dir);
         break;
     case GET_DIR_RANDOM:
@@ -4177,4 +4182,3 @@ void do_cmd_get_nearest(void)
         else if (best >= TRAVEL_UNABLE) msg_print("You cannot find a route to any interesting object.");
     }
 }
-

@@ -822,7 +822,12 @@ static void rd_extra(savefile_ptr file)
     if (savefile_is_older_than(file, 7, 1, 2, 2)) p_ptr->pet_lv_kills = 0;
     else p_ptr->pet_lv_kills = savefile_read_s16b(file);
     p_ptr->p_stat = (byte)savefile_read_s32b(file);
-    for (i = 0; i < 15; i++) (void)savefile_read_s32b(file);
+    message_pane_wrap_width = savefile_read_s32b(file);
+    if (!message_pane_wrap_width)
+        message_pane_wrap_width = 151;
+    else
+        message_pane_wrap_width = message_pane_wrap_width_normalize(message_pane_wrap_width);
+    for (i = 0; i < 14; i++) (void)savefile_read_s32b(file);
     wipe_labels();
     if (!savefile_is_older_than(file, 7, 1, 0, 4))
     {

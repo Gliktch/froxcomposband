@@ -2652,6 +2652,9 @@ option_type option_info[] =
     { &mon_list_width,              TRUE,  OPT_PAGE_LIST, 4, 1,
     "monster_list_width",           "Maximum width of the monster list" },
 
+    { &msg_pane_wrap_width,         TRUE,  OPT_PAGE_LIST, 4, 2,
+    "message_pane_wrap_width",      "Word-wrap width for the Messages pane" },
+
     /*** End of Table ***/
 
     { NULL,                         0, 0, 0, 0,

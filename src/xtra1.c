@@ -2670,10 +2670,13 @@ static void _fix_message_aux(void)
     doc_ptr doc;
     int     current_turn = 0;
     int     current_row = 0;
-    int     w, h;
+    int     w, h, doc_width;
 
     Term_get_size(&w, &h);
-    doc = doc_alloc(w);
+    doc_width = w;
+    if (message_pane_wrap_width <= 150)
+        doc_width = MIN(doc_width, message_pane_wrap_width);
+    doc = doc_alloc(doc_width);
 
     for (i = MIN(h, msg_count() - 1); i >= 0; i--)
     {

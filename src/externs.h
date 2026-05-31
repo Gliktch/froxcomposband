@@ -355,6 +355,9 @@ extern bool obj_list_width;
 extern byte object_list_width;
 extern bool mon_list_width;
 extern byte monster_list_width;
+extern bool msg_pane_wrap_width;
+extern byte message_pane_wrap_width;
+extern byte message_pane_wrap_width_normalize(byte width);
 
 /*** Game-Play Options ***/
 

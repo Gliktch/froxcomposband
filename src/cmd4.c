@@ -1455,6 +1455,37 @@ static s16b toggle_frequency(s16b current)
     }
 }
 
+byte message_pane_wrap_width_normalize(byte width)
+{
+    if (width > 150) return 151;
+    if (width < 20) return 20;
+    if (width <= 40)
+        return width - ((width - 20) % 2);
+    if (width <= 80)
+        return width - ((width - 40) % 4);
+    return width - ((width - 80) % 10);
+}
+
+static byte _inc_message_pane_wrap_width(byte width)
+{
+    width = message_pane_wrap_width_normalize(width);
+    if (width > 150) return 20;
+    if (width < 40) return width + 2;
+    if (width < 80) return width + 4;
+    if (width < 150) return width + 10;
+    return 151;
+}
+
+static byte _dec_message_pane_wrap_width(byte width)
+{
+    width = message_pane_wrap_width_normalize(width);
+    if (width > 150) return 150;
+    if (width <= 20) return 151;
+    if (width <= 40) return width - 2;
+    if (width <= 80) return width - 4;
+    return width - 10;
+}
+
 
 /*
  * Interact with some options for autosaving
@@ -1667,6 +1698,15 @@ void do_cmd_options_aux(int page, cptr info)
                 sprintf(buf + strlen(buf), "%-3d ", monster_list_width);
                 sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
+            else if (option_info[opt[i]].o_var == &msg_pane_wrap_width)
+            {
+                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                if (message_pane_wrap_width > 150)
+                    sprintf(buf + strlen(buf), "off ");
+                else
+                    sprintf(buf + strlen(buf), "%-3d ", message_pane_wrap_width);
+                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+            }
             else if (option_info[opt[i]].o_var == &single_pantheon)
             {
                 sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
@@ -1824,6 +1864,10 @@ void do_cmd_options_aux(int page, cptr info)
                     monster_list_width += 2;
                     if (monster_list_width > maksi) monster_list_width = maksi;
                 }
+                else if (option_info[opt[k]].o_var == &msg_pane_wrap_width)
+                {
+                    message_pane_wrap_width = _inc_message_pane_wrap_width(message_pane_wrap_width);
+                }
                 else if (option_info[opt[k]].o_var == &reduce_uniques)
                 {
                     if (!reduce_uniques)
@@ -1937,6 +1981,10 @@ void do_cmd_options_aux(int page, cptr info)
                 {
                     monster_list_width -= 2;
                     if (monster_list_width < 24) monster_list_width = 24;
+                }
+                else if (option_info[opt[k]].o_var == &msg_pane_wrap_width)
+                {
+                    message_pane_wrap_width = _dec_message_pane_wrap_width(message_pane_wrap_width);
                 }
                 else if (option_info[opt[k]].o_var == &ironman_empty_levels)
                 {

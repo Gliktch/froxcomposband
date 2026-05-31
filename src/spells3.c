@@ -4194,6 +4194,38 @@ int set_cold_destroy(object_type *o_ptr)
  * New-style wands and rods handled correctly. -LM-
  * Returns TRUE if we must force a -more- prompt.
  */
+static bool _res_save_inventory_inven_prot(int which)
+{
+    int power = res_is_low(which) ? 66 : 41;
+
+    if (prace_is_(RACE_ENT) && which == RES_FIRE)
+        power = 54;
+    if (prace_is_(RACE_ANDROID) && which == RES_ELEC)
+        power = 54;
+    if (prace_is_(RACE_WEREWOLF) && which == RES_FIRE)
+        power = 53;
+
+    if (p_ptr->tim_inven_prot)
+    {
+        int pct = res_pct(which);
+        int prot_pct = res_pct_aux(which, p_ptr->resist[which] + 1);
+
+        if (res_is_low(which) && prot_pct < 50)
+            prot_pct = 50;
+        if (prot_pct > pct)
+            pct = prot_pct;
+
+        if (randint0(power) < pct)
+        {
+            equip_learn_resist(res_get_object_flag(which));
+            return TRUE;
+        }
+        return FALSE;
+    }
+
+    return res_save_inventory(which);
+}
+
 static bool _damage_obj(obj_ptr obj, int p1, int p2, int which_res, bool mon_attack)
 {
     int i, amt = 0;
@@ -4204,7 +4236,7 @@ static bool _damage_obj(obj_ptr obj, int p1, int p2, int which_res, bool mon_att
     {
         if ( randint0(100) < p1 /* Effects of Breath Quality */
           && randint0(100) < p2 /* Effects of Inventory Protection (Rune or Spell) */
-          && !res_save_inventory(which_res) ) /* Effects of Resistance */
+          && !_res_save_inventory_inven_prot(which_res) ) /* Effects of Resistance */
         {
             amt++;
         }

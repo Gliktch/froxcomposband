@@ -110,6 +110,25 @@ static int _aura_dam_p(int taso)
     return 2 + damroll(taso * 2 - 1 + (p_ptr->lev / 10), 2 + (p_ptr->lev / 10));
 }
 
+static void _anti_theft_zap(monster_type *m_ptr, monster_race *r_ptr, int m_idx, cptr m_name, bool *blinked, bool *alive)
+{
+    if (!(r_ptr->flagsr & RFR_EFF_IM_ELEC_MASK))
+    {
+        bool fear = FALSE;
+        int dam = mon_damage_mod(m_ptr, 2 + damroll(3, 4), FALSE);
+
+        msg_format("%^s is <color:b>zapped</color>!", m_name);
+
+        if (mon_take_hit(m_idx, dam, DAM_TYPE_AURA, &fear, " turns into a pile of cinder."))
+        {
+            *blinked = FALSE;
+            *alive = FALSE;
+        }
+    }
+    else
+        mon_lore_r(m_ptr, RFR_EFF_IM_ELEC_MASK);
+}
+
 bool drain_random_object(int who, int drain_amt, bool *drained)
 {
     u32b flgs[OF_ARRAY_SIZE];
@@ -557,6 +576,21 @@ bool make_attack_normal(int m_idx)
                     if (r_ptr->flags2 & RF2_THIEF)
                         mon_lore_2(m_ptr, RF2_THIEF);
 
+                    if (p_ptr->tim_inven_prot2 || p_ptr->tim_inven_prot)
+                    {
+                        _anti_theft_zap(m_ptr, r_ptr, m_idx, m_name, &blinked, &alive);
+                        obvious = TRUE;
+                        if (!alive) break;
+                    }
+
+                    if ((p_ptr->tim_inven_prot2 || p_ptr->tim_inven_prot) && one_in_(2))
+                    {
+                        msg_print("Your money pouch is protected!");
+                        if (alive) blinked = TRUE;
+                        obvious = TRUE;
+                        break;
+                    }
+
                     if (!p_ptr->paralyzed &&
                         (randint0(100) < (adj_dex_safe[p_ptr->stat_ind[A_DEX]] +
                                   p_ptr->lev)))
@@ -614,10 +648,17 @@ bool make_attack_normal(int m_idx)
                     if (r_ptr->flags2 & RF2_THIEF)
                         mon_lore_2(m_ptr, RF2_THIEF);
 
-                    if (p_ptr->tim_inven_prot2)
+                    if (p_ptr->tim_inven_prot2 || p_ptr->tim_inven_prot)
+                    {
+                        _anti_theft_zap(m_ptr, r_ptr, m_idx, m_name, &blinked, &alive);
+                        obvious = TRUE;
+                        if (!alive) break;
+                    }
+
+                    if (p_ptr->tim_inven_prot2 || (p_ptr->tim_inven_prot && one_in_(2)))
                     {
                         msg_print("Your inventory is protected!");
-                        blinked = TRUE;
+                        if (alive) blinked = TRUE;
                         obvious = TRUE;
                         break;
                     }
@@ -1389,4 +1430,3 @@ bool make_attack_normal(int m_idx)
     /* Assume we attacked */
     return TRUE;
 }
-

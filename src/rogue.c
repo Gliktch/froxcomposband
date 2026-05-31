@@ -580,7 +580,7 @@ cptr do_burglary_spell(int spell, int mode)
     /* Book of Shadows */
     case 24:
         if (name) return "Protect Loot";
-        if (desc) return "For a long time, items in your inventory will have a chance at resisting destruction.";
+        if (desc) return "For a while, your belongings are much more resistant to destruction or theft.";
 
         {
             int base = spell_power(plev*2);

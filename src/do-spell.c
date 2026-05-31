@@ -1827,8 +1827,8 @@ static cptr do_sorcery_spell(int spell, int mode)
         break;
 
     case 16:
-        if (name) return "Inventory Protection";
-        if (desc) return "For a short while, items in your pack have a chance to resist destruction.";
+        if (name) return "Inventory Resistance";
+        if (desc) return "For a short while, your belongings are much more resistant to destruction or theft.";
 
         {
             int base = spell_power(30);

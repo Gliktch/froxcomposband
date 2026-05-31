@@ -4217,7 +4217,6 @@ void calc_bonuses(void)
     if (p_ptr->tim_sustain_con) p_ptr->sustain_con = TRUE;
     if (p_ptr->tim_sustain_chr) p_ptr->sustain_chr = TRUE;
     if (p_ptr->tim_hold_life) p_ptr->hold_life++;
-    if (p_ptr->tim_inven_prot) p_ptr->inven_prot = TRUE;
     if (p_ptr->tim_quick_walk) p_ptr->quick_walk = TRUE;
 
     if (p_ptr->special_attack & ATTACK_ACID)

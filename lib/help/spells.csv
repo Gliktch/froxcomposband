@@ -47,7 +47,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Mage","Sorcery",14,"Haste Self",22,12,60
 "Mage","Sorcery",15,"Detection True",28,20,70
 "Mage","Sorcery",16,"Identify True",33,30,75
-"Mage","Sorcery",17,"Inventory Protection",3,3,25
+"Mage","Sorcery",17,"Inventory Resistance",3,3,25
 "Mage","Sorcery",18,"Stair Creation",10,10,80
 "Mage","Sorcery",19,"Sense Minds",14,10,60
 "Mage","Sorcery",20,"Teleport to town",18,30,70
@@ -399,7 +399,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Priest","Sorcery",14,"Haste Self",27,17,60
 "Priest","Sorcery",15,"Detection True",30,22,65
 "Priest","Sorcery",16,"Identify True",36,33,70
-"Priest","Sorcery",17,"Inventory Protection",7,7,20
+"Priest","Sorcery",17,"Inventory Resistance",7,7,20
 "Priest","Sorcery",18,"Stair Creation",14,14,75
 "Priest","Sorcery",19,"Sense Minds",18,18,55
 "Priest","Sorcery",20,"Teleport to town",20,33,65
@@ -718,7 +718,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Rogue","Sorcery",14,"Haste Self",32,25,70
 "Rogue","Sorcery",15,"Detection True",35,30,80
 "Rogue","Sorcery",16,"Identify True",40,35,75
-"Rogue","Sorcery",17,"Inventory Protection",9,3,65
+"Rogue","Sorcery",17,"Inventory Resistance",9,3,65
 "Rogue","Sorcery",18,"Stair Creation",14,10,80
 "Rogue","Sorcery",19,"Sense Minds",16,10,60
 "Rogue","Sorcery",20,"Teleport to town",22,40,80
@@ -865,7 +865,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Ranger","Sorcery",14,"Haste Self",34,35,70
 "Ranger","Sorcery",15,"Detection True",38,37,70
 "Ranger","Sorcery",16,"Identify True",42,40,90
-"Ranger","Sorcery",17,"Inventory Protection",15,7,75
+"Ranger","Sorcery",17,"Inventory Resistance",15,7,75
 "Ranger","Sorcery",18,"Stair Creation",17,17,70
 "Ranger","Sorcery",19,"Sense Minds",19,25,65
 "Ranger","Sorcery",20,"Teleport to town",22,40,70
@@ -1225,7 +1225,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Warrior-Mage","Sorcery",14,"Haste Self",27,18,60
 "Warrior-Mage","Sorcery",15,"Detection True",33,25,70
 "Warrior-Mage","Sorcery",16,"Identify True",40,40,75
-"Warrior-Mage","Sorcery",17,"Inventory Protection",4,4,25
+"Warrior-Mage","Sorcery",17,"Inventory Resistance",4,4,25
 "Warrior-Mage","Sorcery",18,"Stair Creation",14,12,80
 "Warrior-Mage","Sorcery",19,"Sense Minds",16,14,60
 "Warrior-Mage","Sorcery",20,"Teleport to town",21,35,70
@@ -1799,7 +1799,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "High-Mage","Sorcery",14,"Haste Self",17,10,50
 "High-Mage","Sorcery",15,"Detection True",24,15,60
 "High-Mage","Sorcery",16,"Identify True",28,20,65
-"High-Mage","Sorcery",17,"Inventory Protection",2,2,20
+"High-Mage","Sorcery",17,"Inventory Resistance",2,2,20
 "High-Mage","Sorcery",18,"Stair Creation",8,8,70
 "High-Mage","Sorcery",19,"Sense Minds",12,9,50
 "High-Mage","Sorcery",20,"Teleport to town",15,25,60
@@ -2201,7 +2201,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Sorcerer","Sorcery",14,"Haste Self",22,12,60
 "Sorcerer","Sorcery",15,"Detection True",28,20,70
 "Sorcerer","Sorcery",16,"Identify True",33,30,75
-"Sorcerer","Sorcery",17,"Inventory Protection",3,3,25
+"Sorcerer","Sorcery",17,"Inventory Resistance",3,3,25
 "Sorcerer","Sorcery",18,"Stair Creation",10,10,80
 "Sorcerer","Sorcery",19,"Sense Minds",14,10,60
 "Sorcerer","Sorcery",20,"Teleport to town",18,30,70
@@ -2899,7 +2899,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Blood-Mage","Sorcery",14,"Haste Self",22,12,60
 "Blood-Mage","Sorcery",15,"Detection True",28,20,70
 "Blood-Mage","Sorcery",16,"Identify True",33,30,75
-"Blood-Mage","Sorcery",17,"Inventory Protection",3,3,25
+"Blood-Mage","Sorcery",17,"Inventory Resistance",3,3,25
 "Blood-Mage","Sorcery",18,"Stair Creation",10,10,80
 "Blood-Mage","Sorcery",19,"Sense Minds",14,10,60
 "Blood-Mage","Sorcery",20,"Teleport to town",18,30,70
@@ -3280,7 +3280,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Yellow-Mage","Sorcery",14,"Haste Self",22,12,60
 "Yellow-Mage","Sorcery",15,"Detection True",28,20,70
 "Yellow-Mage","Sorcery",16,"Identify True",33,30,75
-"Yellow-Mage","Sorcery",17,"Inventory Protection",3,3,25
+"Yellow-Mage","Sorcery",17,"Inventory Resistance",3,3,25
 "Yellow-Mage","Sorcery",18,"Stair Creation",10,10,80
 "Yellow-Mage","Sorcery",19,"Sense Minds",14,10,60
 "Yellow-Mage","Sorcery",20,"Teleport to town",18,30,70
@@ -3610,7 +3610,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Gray-Mage","Sorcery",14,"Haste Self",22,12,60
 "Gray-Mage","Sorcery",15,"Detection True",28,20,70
 "Gray-Mage","Sorcery",16,"Identify True",33,30,75
-"Gray-Mage","Sorcery",17,"Inventory Protection",3,3,25
+"Gray-Mage","Sorcery",17,"Inventory Resistance",3,3,25
 "Gray-Mage","Sorcery",18,"Stair Creation",10,10,80
 "Gray-Mage","Sorcery",19,"Sense Minds",14,10,60
 "Gray-Mage","Sorcery",20,"Teleport to town",18,30,70
@@ -3962,7 +3962,7 @@ Class,Realm,Index,Name,Level,Cost,Fail
 "Skillmaster","Sorcery",14,"Haste Self",22,12,60
 "Skillmaster","Sorcery",15,"Detection True",28,20,70
 "Skillmaster","Sorcery",16,"Identify True",33,30,75
-"Skillmaster","Sorcery",17,"Inventory Protection",3,3,25
+"Skillmaster","Sorcery",17,"Inventory Resistance",3,3,25
 "Skillmaster","Sorcery",18,"Stair Creation",10,10,80
 "Skillmaster","Sorcery",19,"Sense Minds",14,10,60
 "Skillmaster","Sorcery",20,"Teleport to town",18,30,70

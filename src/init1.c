@@ -493,7 +493,7 @@ static cptr r_info_flags9[] =
     "XXX28",
     "XXX29",
     "XXX30",
-    "XXX31",
+    "RES_MANA",
     "DEPRECATED",
 };
 
@@ -5404,5 +5404,4 @@ errr parse_edit_file(cptr name, parser_f parser, int options)
     my_fclose(fp);
     return err;
 }
-
 

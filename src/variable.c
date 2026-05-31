@@ -290,6 +290,7 @@ bool show_special_inventories; /* Show race/class special inventories in standar
 bool shops_mark_unseen;    /* Indicate unseen flavors in shop inventories */
 bool equippy_chars;    /* Display 'equippy' chars */
 bool suppress_main_messages; /* Suppress most ordinary messages in the main view */
+bool display_percentages; /* Display percentages rather than status bars */
 bool display_food_bar;
 bool display_hp_bar;
 bool display_sp_bar;

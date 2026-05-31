@@ -2162,6 +2162,75 @@ static void prt_effects(void)
 /*****************************************************************************
  Health/Status Bars
  *****************************************************************************/
+static bool _use_percentage_bars(void)
+{
+    return display_percentages;
+}
+
+static bool _use_exact_percentage_bars(void)
+{
+    return _use_percentage_bars() && (easy_damage || p_ptr->wizard);
+}
+
+static int _coarse_percentage(int pct)
+{
+    if (pct >= 100) return 100;
+    if (pct <= 0) return 0;
+    return (pct / 10) * 10;
+}
+
+static void _format_percentage(char *buf, int pct, bool exact)
+{
+    if (pct >= 100)
+        sprintf(buf, "**%%");
+    else
+    {
+        if (!exact)
+            pct = _coarse_percentage(pct);
+        sprintf(buf, "%2d%%", pct);
+    }
+}
+
+static int _monster_primary_status(monster_type *m_ptr, byte *attr)
+{
+    if (MON_INVULNER(m_ptr))
+    {
+        *attr = TERM_WHITE;
+        return 'I';
+    }
+    if (MON_PARALYZED(m_ptr))
+    {
+        *attr = TERM_BLUE;
+        return 'P';
+    }
+    if (MON_CSLEEP(m_ptr))
+    {
+        *attr = TERM_BLUE;
+        return 'Z';
+    }
+    if (MON_CONFUSED(m_ptr))
+    {
+        *attr = TERM_UMBER;
+        return 'C';
+    }
+    if (MON_STUNNED(m_ptr))
+    {
+        *attr = TERM_L_BLUE;
+        return 'T';
+    }
+    if (MON_MONFEAR(m_ptr))
+    {
+        *attr = TERM_VIOLET;
+        return 'F';
+    }
+    if (monster_slow(m_ptr))
+    {
+        *attr = TERM_L_DARK;
+        return 'S';
+    }
+    return ' ';
+}
+
 static void prt_hp_bar(int row, int col)
 {
     char c;
@@ -2178,10 +2247,10 @@ static void prt_hp_bar(int row, int col)
     else if (pct > hitpoint_warn*10) a = TERM_YELLOW;
     else a = TERM_RED;
 
-    if (easy_damage || p_ptr->wizard)
+    if (_use_percentage_bars())
     {
         char buf[20];
-        sprintf(buf, "%3d%%", pct);
+        sprintf(buf, "%3d%%", _use_exact_percentage_bars() ? pct : _coarse_percentage(pct));
         Term_putstr(col + 2, row, strlen(buf), a, buf);
     }
     else
@@ -2211,10 +2280,10 @@ static void prt_sp_bar(int row, int col)
     else if (pct > mana_warn*10) a = TERM_YELLOW;
     else a = TERM_RED;
 
-    if (easy_damage || p_ptr->wizard)
+    if (_use_percentage_bars())
     {
         char buf[20];
-        sprintf(buf, "%3d%%", pct);
+        sprintf(buf, "%3d%%", _use_exact_percentage_bars() ? pct : _coarse_percentage(pct));
         Term_putstr(col + 2, row, strlen(buf), a, buf);
     }
     else
@@ -2244,10 +2313,10 @@ static void prt_food_bar(int row, int col)
     else if (pct >= 10) attr = TERM_L_RED;
     else attr = TERM_VIOLET;
 
-    if (easy_damage || p_ptr->wizard)
+    if (_use_percentage_bars())
     {
         char buf[20];
-        sprintf(buf, "%3d%%", pct);
+        sprintf(buf, "%3d%%", _use_exact_percentage_bars() ? pct : _coarse_percentage(pct));
         Term_putstr(col + 2, row, strlen(buf), attr, buf);
     }
     else
@@ -2273,10 +2342,10 @@ static void prt_upkeep_bar(int row, int col)
     else if (pct >= 10) attr = TERM_L_RED;
     else attr = TERM_VIOLET;
 
-    if (easy_damage || p_ptr->wizard)
+    if (_use_percentage_bars())
     {
         char buf[20];
-        sprintf(buf, "%3d%%", pct);
+        sprintf(buf, "%3d%%", _use_exact_percentage_bars() ? pct : _coarse_percentage(pct));
         Term_putstr(col + 2, row, strlen(buf), attr, buf);
     }
     else
@@ -2352,18 +2421,23 @@ static void prt_mon_health_bar(int m_idx, int row, int col)
         else if (pct >= 25) attr = TERM_ORANGE;
         else if (pct >= 10) attr = TERM_L_RED;
 
-        if (easy_damage || p_ptr->wizard)
+        if (_use_percentage_bars())
         {
             char buf[20];
             char lead = ' ';
             char status_primary = ' ';
             byte status_attr = TERM_WHITE;
+            int  pos;
             int  stun = MON_STUNNED(m_ptr);
+            bool exact = _use_exact_percentage_bars();
 
             if (m_idx == target_who)
                 lead = '*';
             else if (m_idx == p_ptr->riding)
                 lead = '@';
+
+            if ((easy_damage || p_ptr->wizard) && (m_ptr->mpower > 1333))
+                Term_queue_char(col - 1, row, TERM_L_RED, '!', 0, 0);
 
             Term_queue_char(
                 col + 1,
@@ -2374,47 +2448,84 @@ static void prt_mon_health_bar(int m_idx, int row, int col)
                 0
             );
 
-            if (pct >= 100)
-                sprintf(buf, "**%%");
-            else
-                sprintf(buf, "%2d%%", pct);
+            _format_percentage(buf, pct, exact);
             Term_putstr(col + 2, row, 3, attr, buf);
 
-            if (MON_INVULNER(m_ptr))
-                Term_queue_char(col + 5, row, TERM_WHITE, 'I', 0, 0);
+            if (easy_damage || p_ptr->wizard)
+            {
+                if (MON_INVULNER(m_ptr))
+                    Term_queue_char(col + 5, row, TERM_WHITE, 'I', 0, 0);
 
-            if (stun >= 100)
-                sprintf(buf, "**");
-            else if (stun > 0)
-                sprintf(buf, "%2d", stun);
+                if (p_ptr->wizard)
+                {
+                    if (stun >= 100)
+                        sprintf(buf, "**");
+                    else if (stun > 0)
+                        sprintf(buf, "%2d", stun);
+                    else
+                        sprintf(buf, "  ");
+                }
+                else
+                    sprintf(buf, stun > 0 ? "St" : "  ");
+                Term_putstr(col + 6, row, 2, TERM_L_BLUE, buf);
+
+                if (MON_PARALYZED(m_ptr))
+                {
+                    status_primary = 'P';
+                    status_attr = TERM_BLUE;
+                }
+                else if (MON_CSLEEP(m_ptr))
+                {
+                    status_primary = 'Z';
+                    status_attr = TERM_BLUE;
+                }
+                else if (monster_slow(m_ptr))
+                {
+                    status_primary = 'S';
+                    status_attr = TERM_L_DARK;
+                }
+
+                Term_queue_char(col + 8, row, status_attr, status_primary, 0, 0);
+
+                if (MON_CONFUSED(m_ptr))
+                    Term_queue_char(col + 9, row, TERM_UMBER, 'C', 0, 0);
+                if (MON_MONFEAR(m_ptr))
+                    Term_queue_char(col + 10, row, TERM_VIOLET, 'F', 0, 0);
+                if (MON_FAST(m_ptr))
+                    Term_queue_char(col + 11, row, TERM_L_BLUE, '>', 0, 0);
+            }
             else
-                sprintf(buf, "  ");
-            Term_putstr(col + 6, row, 2, TERM_L_BLUE, buf);
-
-            if (MON_PARALYZED(m_ptr))
             {
-                status_primary = 'P';
-                status_attr = TERM_BLUE;
-            }
-            else if (MON_CSLEEP(m_ptr))
-            {
-                status_primary = 'Z';
-                status_attr = TERM_BLUE;
-            }
-            else if (monster_slow(m_ptr))
-            {
-                status_primary = 'S';
-                status_attr = TERM_L_DARK;
-            }
+                pos = col + 5;
 
-            Term_queue_char(col + 8, row, status_attr, status_primary, 0, 0);
+                if (m_ptr->mpower <= 990 || m_ptr->mpower >= 1010)
+                {
+                    sprintf(buf, "%d%%", m_ptr->mpower / 10);
+                    Term_putstr(pos, row, strlen(buf), (m_ptr->mpower > 1000) ? TERM_L_RED : TERM_L_BLUE, buf);
+                    pos += strlen(buf);
+                }
 
-            if (MON_CONFUSED(m_ptr))
-                Term_queue_char(col + 9, row, TERM_UMBER, 'C', 0, 0);
-            if (MON_MONFEAR(m_ptr))
-                Term_queue_char(col + 10, row, TERM_VIOLET, 'F', 0, 0);
-            if (MON_FAST(m_ptr))
-                Term_queue_char(col + 11, row, TERM_L_BLUE, '>', 0, 0);
+                status_primary = _monster_primary_status(m_ptr, &status_attr);
+                if (status_primary == 'T' && stun > 0)
+                {
+                    if (pos <= col + 9)
+                    {
+                        Term_putstr(pos, row, 2, TERM_L_BLUE, "St");
+                        pos += 2;
+                    }
+                }
+                else if (status_primary != ' ')
+                {
+                    if (pos <= col + 10)
+                    {
+                        Term_queue_char(pos, row, status_attr, status_primary, 0, 0);
+                        pos++;
+                    }
+                }
+
+                if (MON_FAST(m_ptr) && pos <= col + 11)
+                    Term_queue_char(pos, row, TERM_L_BLUE, '>', 0, 0);
+            }
         }
         else
         {
@@ -2448,13 +2559,17 @@ static void prt_mon_health_bar(int m_idx, int row, int col)
 static void prt_health_bars(void)
 {
     int i, row, col;
+    int erase_col;
+    int erase_wid;
     rect_t r = ui_char_info_rect();
 
     row = r.y + ROW_HEALTH_BARS;
     col = r.x + COL_HEALTH_BARS;
+    erase_col = MAX(0, col - 1);
+    erase_wid = r.cx + (col ? 1 : 0);
 
     for (i = 0; i < COUNT_HEALTH_BARS; i++)
-        Term_erase(col, row + i, r.cx);
+        Term_erase(erase_col, row + i, erase_wid);
 
     if (p_ptr->inside_battle)
     {

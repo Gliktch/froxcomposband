@@ -5248,6 +5248,7 @@ bool set_food(int v)
     int old_aux, new_aux;
     int old_pct;
     int new_pct;
+    bool exact_pct = display_percentages && (easy_damage || p_ptr->wizard);
 
     bool notice = FALSE;
 
@@ -5255,7 +5256,7 @@ bool set_food(int v)
     v = (v > 20000) ? 20000 : (v < 0) ? 0 : v;
 
     /* CTK: I added a "food bar" to track hunger ... */
-    if (easy_damage || p_ptr->wizard)
+    if (exact_pct)
     {
         old_pct = p_ptr->food * 100 / PY_FOOD_FULL;
         new_pct = v * 100 / PY_FOOD_FULL;

@@ -2731,7 +2731,7 @@ static bool _is_retired(void)
 int oook_score(void)
 {
     int tulos = p_ptr->max_max_exp;
-    if ((easy_damage) && ((p_ptr->total_winner) || (tulos > 6500000L))) tulos = ((tulos - 6500000L) / 2) + 6500000L;
+    if ((easy_damage) && ((p_ptr->total_winner) || (tulos > 6500000L))) tulos = ((tulos - 6500000L) / 3) + 6500000L;
     return tulos;
 }
 

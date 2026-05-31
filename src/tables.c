@@ -2259,6 +2259,9 @@ option_type option_info[] =
     { &display_upkeep_bar,          FALSE,  OPT_PAGE_TEXT, 1, 3,
     "display_upkeep_bar",           "Display remaining pet control status" },
 
+    { &display_percentages,         FALSE, OPT_PAGE_TEXT, 7, 18,
+    "display_percentages",          "Display percentages rather than status bars" },
+
     { &decimal_stats,               FALSE,  OPT_PAGE_TEXT, 2, 25,
     "decimal_stats",                "Display stats as decimals" },
 
@@ -2270,9 +2273,6 @@ option_type option_info[] =
 
     { &show_energy_cost,            FALSE, OPT_PAGE_TEXT, 2, 9,
     "show_energy_cost",             "Display energy cost of most recent action" },
-
-//    { &display_percentages,         FALSE,  OPT_PAGE_TEXT, 1, 10,
-//    "display_percentages",          "Display percentages rather than status bars" },
 
     { &compress_savefile,           FALSE, OPT_PAGE_TEXT, 1, 26,
     "compress_savefile",            "Compress messages in savefiles" },

@@ -20,7 +20,10 @@ With this option enabled, all objects are automatically fully identified on walk
 With this option enabled, the player will be born with complete knowledge of monster lore, including the various attacks and nasty surprises that many monsters usually offer to the uninitiated. This is a bit of a spoiler option, but is available for those who don't enjoy learning each of the many monsters present in the game. <color:U>Easy Lore</color> also renders a few aspects of the game non-functional or pointless, including the ability to <color:keyword>Probe</color> monsters to learn about them as you encounter them, and the <color:keyword>Research Monster</color> town service to learn about monsters before you see them (for a price, of course).
 
 <topic:easy_damage><color:U>Easy monster health and damage information</color> <color:D>(easy_damage)</color>
-Also known as "Fnord-mode", this option allows the player to see the exact damage delivered by each attack, and to receive additional information about monster health and debuffs through a percentage display. Player health bars are also converted to use percentages. This is a very powerful easy-mode, and using it gives a score penalty.
+Also known as "Fnord-mode", this option allows the player to see the exact damage delivered by each attack, along with various other pieces of exact combat information that would otherwise be hidden. If percentage status bars are enabled, <color:U>Easy monster health and damage information</color> also upgrades them to show exact monster and player percentages together with fuller monster status indicators. This is a powerful easy-mode, and using it gives a score penalty.
+
+<topic:display_percentages><color:U>Display percentages rather than status bars</color> <color:D>(display_percentages)</color>
+Replaces the usual star-based player and monster status bars with percentage-style displays. Without <color:U>Easy monster health and damage information</color>, the displayed health percentages are deliberately coarse and the monster status indicators remain more limited than in the full easy-damage view.
 
 <topic:allow_spoilers><color:U>Allow spoilers</color> <color:D>(allow_spoilers)</color>
 Enabling this option allows the player to view some spoiler files in-game with the <color:keypress>^Z</color> command.

@@ -324,6 +324,10 @@ static void rd_options(savefile_ptr file)
         list_stairs = FALSE;
     }
 
+    /* Revived in 7.2.2 as a separate UI option; preserve legacy easy-damage bars */
+    if (savefile_is_older_than(file, 7, 2, 2, 0) && easy_damage)
+        display_percentages = TRUE;
+
     /* Changed default (not really applicable in all cases, but it's okay) */
     if (savefile_is_older_than(file, 7, 1, 3, 6)) show_damage_range = !show_damage_range;
 

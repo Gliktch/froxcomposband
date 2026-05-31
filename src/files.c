@@ -3109,7 +3109,7 @@ s32b score_mult(void)
     }
     if (easy_damage)
     {
-       mult -= (mult / 3);
+       mult -= (mult / 4);
     }
     return mult;
 }

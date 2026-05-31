@@ -42,11 +42,19 @@ The birth options can only be accessed while creating a new character
   
   Easy monster health and damage information (easy_damage)
   Also known as "Fnord-mode", this option allows the player to see the 
-  exact damage delivered by each attack, and to receive additional 
-  information about monster health and debuffs through a percentage 
-  display. Player health bars are also converted to use percentages. 
-  This is a very powerful easy-mode, and using it gives a score 
-  penalty.
+  exact damage delivered by each attack, along with various other 
+  pieces of exact combat information that would otherwise be hidden. 
+  If percentage status bars are enabled, Easy monster health and 
+  damage information also upgrades them to show exact monster and 
+  player percentages together with fuller monster status indicators. 
+  This is a powerful easy-mode, and using it gives a score penalty.
+  
+  Display percentages rather than status bars (display_percentages)
+  Replaces the usual star-based player and monster status bars with 
+  percentage-style displays. Without Easy monster health and damage 
+  information, the displayed health percentages are deliberately 
+  coarse and the monster status indicators remain more limited than in 
+  the full easy-damage view.
   
   Allow spoilers (allow_spoilers)
   Enabling this option allows the player to view some spoiler files 

@@ -836,8 +836,9 @@ static void rd_extra(savefile_ptr file)
     if (!always_repeat_count && always_repeat)
         always_repeat_count = 100;
     failed_item_retry_count = retry_count_normalize(savefile_read_s32b(file));
+    prompt_temp_files = savefile_read_s32b(file) ? TRUE : FALSE;
     sync_retry_options();
-    for (i = 0; i < 11; i++) (void)savefile_read_s32b(file);
+    for (i = 0; i < 10; i++) (void)savefile_read_s32b(file);
     wipe_labels();
     if (!savefile_is_older_than(file, 7, 1, 0, 4))
     {

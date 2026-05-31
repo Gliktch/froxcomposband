@@ -62,11 +62,11 @@ void init_saved_floors(bool force)
         {
             if (!force)
             {
-                msg_print("Error: There are old temporal files.");
-                msg_print("Make sure you are not running two game processes simultaneously.");
-                msg_print("If the temporal files are garbages of old crashed process, ");
-                msg_print("you can delete it safely.");
-                if (!get_check("Do you delete old temporal files? ")) quit("Aborted.");
+                if (prompt_temp_files)
+                {
+                    if (!get_check("Temporary dungeon files from a previous session were found. Delete them and continue loading? "))
+                        quit("Aborted.");
+                }
                 force = TRUE;
             }
         }
@@ -86,6 +86,11 @@ void init_saved_floors(bool force)
         safe_setuid_drop();
 
         sf_ptr->floor_id = 0;
+    }
+
+    if (force)
+    {
+        msg_print("Deleted temporary dungeon files (possibly from a crash). This usually causes no issues. If you notice anything odd, try recalling, traveling to a different town, or exiting to the world map and taking a step before continuing.");
     }
 
     /* No floor_id used yet (No.0 is reserved to indicate non existance) */

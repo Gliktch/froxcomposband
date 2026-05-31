@@ -865,7 +865,8 @@ static void wr_extra(savefile_ptr file)
     savefile_write_s32b(file, autorun_max_steps);
     savefile_write_s32b(file, always_repeat_count);
     savefile_write_s32b(file, failed_item_retry_count);
-    for (i = 0; i < 11; i++)
+    savefile_write_s32b(file, prompt_temp_files ? 1 : 0);
+    for (i = 0; i < 10; i++)
         savefile_write_s32b(file, 0); /* Future use */
 
     for (i = 0; i < MAX_POWER_LABEL; i++)

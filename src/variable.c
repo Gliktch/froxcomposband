@@ -343,6 +343,7 @@ bool expand_list;    /* Expand the power of the list commands */
 bool bound_walls_perm;    /* Boundary walls become 'permanent wall' */
 bool delay_autopick;  /* Always use delayed autopick */
 bool last_words;    /* Leave last words when your character dies */
+bool prompt_temp_files; /* Prompt at login when temporary dungeon files are found */
 
 #ifdef WORLD_SCORE
 bool send_score;    /* Send score dump to the world score server */

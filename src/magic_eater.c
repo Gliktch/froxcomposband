@@ -410,7 +410,7 @@ static object_type *_choose(cptr verb, int tval, int options)
 
                 prt("Inscription: ", 0, 0);
                 if (askfor_edit(insc, 80))
-                    o_ptr->inscription = quark_add(insc);
+                    obj_set_inscription(o_ptr, insc);
                 inscribe = FALSE;
             }
             else

@@ -1426,7 +1426,7 @@ bool capture_ball_release(object_type *o_ptr, int y, int x, int mode)
                     s++;
                 }
                 *s = '\0';
-                o_ptr->inscription = quark_add(buf);
+                obj_set_inscription(o_ptr, buf);
             }
         }
         empty_capture_ball(o_ptr);

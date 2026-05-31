@@ -373,6 +373,16 @@ bool obj_is_device(obj_ptr obj)  { return obj_is_wand(obj) || obj_is_rod(obj) ||
 bool obj_is_ego(obj_ptr obj)     { return BOOL(obj->name2); }
 bool obj_is_found(obj_ptr obj)   { return BOOL(obj->marked & OM_FOUND); }
 bool obj_is_inscribed(obj_ptr obj) { return BOOL(obj->inscription); }
+void obj_set_inscription(obj_ptr obj, cptr insc)
+{
+    while (insc && *insc && isspace((unsigned char)*insc))
+        insc++;
+
+    if (insc && *insc)
+        obj->inscription = quark_add(insc);
+    else
+        obj->inscription = 0;
+}
 bool obj_is_quiver(obj_ptr obj)  { return obj->tval == TV_QUIVER; }
 bool obj_is_rod(obj_ptr obj)     { return obj->tval == TV_ROD; }
 bool obj_is_staff(obj_ptr obj)   { return obj->tval == TV_STAFF; }
@@ -1064,17 +1074,7 @@ static int _inscriber(obj_prompt_context_ptr context, int cmd)
         Term_load();
         doc_sync_menu(context->doc);
         if (askfor_edit(insc, 80))
-        {
-            char *s = insc;
-
-            while (*s && isspace((unsigned char)*s))
-                s++;
-
-            if (!*s)
-                obj->inscription = 0;
-            else
-                obj->inscription = quark_add(insc);
-        }
+            obj_set_inscription(obj, insc);
         return OP_CMD_HANDLED;
     }
     return OP_CMD_SKIPPED;

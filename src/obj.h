@@ -63,6 +63,7 @@ extern bool obj_is_device(obj_ptr obj);
 extern bool obj_is_ego(obj_ptr obj);
 extern bool obj_is_found(obj_ptr obj);
 extern bool obj_is_inscribed(obj_ptr obj);
+extern void obj_set_inscription(obj_ptr obj, cptr insc);
 extern bool obj_is_quiver(obj_ptr obj);
 extern bool obj_is_readable_book(obj_ptr obj);
 extern bool obj_is_rod(obj_ptr obj);

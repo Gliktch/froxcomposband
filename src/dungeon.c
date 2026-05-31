@@ -5056,6 +5056,9 @@ static void process_player(void)
             class_t *class_ptr = get_class();
             race_t  *race_ptr = get_race();
 
+            if (!p_ptr->leaving)
+                clear_stair_bounce();
+
             if (class_ptr->player_action)
                 class_ptr->player_action(energy_use);
 

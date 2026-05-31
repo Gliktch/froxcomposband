@@ -17,6 +17,8 @@
 static s16b new_floor_id;       /* floor_id of the destination */
 static u32b change_floor_mode;  /* Mode flags for changing floor */
 static u32b latest_visit_mark;  /* Max number of visit_mark */
+static bool stair_bouncing;     /* Arrived via stairs and have not acted yet */
+static bool stair_arrival_hack; /* Pending arrival was via normal stairs */
 static bool preserve_inside_arena; /* Current floor is arena despite p_ptr lag */
 static bool preserve_inside_battle; /* Current floor is battle despite p_ptr lag */
 static string_ptr deferred_pet_loss_message; /* Announce pet separation after landing */
@@ -302,6 +304,11 @@ s16b get_new_floor_id(void)
 void prepare_change_floor_mode(u32b mode)
 {
     change_floor_mode |= mode;
+}
+
+void clear_stair_bounce(void)
+{
+    stair_bouncing = FALSE;
 }
 
 
@@ -1271,6 +1278,8 @@ void leave_floor(void)
     feature_type *f_ptr;
     saved_floor_type *sf_ptr;
 
+    stair_arrival_hack = BOOL((change_floor_mode & (CFM_DOWN | CFM_UP)) && p_ptr->leaving_method == LEAVING_UNKNOWN);
+
     /* Preserve pets and prepare to take these to next floor */
     preserve_pet();
 
@@ -1511,6 +1520,9 @@ void change_floor(void)
 {
     saved_floor_type *sf_ptr;
     bool loaded = FALSE;
+    bool arrived_by_stairs = stair_arrival_hack;
+
+    stair_arrival_hack = FALSE;
 
     /* The dungeon is not ready */
     character_dungeon = FALSE;
@@ -1623,7 +1635,7 @@ void change_floor(void)
                 /* Skip dead monsters */
                 if (!m_ptr->r_idx) continue;
 
-                if (!is_pet(m_ptr))
+                if (!is_pet(m_ptr) && !(stair_bouncing && arrived_by_stairs))
                 {
                     /* Restore HP */
                     m_ptr->hp = m_ptr->maxhp = m_ptr->max_maxhp;
@@ -1831,6 +1843,8 @@ void change_floor(void)
     /* We have no travelling target on this level */
     travel.x = 0;
     travel.y = 0;
+
+    stair_bouncing = arrived_by_stairs;
 
     if (center_stair_teleports && ((change_floor_mode & (CFM_DOWN | CFM_UP)) || (change_floor_mode & CFM_RAND_PLACE)))
         viewport_force_center();

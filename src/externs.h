@@ -1201,6 +1201,7 @@ extern void clear_saved_floor_files(void);
 extern saved_floor_type *get_sf_ptr(s16b floor_id);
 extern s16b get_new_floor_id(void);
 extern void prepare_change_floor_mode(u32b mode);
+extern void clear_stair_bounce(void);
 extern int count_pets_lost_on_floor_change(bool to_wild);
 extern bool confirm_leaving_pets(bool to_wild);
 extern bool confirm_leaving_pets_no_follow(void);

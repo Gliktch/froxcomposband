@@ -2133,7 +2133,7 @@ option_type option_info[] =
     "auto_target",                  "Automatically target nearest monster" },
 
     { &always_repeat,               TRUE,  OPT_PAGE_INPUT, 0, 6,
-    "always_repeat",                "Repeat obvious commands" },
+    "always_repeat",                "Retry count for obvious commands" },
 
     { &confirm_destroy,             FALSE, OPT_PAGE_INPUT, 5, 3,
     "confirm_destroy",              "Prompt for destruction of known worthless items" },
@@ -2146,6 +2146,9 @@ option_type option_info[] =
 
     { &confirm_melee_visible,       FALSE, OPT_PAGE_INPUT, 5, 6,
     "confirm_melee_visible",        "Confirmation on melee attacking visible monsters" },
+
+    { &failed_item_retry_count_dummy, FALSE, OPT_PAGE_INPUT, 5, 9,
+    "failed_item_retry_count",      "Retry count for failed item-use commands" },
 
     { &target_pet,                  FALSE, OPT_PAGE_INPUT, 2, 5,
     "target_pet",                   "Allow targetting pets" },

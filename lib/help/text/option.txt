@@ -349,12 +349,18 @@ Input Options
   not your desired target, you can simply specify another target up 
   front.
   
-  Repeat obvious commands (always_repeat)
-  Tells the game that when you attempt to open a door or chest, bash a 
-  door, tunnel through walls, or disarm traps or chests, that you wish 
-  to repeat the command 99 times (see [e]). Turning this option off is 
-  not recommended, and would make the game very tedious without 
-  providing any real advantages.
+  Retry count for obvious commands (always_repeat)
+  Sets the repeat count the game gives "obvious" repeatable commands
+  such as open, bash, tunnel, disarm and easy-open lockpicking when you
+  do not provide an explicit repeat count (see [e]). A value of 0
+  turns this automation off; the default is 100.
+
+  Retry count for failed item-use commands (failed_item_retry_count)
+  Sets the repeat count the game gives a failed scroll reading, device
+  use, or equipment activation after the item has already been chosen.
+  Only the initial failure roll is retried; precondition failures,
+  successful uses, and capture ball activations stop immediately. A
+  value of 0 turns this automation off.
   
   Prompt for destruction of known worthless items (confirm_destroy)
   If this option is off, no confirmation will be asked if you attempt 

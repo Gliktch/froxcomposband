@@ -260,11 +260,14 @@ extern bool command_menu;    /* Enable command selection menu */
 extern bool use_old_target;    /* Use old target by default */
 extern bool auto_target;       /* Automatically target nearest monster */
 extern bool always_repeat;    /* Repeat obvious commands */
+extern byte always_repeat_count; /* Retry count for obvious commands */
 extern bool confirm_destroy;    /* Prompt for destruction of known worthless items */
 extern bool confirm_wear;    /* Confirm to wear/wield known cursed items */
 extern bool confirm_melee_unseen; /* Confirm melee attacks against unseen monsters */
 extern bool confirm_melee_visible; /* Confirm melee attacks against visible monsters */
 extern bool prompt_on_failure; /* Give -more- prompt on device/spell fails */
+extern bool failed_item_retry_count_dummy;
+extern byte failed_item_retry_count;
 extern bool target_pet;    /* Allow targetting pets */
 
 #ifdef ALLOW_EASY_OPEN
@@ -363,6 +366,8 @@ extern bool autorun_max_steps_dummy;
 extern byte autorun_max_steps;
 extern byte message_pane_wrap_width_normalize(byte width);
 extern byte autorun_max_steps_normalize(byte steps);
+extern byte retry_count_normalize(byte count);
+extern void sync_retry_options(void);
 
 /*** Game-Play Options ***/
 
@@ -984,6 +989,7 @@ extern void do_cmd_aim_wand(void);
 extern void do_cmd_use_staff(void);
 extern void do_cmd_zap_rod(void);
 extern void do_cmd_activate(void);
+extern void command_item_retry_clear(void);
 extern void do_cmd_rerate_aux(void);
 extern int  life_rating(void);
 extern cptr life_rating_desc(bool use_attr);

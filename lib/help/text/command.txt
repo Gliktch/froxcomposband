@@ -180,11 +180,11 @@ until the repetition is disturbed. A successful use of the command
 (e.g. successful tunnelling) disturbs the repetition, as does any 
 attack from a monster, or any new command from the player.
 
-The always_repeat option, which is on by default, automatically gives 
-commonly repeated commands (open, disarm, tunnel, bash, etc.) a repeat 
-count of 99. This means you usually don't need to specify repeat counts 
-manually; but you can do so by typing 0, then the repeat count, and 
-then the command.
+The always_repeat option, which is on by default, automatically gives
+commonly repeated commands (open, disarm, tunnel, bash, etc.) the
+configured retry count, which defaults to 100. This means you usually
+don't need to specify repeat counts manually; but you can do so by
+typing 0, then the repeat count, and then the command.
 
 Command Arguments
 
@@ -298,5 +298,4 @@ Updated    : Zangband DevTeam
 Updated    : Hengband 1.0.11
 Updated    : PosChengband 6.0.0
 Updated    : FrogComposband 7.1.liquorice
-
 

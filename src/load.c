@@ -828,7 +828,12 @@ static void rd_extra(savefile_ptr file)
     else
         message_pane_wrap_width = message_pane_wrap_width_normalize(message_pane_wrap_width);
     autorun_max_steps = autorun_max_steps_normalize(savefile_read_s32b(file));
-    for (i = 0; i < 13; i++) (void)savefile_read_s32b(file);
+    always_repeat_count = retry_count_normalize(savefile_read_s32b(file));
+    if (!always_repeat_count && always_repeat)
+        always_repeat_count = 100;
+    failed_item_retry_count = retry_count_normalize(savefile_read_s32b(file));
+    sync_retry_options();
+    for (i = 0; i < 11; i++) (void)savefile_read_s32b(file);
     wipe_labels();
     if (!savefile_is_older_than(file, 7, 1, 0, 4))
     {

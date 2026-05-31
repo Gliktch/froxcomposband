@@ -15,6 +15,84 @@
 #include "angband.h"
 #include "equip.h"
 
+typedef struct {
+    bool      active;
+    byte      command;
+    obj_loc_t loc;
+    s16b      k_idx;
+} _item_retry_state_t;
+
+static _item_retry_state_t _item_retry = {0};
+
+static obj_ptr _retry_loc_obj(obj_loc_t loc)
+{
+    switch (loc.where)
+    {
+    case INV_FLOOR:
+        if (loc.slot <= 0 || loc.slot >= max_o_idx) return NULL;
+        if (o_list[loc.slot].k_idx <= 0) return NULL;
+        if (o_list[loc.slot].loc.where != INV_FLOOR) return NULL;
+        return &o_list[loc.slot];
+    case INV_PACK:
+        return pack_obj(loc.slot);
+    case INV_EQUIP:
+        return equip_obj(loc.slot);
+    case INV_QUIVER:
+        return quiver_obj(loc.slot);
+    case INV_SPECIAL1:
+        if (get_race()->bonus_pack)
+            return inv_obj(get_race()->bonus_pack, loc.slot);
+        return NULL;
+    case INV_SPECIAL2:
+        if (get_class()->bonus_pack)
+            return inv_obj(get_class()->bonus_pack, loc.slot);
+        return NULL;
+    case INV_SPECIAL3:
+        if (get_race()->bonus_pack2)
+            return inv_obj(get_race()->bonus_pack2, loc.slot);
+        return NULL;
+    default:
+        return NULL;
+    }
+}
+
+static void _item_retry_abort(void)
+{
+    _item_retry.active = FALSE;
+    command_rep = 0;
+    p_ptr->redraw |= PR_STATE;
+}
+
+void command_item_retry_clear(void)
+{
+    _item_retry.active = FALSE;
+}
+
+static void _item_retry_start(byte command, obj_ptr obj)
+{
+    if (command_rep || !failed_item_retry_count) return;
+
+    _item_retry.active = TRUE;
+    _item_retry.command = command;
+    _item_retry.loc = obj->loc;
+    _item_retry.k_idx = obj->k_idx;
+    command_rep = failed_item_retry_count - 1;
+    p_ptr->redraw |= PR_STATE;
+}
+
+static obj_ptr _item_retry_obj(byte command, obj_p filter)
+{
+    obj_ptr obj;
+
+    if (!_item_retry.active || _item_retry.command != command)
+        return NULL;
+
+    obj = _retry_loc_obj(_item_retry.loc);
+    if (!obj || obj->k_idx != _item_retry.k_idx || (filter && !filter(obj)))
+        return NULL;
+    return obj;
+}
+
 /*
  * This file includes code for eating food, drinking potions,
  * reading scrolls, aiming wands, using staffs, zapping rods,
@@ -755,6 +833,7 @@ static void do_cmd_read_scroll_aux(obj_ptr o_ptr)
     if (p_ptr->tim_no_device)
     {
         msg_print("An evil power blocks your magic!");
+        _item_retry_abort();
         return;
     }
 
@@ -764,12 +843,14 @@ static void do_cmd_read_scroll_aux(obj_ptr o_ptr)
         msg_print("Nothing happens.");
         if (prompt_on_failure) msg_print(NULL);
         sound(SOUND_FAIL);
+        _item_retry_abort();
         return;
     }
 
     if (p_ptr->pclass == CLASS_BERSERKER || (get_race()->flags & RACE_IS_ILLITERATE))
     {
         msg_print("You cannot read.");
+        _item_retry_abort();
         return;
     }
 
@@ -794,6 +875,7 @@ static void do_cmd_read_scroll_aux(obj_ptr o_ptr)
             msg_print("You failed to pronounce the incantation properly.");
             if (prompt_on_failure) msg_print(NULL);
             sound(SOUND_FAIL);
+            _item_retry_start(command_cmd, o_ptr);
             return;
         }
 
@@ -885,7 +967,10 @@ static void do_cmd_read_scroll_aux(obj_ptr o_ptr)
     }
 
     if (!used_up)
+    {
+        _item_retry_abort();
         return;
+    }
 
     water_mana_action(FALSE, 5);
 
@@ -900,6 +985,8 @@ static void do_cmd_read_scroll_aux(obj_ptr o_ptr)
         obj_dec_number(o_ptr, number, TRUE);
         obj_release(o_ptr, OBJ_RELEASE_DELAYED_MSG);
     }
+
+    _item_retry_abort();
 }
 
 static bool _can_read(object_type *o_ptr)
@@ -913,6 +1000,13 @@ static bool _can_read(object_type *o_ptr)
 void do_cmd_read_scroll(void)
 {
     obj_prompt_t prompt = {0};
+    obj_ptr obj = _item_retry_obj(command_cmd, _can_read);
+
+    if (_item_retry.active && _item_retry.command == command_cmd && !obj)
+    {
+        _item_retry_abort();
+        return;
+    }
 
     if (p_ptr->special_defense & (KATA_MUSOU | KATA_KOUKIJIN))
         set_action(ACTION_NONE);
@@ -922,32 +1016,43 @@ void do_cmd_read_scroll(void)
     {
         flush();
         msg_print("You can't see anything.");
+        _item_retry_abort();
         return;
     }
     if (no_lite())
     {
         flush();
         msg_print("You have no light to read by.");
+        _item_retry_abort();
         return;
     }
     if (p_ptr->confused)
     {
         flush();
         msg_print("You are too confused!");
+        _item_retry_abort();
         return;
     }
 
-    prompt.prompt = "Read which scroll? ";
-    prompt.error = "You have no scrolls to read.";
-    prompt.filter = _can_read;
-    prompt.where[0] = INV_PACK;
-    prompt.where[1] = INV_FLOOR;
-    prompt.flags = INV_SHOW_FAIL_RATES;
+    if (!obj)
+    {
+        prompt.prompt = "Read which scroll? ";
+        prompt.error = "You have no scrolls to read.";
+        prompt.filter = _can_read;
+        prompt.where[0] = INV_PACK;
+        prompt.where[1] = INV_FLOOR;
+        prompt.flags = INV_SHOW_FAIL_RATES;
 
-    obj_prompt(&prompt);
-    if (!prompt.obj) return;
+        obj_prompt(&prompt);
+        if (!prompt.obj)
+        {
+            _item_retry_abort();
+            return;
+        }
+        obj = prompt.obj;
+    }
 
-    do_cmd_read_scroll_aux(prompt.obj);
+    do_cmd_read_scroll_aux(obj);
 }
 
 /* Helper for Rods, Wands and Staves */
@@ -962,7 +1067,11 @@ static void do_cmd_device_aux(obj_ptr obj)
     assert(obj->number == 1); /* Devices no longer stack */
 
     /* Check what Uxip thinks... */
-    if ((disciple_is_(DISCIPLE_TROIKA)) && (!troika_allow_use_device(obj))) return;
+    if ((disciple_is_(DISCIPLE_TROIKA)) && (!troika_allow_use_device(obj)))
+    {
+        _item_retry_abort();
+        return;
+    }
 
     obj_flags(obj, flgs);
 
@@ -991,6 +1100,7 @@ static void do_cmd_device_aux(obj_ptr obj)
         msg_print("The device has no charges left.");
         if (prompt_on_failure) msg_print(NULL);
         energy_use = 0;
+        _item_retry_abort();
         return;
     }
 
@@ -998,6 +1108,7 @@ static void do_cmd_device_aux(obj_ptr obj)
     {
         flush();
         msg_print("An evil power blocks your magic!");
+        _item_retry_abort();
         return;
     }
 
@@ -1006,6 +1117,7 @@ static void do_cmd_device_aux(obj_ptr obj)
     {
         flush();
         msg_print("You are too scared!");
+        _item_retry_abort();
         return;
     }
 
@@ -1015,6 +1127,7 @@ static void do_cmd_device_aux(obj_ptr obj)
         msg_print("Nothing happens. Maybe this device is freezing too.");
         if (prompt_on_failure) msg_print(NULL);
         sound(SOUND_FAIL);
+        _item_retry_abort();
         return;
     }
 
@@ -1026,9 +1139,11 @@ static void do_cmd_device_aux(obj_ptr obj)
         sound(SOUND_FAIL);
         if ((p_ptr->pclass == CLASS_BERSERKER) || (beorning_is_(BEORNING_FORM_BEAR)))
         {
+            _item_retry_abort();
             energy_use = 0; /* let's be nice */
             return;
         }
+        _item_retry_start(command_cmd, obj);
 
         if ( obj_is_identified(obj)
           && one_in_(10)
@@ -1055,6 +1170,7 @@ static void do_cmd_device_aux(obj_ptr obj)
             PROJECT_STOP | PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL);
         obj->number = 0;
         obj_release(obj, OBJ_RELEASE_QUIET);
+        _item_retry_abort();
         p_inc_fatigue(MUT_EASY_TIRING2, 50);
         return;
     }
@@ -1134,11 +1250,19 @@ static void do_cmd_device_aux(obj_ptr obj)
         energy_use = 0;
 
     obj_release(obj, OBJ_RELEASE_QUIET);
+    _item_retry_abort();
 }
 
 void do_cmd_use_staff(void)
 {
     obj_prompt_t prompt = {0};
+    obj_ptr obj = _item_retry_obj(command_cmd, obj_is_staff);
+
+    if (_item_retry.active && _item_retry.command == command_cmd && !obj)
+    {
+        _item_retry_abort();
+        return;
+    }
 
     if (p_ptr->special_defense & (KATA_MUSOU | KATA_KOUKIJIN))
         set_action(ACTION_NONE);
@@ -1149,23 +1273,38 @@ void do_cmd_use_staff(void)
         return;
     }
 
-    prompt.prompt = "Use which staff?";
-    prompt.error = "You have no staff to use.";
-    prompt.filter = obj_is_staff;
-    prompt.where[0] = INV_PACK;
-    prompt.where[1] = INV_FLOOR;
-    prompt.flags = INV_SHOW_FAIL_RATES;
+    if (!obj)
+    {
+        prompt.prompt = "Use which staff?";
+        prompt.error = "You have no staff to use.";
+        prompt.filter = obj_is_staff;
+        prompt.where[0] = INV_PACK;
+        prompt.where[1] = INV_FLOOR;
+        prompt.flags = INV_SHOW_FAIL_RATES;
 
-    obj_prompt(&prompt);
-    if (!prompt.obj) return;
+        obj_prompt(&prompt);
+        if (!prompt.obj)
+        {
+            _item_retry_abort();
+            return;
+        }
+        obj = prompt.obj;
+    }
 
-    do_cmd_device_aux(prompt.obj);
+    do_cmd_device_aux(obj);
 }
 
 
 void do_cmd_aim_wand(void)
 {
     obj_prompt_t prompt = {0};
+    obj_ptr obj = _item_retry_obj(command_cmd, obj_is_wand);
+
+    if (_item_retry.active && _item_retry.command == command_cmd && !obj)
+    {
+        _item_retry_abort();
+        return;
+    }
 
     if (p_ptr->special_defense & (KATA_MUSOU | KATA_KOUKIJIN))
         set_action(ACTION_NONE);
@@ -1176,22 +1315,37 @@ void do_cmd_aim_wand(void)
         return;
     }
 
-    prompt.prompt = "Aim which wand?";
-    prompt.error = "You have no wand to aim.";
-    prompt.filter = obj_is_wand;
-    prompt.where[0] = INV_PACK;
-    prompt.where[1] = INV_FLOOR;
-    prompt.flags = INV_SHOW_FAIL_RATES;
+    if (!obj)
+    {
+        prompt.prompt = "Aim which wand?";
+        prompt.error = "You have no wand to aim.";
+        prompt.filter = obj_is_wand;
+        prompt.where[0] = INV_PACK;
+        prompt.where[1] = INV_FLOOR;
+        prompt.flags = INV_SHOW_FAIL_RATES;
 
-    obj_prompt(&prompt);
-    if (!prompt.obj) return;
+        obj_prompt(&prompt);
+        if (!prompt.obj)
+        {
+            _item_retry_abort();
+            return;
+        }
+        obj = prompt.obj;
+    }
 
-    do_cmd_device_aux(prompt.obj);
+    do_cmd_device_aux(obj);
 }
 
 void do_cmd_zap_rod(void)
 {
     obj_prompt_t prompt = {0};
+    obj_ptr obj = _item_retry_obj(command_cmd, obj_is_rod);
+
+    if (_item_retry.active && _item_retry.command == command_cmd && !obj)
+    {
+        _item_retry_abort();
+        return;
+    }
 
     if (p_ptr->special_defense & (KATA_MUSOU | KATA_KOUKIJIN))
         set_action(ACTION_NONE);
@@ -1202,17 +1356,25 @@ void do_cmd_zap_rod(void)
         return;
     }
 
-    prompt.prompt = "Zap which rod?";
-    prompt.error = "You have no rod to zap.";
-    prompt.filter = obj_is_rod;
-    prompt.where[0] = INV_PACK;
-    prompt.where[1] = INV_FLOOR;
-    prompt.flags = INV_SHOW_FAIL_RATES;
+    if (!obj)
+    {
+        prompt.prompt = "Zap which rod?";
+        prompt.error = "You have no rod to zap.";
+        prompt.filter = obj_is_rod;
+        prompt.where[0] = INV_PACK;
+        prompt.where[1] = INV_FLOOR;
+        prompt.flags = INV_SHOW_FAIL_RATES;
 
-    obj_prompt(&prompt);
-    if (!prompt.obj) return;
+        obj_prompt(&prompt);
+        if (!prompt.obj)
+        {
+            _item_retry_abort();
+            return;
+        }
+        obj = prompt.obj;
+    }
 
-    do_cmd_device_aux(prompt.obj);
+    do_cmd_device_aux(obj);
 }
 
 
@@ -1516,12 +1678,14 @@ static void do_cmd_activate_aux(obj_ptr obj)
         if (flush_failure) flush();
         msg_print("It shows no reaction.");
         sound(SOUND_FAIL);
+        _item_retry_abort();
         return;
     }
 
     if (obj->timeout)
     {
         msg_print("It whines, glows and fades...");
+        _item_retry_abort();
         return;
     }
 
@@ -1532,6 +1696,10 @@ static void do_cmd_activate_aux(obj_ptr obj)
         msg_print("You failed to activate it properly.");
         if (prompt_on_failure) msg_print(NULL);
         sound(SOUND_FAIL);
+        if (obj->tval != TV_CAPTURE)
+            _item_retry_start(command_cmd, obj);
+        else
+            _item_retry_abort();
         return;
     }
 
@@ -1544,6 +1712,7 @@ static void do_cmd_activate_aux(obj_ptr obj)
 
     if (obj->tval == TV_CAPTURE)
     {
+        _item_retry_abort();
         _do_capture_ball(obj);
         return;
     }
@@ -1556,6 +1725,7 @@ static void do_cmd_activate_aux(obj_ptr obj)
         obj->timeout = effect.cost;
         p_ptr->window |= (PW_INVEN | PW_EQUIP);
     }
+    _item_retry_abort();
 }
 
 static bool _activate_p(object_type *o_ptr)
@@ -1566,18 +1736,33 @@ static bool _activate_p(object_type *o_ptr)
 void do_cmd_activate(void)
 {
     obj_prompt_t prompt = {0};
+    obj_ptr obj = _item_retry_obj(command_cmd, _activate_p);
+
+    if (_item_retry.active && _item_retry.command == command_cmd && !obj)
+    {
+        _item_retry_abort();
+        return;
+    }
 
     if (p_ptr->special_defense & (KATA_MUSOU | KATA_KOUKIJIN))
         set_action(ACTION_NONE);
 
-    prompt.prompt ="Activate which item?"; 
-    prompt.error = "You have nothing to activate.";
-    prompt.filter = _activate_p;
-    prompt.where[0] = INV_EQUIP;
-    if (get_race()->bonus_pack2) prompt.where[1] = INV_SPECIAL3;
-    prompt.flags = INV_SHOW_FAIL_RATES | INV_SHOW_ACTIVATION;
+    if (!obj)
+    {
+        prompt.prompt ="Activate which item?";
+        prompt.error = "You have nothing to activate.";
+        prompt.filter = _activate_p;
+        prompt.where[0] = INV_EQUIP;
+        if (get_race()->bonus_pack2) prompt.where[1] = INV_SPECIAL3;
+        prompt.flags = INV_SHOW_FAIL_RATES | INV_SHOW_ACTIVATION;
 
-    obj_prompt(&prompt);
-    if (!prompt.obj) return;
-    do_cmd_activate_aux(prompt.obj);
+        obj_prompt(&prompt);
+        if (!prompt.obj)
+        {
+            _item_retry_abort();
+            return;
+        }
+        obj = prompt.obj;
+    }
+    do_cmd_activate_aux(obj);
 }

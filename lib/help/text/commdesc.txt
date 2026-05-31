@@ -7,13 +7,14 @@ Then comes a brief description of the command, including information
 about alternative methods of specifying the command in each keyset, 
 when needed.
 
-Several commands (tunnel, disarm, bash, open) are automatically 
-repeated as many times as necessary (up to 99) if no specific repeat 
-count is given and the always_repeat option has not been turned off. 
-Some other commands allow using repeat counts as arguments; for 
-example, commands which need a quantity can use the repeat count 
-instead of asking for a quantity, allowing the use of 0d to drop all. 
-Commands which ask for a quantity will convert any letters into the 
+Several commands (tunnel, disarm, bash, open) are automatically
+repeated as many times as necessary (up to the current always_repeat
+setting, which defaults to 100) if no specific repeat count is given
+and the option has not been turned off. Some other commands allow using
+repeat counts as arguments; for example, commands which need a quantity
+can use the repeat count instead of asking for a quantity, allowing the
+use of 0d to drop all. Commands which ask for a quantity will convert
+any letters into the
 maximal legal value.
 
 Press ? for commands to use within the help system.

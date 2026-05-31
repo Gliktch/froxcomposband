@@ -229,11 +229,14 @@ bool command_menu;    /* Enable command selection menu */
 bool use_old_target;    /* Use old target by default */
 bool auto_target;    /* Automatically target nearest monster */
 bool always_repeat;    /* Repeat obvious commands */
+byte always_repeat_count = 100; /* Retry count for obvious commands */
 bool confirm_destroy;    /* Prompt for destruction of known worthless items */
 bool confirm_wear;    /* Confirm to wear/wield known cursed items */
 bool confirm_melee_unseen; /* Confirm melee attacks against unseen monsters */
 bool confirm_melee_visible; /* Confirm melee attacks against visible monsters */
 bool prompt_on_failure; /* Display prompt on device/spell fail */
+bool failed_item_retry_count_dummy;
+byte failed_item_retry_count = 0;
 bool target_pet;    /* Allow targetting pets */
 
 #ifdef ALLOW_EASY_OPEN

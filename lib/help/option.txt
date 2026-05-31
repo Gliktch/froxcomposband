@@ -168,8 +168,11 @@ This option forces all commands which normally ask for a target or direction to 
 <topic:auto_target><color:U>Automatically target nearest monster</color> <color:D>(auto_target)</color>
 With this option enabled, all targeting prompts will automatically target the closest monster. This option is best used together with the <color:keyword>use_old_target</color> option; a valid old target will take priority over automatic targeting, so in situations where the nearest monster is not your desired target, you can simply specify another target up front.
 
-<topic:always_repeat><color:U>Repeat obvious commands</color> <color:D>(always_repeat)</color>
-Tells the game that when you attempt to <color:keyword>open</color> a door or chest, <color:keyword>bash</color> a door, <color:keyword>tunnel</color> through walls, or <color:keyword>disarm</color> traps or chests, that you wish to repeat the command 99 times (see <link:command.txt#CommandCounts>). Turning this option off is not recommended, and would make the game very tedious without providing any real advantages.
+<topic:always_repeat><color:U>Retry count for obvious commands</color> <color:D>(always_repeat)</color>
+Sets the repeat count the game gives "obvious" repeatable commands such as <color:keyword>open</color>, <color:keyword>bash</color>, <color:keyword>tunnel</color>, <color:keyword>disarm</color> and easy-open lockpicking when you do not provide an explicit repeat count (see <link:command.txt#CommandCounts>). A value of 0 turns this automation off; the default is 100.
+
+<topic:failed_item_retry_count><color:U>Retry count for failed item-use commands</color> <color:D>(failed_item_retry_count)</color>
+Sets the repeat count the game gives a failed scroll reading, device use, or equipment activation after the item has already been chosen. Only the initial failure roll is retried; precondition failures, successful uses, and capture ball activations stop immediately. A value of 0 turns this automation off.
 
 <topic:confirm_destroy><color:U>Prompt for destruction of known worthless items</color> <color:D>(confirm_destroy)</color>
 If this option is off, no confirmation will be asked if you attempt to destroy an object which you know to be worthless. If this option is on, the Destroy command always asks for confirmation.

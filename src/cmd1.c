@@ -5362,7 +5362,7 @@ void move_player(int dir, bool do_pickup, bool break_trap)
                        for jammed doors so we don't waste 99 turns. Also, only make
                        99 attempts to pick the lock ... But using command_rep would be
                        unwise since we will then run thru the door once we pick the lock! */
-                    if (always_repeat)
+                    if (always_repeat_count)
                     {
                         static int _repeat_count = 0;
 
@@ -5372,7 +5372,7 @@ void move_player(int dir, bool do_pickup, bool break_trap)
                         if (is_closed_door(c_ptr->feat) && have_flag(f_ptr->flags, FF_OPEN))
                         {
                             if (_repeat_count == 0)
-                                _repeat_count = 99;
+                                _repeat_count = always_repeat_count;
                             else
                                 --_repeat_count;
 

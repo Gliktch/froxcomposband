@@ -1476,6 +1476,24 @@ byte autorun_max_steps_normalize(byte steps)
     return steps - (steps % 10);
 }
 
+byte retry_count_normalize(byte count)
+{
+    if (!count) return 0;
+    if (count > 250) return 0;
+    if (count < 5) return 5;
+    if (count <= 30)
+        return count - (count % 5);
+    return count - (count % 10);
+}
+
+void sync_retry_options(void)
+{
+    always_repeat_count = retry_count_normalize(always_repeat_count);
+    failed_item_retry_count = retry_count_normalize(failed_item_retry_count);
+    always_repeat = always_repeat_count ? TRUE : FALSE;
+    failed_item_retry_count_dummy = failed_item_retry_count ? TRUE : FALSE;
+}
+
 static byte _inc_message_pane_wrap_width(byte width)
 {
     width = message_pane_wrap_width_normalize(width);
@@ -1514,6 +1532,25 @@ static byte _dec_autorun_max_steps(byte steps)
     if (steps <= 20) return steps - 2;
     if (steps <= 30) return 20;
     return steps - 10;
+}
+
+static byte _inc_retry_count(byte count)
+{
+    count = retry_count_normalize(count);
+    if (!count) return 5;
+    if (count < 30) return count + 5;
+    if (count < 250) return count + 10;
+    return 0;
+}
+
+static byte _dec_retry_count(byte count)
+{
+    count = retry_count_normalize(count);
+    if (!count) return 250;
+    if (count <= 5) return 0;
+    if (count <= 30) return count - 5;
+    if (count <= 40) return 30;
+    return count - 10;
 }
 
 
@@ -1746,6 +1783,24 @@ void do_cmd_options_aux(int page, cptr info)
                     sprintf(buf + strlen(buf), "%-3d ", autorun_max_steps);
                 sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
+            else if (option_info[opt[i]].o_var == &always_repeat)
+            {
+                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                if (!always_repeat_count)
+                    sprintf(buf + strlen(buf), "off ");
+                else
+                    sprintf(buf + strlen(buf), "%-3d ", always_repeat_count);
+                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+            }
+            else if (option_info[opt[i]].o_var == &failed_item_retry_count_dummy)
+            {
+                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                if (!failed_item_retry_count)
+                    sprintf(buf + strlen(buf), "off ");
+                else
+                    sprintf(buf + strlen(buf), "%-3d ", failed_item_retry_count);
+                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+            }
             else if (option_info[opt[i]].o_var == &single_pantheon)
             {
                 sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
@@ -1911,6 +1966,16 @@ void do_cmd_options_aux(int page, cptr info)
                 {
                     autorun_max_steps = _inc_autorun_max_steps(autorun_max_steps);
                 }
+                else if (option_info[opt[k]].o_var == &always_repeat)
+                {
+                    always_repeat_count = _inc_retry_count(always_repeat_count);
+                    sync_retry_options();
+                }
+                else if (option_info[opt[k]].o_var == &failed_item_retry_count_dummy)
+                {
+                    failed_item_retry_count = _inc_retry_count(failed_item_retry_count);
+                    sync_retry_options();
+                }
                 else if (option_info[opt[k]].o_var == &reduce_uniques)
                 {
                     if (!reduce_uniques)
@@ -2032,6 +2097,16 @@ void do_cmd_options_aux(int page, cptr info)
                 else if (option_info[opt[k]].o_var == &autorun_max_steps_dummy)
                 {
                     autorun_max_steps = _dec_autorun_max_steps(autorun_max_steps);
+                }
+                else if (option_info[opt[k]].o_var == &always_repeat)
+                {
+                    always_repeat_count = _dec_retry_count(always_repeat_count);
+                    sync_retry_options();
+                }
+                else if (option_info[opt[k]].o_var == &failed_item_retry_count_dummy)
+                {
+                    failed_item_retry_count = _dec_retry_count(failed_item_retry_count);
+                    sync_retry_options();
                 }
                 else if (option_info[opt[k]].o_var == &ironman_empty_levels)
                 {

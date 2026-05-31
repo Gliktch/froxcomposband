@@ -1000,6 +1000,10 @@ static void save_prefs(void)
     WritePrivateProfileString("Angband", "MsgPaneWrapWidth", buf, ini_file);
     wsprintf(buf, "%d", autorun_max_steps);
     WritePrivateProfileString("Angband", "AutorunMaxSteps", buf, ini_file);
+    wsprintf(buf, "%d", always_repeat_count);
+    WritePrivateProfileString("Angband", "AlwaysRepeatCount", buf, ini_file);
+    wsprintf(buf, "%d", failed_item_retry_count);
+    WritePrivateProfileString("Angband", "FailedItemRetryCount", buf, ini_file);
 
     /* Save window prefs */
     for (i = 0; i < MAX_TERM_DATA; ++i)
@@ -1100,6 +1104,9 @@ static void load_prefs(void)
     monster_list_width = MAX(24, GetPrivateProfileInt("Angband", "MonListWidth", monster_list_width, ini_file));
     message_pane_wrap_width = message_pane_wrap_width_normalize(GetPrivateProfileInt("Angband", "MsgPaneWrapWidth", message_pane_wrap_width, ini_file));
     autorun_max_steps = autorun_max_steps_normalize(GetPrivateProfileInt("Angband", "AutorunMaxSteps", autorun_max_steps, ini_file));
+    always_repeat_count = retry_count_normalize(GetPrivateProfileInt("Angband", "AlwaysRepeatCount", always_repeat_count, ini_file));
+    failed_item_retry_count = retry_count_normalize(GetPrivateProfileInt("Angband", "FailedItemRetryCount", failed_item_retry_count, ini_file));
+    sync_retry_options();
 
     /* Load window prefs */
     for (i = 0; i < MAX_TERM_DATA; ++i)

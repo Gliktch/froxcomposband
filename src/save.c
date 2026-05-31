@@ -445,6 +445,8 @@ static void wr_options(savefile_ptr file)
     int i;
     u16b c;
 
+    sync_retry_options();
+
     savefile_write_byte(file, delay_factor);
     savefile_write_byte(file, hitpoint_warn);
     savefile_write_byte(file, mana_warn);
@@ -861,7 +863,9 @@ static void wr_extra(savefile_ptr file)
     savefile_write_s32b(file, p_ptr->p_stat);
     savefile_write_s32b(file, message_pane_wrap_width > 150 ? 0 : message_pane_wrap_width_normalize(message_pane_wrap_width));
     savefile_write_s32b(file, autorun_max_steps);
-    for (i = 0; i < 13; i++)
+    savefile_write_s32b(file, always_repeat_count);
+    savefile_write_s32b(file, failed_item_retry_count);
+    for (i = 0; i < 11; i++)
         savefile_write_s32b(file, 0); /* Future use */
 
     for (i = 0; i < MAX_POWER_LABEL; i++)

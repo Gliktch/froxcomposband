@@ -3637,6 +3637,13 @@ static char inkey_from_menu(void)
  *
  * Note that "p_ptr->command_new" may not work any more. XXX XXX XXX
  */
+static void _seed_auto_repeat_arg(void)
+{
+    if (command_arg > 0) return;
+    if (my_strchr("TBDoc+", (char)command_cmd))
+        command_arg = always_repeat_count;
+}
+
 void request_command(int shopping)
 {
     int i,ct;
@@ -3667,6 +3674,8 @@ void request_command(int shopping)
 
     /* No "direction" yet */
     command_dir = 0;
+
+    command_item_retry_clear();
 
     use_menu = FALSE;
 
@@ -3860,15 +3869,7 @@ void request_command(int shopping)
     }
 
     /* Hack -- Auto-repeat certain commands */
-    if (always_repeat && (command_arg <= 0))
-    {
-        /* Hack -- auto repeat certain commands */
-        if (my_strchr("TBDoc+", (char)command_cmd)) /* safe?? */
-        {
-            /* Repeat 99 times */
-            command_arg = 99;
-        }
-    }
+    _seed_auto_repeat_arg();
 
     /* Shopping */
     if (shopping == 1)
@@ -4187,7 +4188,10 @@ void repeat_check(int shopping)
         }
         _repeat_buffers[(int)_repeat_reg].pos = 0;
         if (repeat_pull(&what))
+        {
             command_cmd = what;
+            _seed_auto_repeat_arg();
+        }
         else
         {
             msg_format("There is no recorded command in <color:y>%c</color>. Type <color:keypress>'</color> to view recordings.", _repeat_reg);
@@ -4204,7 +4208,10 @@ void repeat_check(int shopping)
         _repeat_reg = '.';
         _repeat_buffers[(int)_repeat_reg].pos = 0;
         if (repeat_pull(&what))
+        {
             command_cmd = what;
+            _seed_auto_repeat_arg();
+        }
         else
             request_command(shopping);
     }

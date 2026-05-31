@@ -566,8 +566,7 @@ Text Display Options
   Show speeds as energy multipliers (effective_speed)
   Displays player and monster speeds as energy multipliers; this style 
   is somewhat ugly, but helps players understand what a given speed 
-  actually means in terms of energy. This option is turned on by 
-  default in Beginner Mode.
+  actually means in terms of energy.
   
   Show equipment slot descriptions (describe_slots)
   Displays descriptions of the slots equipment objects are worn in, 

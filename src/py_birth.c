@@ -3379,7 +3379,6 @@ static void _birth_finalize(void)
     if (game_mode == GAME_MODE_BEGINNER)
     {
         coffee_break = SPEED_COFFEE;
-        effective_speed = TRUE;
         command_menu = TRUE;
         no_scrambling = TRUE;
         show_rogue_keys = TRUE;

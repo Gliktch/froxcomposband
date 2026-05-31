@@ -578,10 +578,7 @@ Beginner Mode  Designed for new players, this mode greatly restricts
                (which has absolutely no gameplay effects). Birth option 
                selection (=) is also disabled to speed up character 
                creation; you will play with automatically assigned, 
-               mostly default options. The effective_speed display 
-               option ("Show speeds as energy multipliers") is turned 
-               on by default in Beginner Mode, as it makes the meanings 
-               of speed values clearer to new players. Finally, this 
+               mostly default options. Finally, this 
                option forces the player to play in coffee-break mode, 
                which accelerates the game, eliminates the wilderness 
                and uses the special Lite-Town as the only town. Since 
@@ -640,5 +637,4 @@ Updated  : PosChengband 1.0.0
 Updated  : PosChengband 4.0.0
 Updated  : PosChengband 5.0.3
 Updated  : FrogComposband 7.1.liquorice
-
 

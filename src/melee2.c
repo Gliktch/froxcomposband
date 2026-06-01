@@ -4570,6 +4570,7 @@ bool process_the_world(int num, int who, bool vs_player)
     {
         if(!m_ptr->r_idx) break;
         process_monster(world_monster);
+        if (!p_ptr->playing || p_ptr->is_dead) break;
 
         reset_target(m_ptr);
 
@@ -4599,8 +4600,10 @@ bool process_the_world(int num, int who, bool vs_player)
     p_ptr->window |= (PW_OVERHEAD | PW_DUNGEON);
 
     world_monster = 0;
-    if (vs_player || (player_has_los_bold(m_ptr->fy, m_ptr->fx) && projectable(py, px, m_ptr->fy, m_ptr->fx)))
+    if (!p_ptr->is_dead && (vs_player || (player_has_los_bold(m_ptr->fy, m_ptr->fx) && projectable(py, px, m_ptr->fy, m_ptr->fx))))
     {
+        if (vs_player && p_ptr->pclass != CLASS_TIME_LORD)
+            msg_print("Woah, what just happened?!");
         msg_print("You feel time flowing around you once more.");
         msg_print(NULL);
     }

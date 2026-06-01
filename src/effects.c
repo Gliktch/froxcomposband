@@ -6383,9 +6383,32 @@ void do_poly_self(void)
  * setting the player to "dead".
  */
 
+static cptr _default_death_msg(bool android)
+{
+    return android ? "You are broken." : "You die.";
+}
+
+static void _note_death_cause(cptr hit_from)
+{
+    bool seppuku = streq(hit_from, "Seppuku");
+
+    if (seppuku)
+    {
+        strcpy(p_ptr->died_from, hit_from);
+    }
+    else
+    {
+        char dummy[1024];
+        sprintf(dummy, "%s%s", hit_from, !p_ptr->paralyzed ? "" : " while helpless");
+        clip_and_locate(" (Foe)", dummy);
+        my_strcpy(p_ptr->died_from, dummy, sizeof p_ptr->died_from);
+    }
+}
+
 int take_hit(int damage_type, int damage, cptr hit_from)
 {
     int old_chp = p_ptr->chp;
+    bool death_line_printed = FALSE;
 
     char death_message[1024];
     int warning = (p_ptr->mhp * hitpoint_warn / 10);
@@ -6551,7 +6574,7 @@ int take_hit(int damage_type, int damage, cptr hit_from)
         }
         else if ((p_ptr->total_winner) && (unique_is_friend(MON_R_MACHINE)))
         {
-            msg_print(android ? "You are broken." : "You die.");
+            msg_print(_default_death_msg(android));
             msg_print(NULL);
         }
         else
@@ -6559,17 +6582,21 @@ int take_hit(int damage_type, int damage, cptr hit_from)
             bool seppuku = streq(hit_from, "Seppuku");
             bool winning_seppuku = p_ptr->total_winner && seppuku;
 
-            /* Note cause of death */
-            if (seppuku)
+            _note_death_cause(hit_from);
+
+            if (world_monster)
             {
-                strcpy(p_ptr->died_from, hit_from);
-            }
-            else
-            {
-                char dummy[1024];
-                sprintf(dummy, "%s%s", hit_from, !p_ptr->paralyzed ? "" : " while helpless");
-                clip_and_locate(" (Foe)", dummy);
-                my_strcpy(p_ptr->died_from, dummy, sizeof p_ptr->died_from);
+                world_monster = 0;
+                p_ptr->redraw |= PR_MAP;
+                p_ptr->update |= PU_MONSTERS;
+                p_ptr->window |= (PW_OVERHEAD | PW_DUNGEON);
+                if (p_ptr->pclass != CLASS_TIME_LORD)
+                    msg_print("Woah, what just happened?!");
+                msg_print("You feel time flowing around you once more.");
+                msg_print(_default_death_msg(android));
+                msg_print(NULL);
+                death_line_printed = TRUE;
+                handle_stuff();
             }
 
             msg_add_tiny_screenshot(50, 24);
@@ -6590,8 +6617,11 @@ int take_hit(int damage_type, int damage, cptr hit_from)
             /* Hack -- Note death */
             if (!last_words)
             {
-                msg_print(android ? "You are broken." : "You die.");
-                msg_print(NULL);
+                if (!death_line_printed)
+                {
+                    msg_print(_default_death_msg(android));
+                    msg_print(NULL);
+                }
             }
             else
             {
@@ -6612,7 +6642,7 @@ int take_hit(int damage_type, int damage, cptr hit_from)
 
                 if (death_message[0] == '\0')
                 {
-                    strcpy(death_message, android ? "You are broken." : "You die.");
+                    strcpy(death_message, _default_death_msg(android));
                 }
                 else p_ptr->last_message = z_string_make(death_message);
                 

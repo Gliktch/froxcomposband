@@ -1798,6 +1798,7 @@ extern int get_bldg_member_code(cptr name);
 extern bool get_nightmare(int r_idx);
 extern void have_nightmare(int r_idx);
 extern void battle_monsters(void);
+extern void arena_finish_victory_exit(void);
 extern void do_cmd_bldg(void);
 extern void do_cmd_quest(void);
 extern bool tele_town(void);

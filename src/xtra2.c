@@ -992,18 +992,7 @@ void monster_death(int m_idx, bool drop_item)
         {
             /* Uh Oh. Rings can't move without mounts and nobody will come for them
                in the Arena. Let's boot them out! */
-            if (p_ptr->arena_number > MAX_ARENA_MONS) p_ptr->arena_number++;
-            p_ptr->arena_number++;
-
-            prepare_change_floor_mode(CFM_SAVE_FLOORS | CFM_NO_RETURN);
-            p_ptr->inside_arena = FALSE;
-            p_ptr->leaving = TRUE;
-
-            /* Re-enter the arena */
-            command_new = SPECIAL_KEY_BUILDING;
-
-            /* No energy needed to re-enter the arena */
-            energy_use = 0;
+            arena_finish_victory_exit();
         }
     }
 

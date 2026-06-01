@@ -20,6 +20,37 @@ static bool leave_bldg = FALSE;
 static bool paivita = FALSE;
 static bool paivitys_no_inkey_hack = FALSE;
 
+static void refresh_buildings(void);
+
+static bool _is_arena_building(void)
+{
+    return f_info[cave[py][px].feat].subtype == 2;
+}
+
+static int _arena_next_challenger_r_idx(void)
+{
+    if (p_ptr->arena_number < 0) return 0;
+    if (p_ptr->arena_number >= MAX_ARENA_MONS) return 0;
+    return arena_info[p_ptr->arena_number].r_idx;
+}
+
+static cptr _arena_next_challenger_desc(void)
+{
+    int r_idx = _arena_next_challenger_r_idx();
+
+    if (r_idx)
+        return r_name + r_info[r_idx].name;
+    if (p_ptr->arena_number < 0)
+        return "--";
+    if (p_ptr->arena_number == MAX_ARENA_MONS)
+        return "??";
+    if (p_ptr->arena_number == MAX_ARENA_MONS + 1)
+        return "The strongest?";
+    if (p_ptr->arena_number > MAX_ARENA_MONS)
+        return "No-one dares fight you!";
+    return "--";
+}
+
 static bool _bldg_action_matches(building_type *bldg, int i, char command)
 {
     if (bldg->letters[i] == command) return TRUE;
@@ -136,21 +167,31 @@ static void show_building(building_type* bldg)
     int i;
     byte action_color;
     char tmp_str[80];
+    cptr next_challenger = _is_arena_building() ? _arena_next_challenger_desc() : NULL;
 
     Term_clear();
     snprintf(tmp_str, sizeof(tmp_str), "%.20s (%.20s) %35.35s", bldg->owner_name, bldg->owner_race, bldg->name);
     prt(tmp_str, 3, 1);
 
+    if (next_challenger)
+    {
+        snprintf(tmp_str, sizeof(tmp_str), "Next challenger: %s", next_challenger);
+        prt(tmp_str, 6, 1);
+    }
 
     for (i = 0; i < 8; i++)
     {
         if (bldg->letters[i])
         {
+            cptr action_name = bldg->act_names[i];
             int member_cost = town_service_price(bldg->member_costs[i]);
             int other_cost = town_service_price(bldg->other_costs[i]);
             bool owner = is_owner(bldg);
             bool member = is_member(bldg);
             int cost = owner ? member_cost : other_cost;
+
+            if (_is_arena_building() && bldg->actions[i] == BACT_POSTER)
+                action_name = "Challenger Information";
 
             if (bldg->action_restr[i] == 0)
             {
@@ -207,7 +248,7 @@ static void show_building(building_type* bldg)
             if (cost > p_ptr->au)
                 action_color = TERM_L_DARK;
 
-            sprintf(tmp_str," %c) %s %s", bldg->letters[i], bldg->act_names[i], buff);
+            sprintf(tmp_str," %c) %s %s", bldg->letters[i], action_name, buff);
             c_put_str(action_color, tmp_str, 19+(i/2), 35*(i%2));
         }
     }
@@ -291,13 +332,23 @@ static void arena_comm(int cmd)
             }
             break;
         case BACT_POSTER:
-            if (p_ptr->arena_number == MAX_ARENA_MONS)
-                msg_print("You are victorious. Enter the arena for the ceremony.");
+        {
+            int r_idx = _arena_next_challenger_r_idx();
 
-            else if (p_ptr->arena_number > MAX_ARENA_MONS)
+            if (r_idx)
             {
-                msg_print("You have won against all foes.");
+                monster_race_track(r_idx);
+                handle_stuff();
+                mon_display(&r_info[r_idx]);
             }
+            else if (p_ptr->arena_number < 0)
+                msg_print("There is no challenger waiting.");
+            else if (p_ptr->arena_number == MAX_ARENA_MONS)
+                msg_print("You are victorious. Enter the arena for the ceremony.");
+            else if (p_ptr->arena_number == MAX_ARENA_MONS + 1)
+                msg_print("The strongest challenger is waiting for you.");
+            else if (p_ptr->arena_number > MAX_ARENA_MONS)
+                msg_print("You have won against all foes.");
             else
             {
                 r_ptr = &r_info[arena_info[p_ptr->arena_number].r_idx];
@@ -305,6 +356,7 @@ static void arena_comm(int cmd)
                 msg_format("Do I hear any challenges against: %s", name);
             }
             break;
+        }
         case BACT_ARENA_RULES:
 
             /* Save screen */
@@ -2163,8 +2215,81 @@ static void _recharge_player_items(void)
     {
         obj_ptr obj = equip_obj(slot);
         if (obj && obj->timeout > 0)
-        obj->timeout = 0;
+            obj->timeout = 0;
     }
+}
+
+static void _arena_winners_lounge(void)
+{
+    reset_tim_flags();
+
+    p_ptr->chp = p_ptr->mhp;
+    p_ptr->chp_frac = 0;
+    p_ptr->csp = p_ptr->msp;
+    p_ptr->csp_frac = 0;
+
+    if (p_ptr->pclass == CLASS_ALCHEMIST)
+        alchemist_set_hero(NULL, 2, TRUE);
+    p_ptr->hero = 2;
+
+    p_ptr->food = 9999;
+
+    _recharge_player_items();
+
+    p_ptr->update |= PU_BONUS | PU_HP | PU_MANA | PU_SPELLS | PU_UN_VIEW | PU_UN_LITE | PU_VIEW | PU_LITE | PU_MONSTERS | PU_DISTANCE | PU_FLOW;
+    p_ptr->redraw |= PR_HP | PR_MANA | PR_STATUS | PR_EFFECTS | PR_MAP;
+    if (display_food_bar)
+        p_ptr->redraw |= PR_HEALTH_BARS;
+    p_ptr->window |= PW_SPELL | PW_OVERHEAD | PW_DUNGEON | PW_MONSTER_LIST | PW_OBJECT_LIST;
+    handle_stuff();
+
+    msg_print("As the victor, you are welcomed into the Winner's Lounge, where rich food, strong drink, skilled attendants, and enchanted tonics soon restore you. You feel like a hero!");
+
+    if (one_in_(6))
+    {
+        switch (randint0(5))
+        {
+        case 0:
+            msg_print("In the Winner's Lounge, you see a Troll Priest get roaring drunk and hurl insults at a Great Wyrm until it finally loses patience and swallows him whole! What a party.");
+            break;
+        case 1:
+            msg_print("The Yeek President can't seem to hold his drink, because he just spent far too long spilling slurred confessions to you. By the sounds of it, he invested all his gold with a talkative fellow named Implorington, and that did NOT go well. Also, he has a thing for women with hairy ears. Yikes.");
+            break;
+        case 2:
+            msg_print("In the Winner's Lounge, you notice an Angel and a Vampire Lord somehow deep in what looks like VERY friendly conversation over cocktails. You shake your head and decide not to ask.");
+            break;
+        case 3:
+            msg_print("In the Winner's Lounge, a drunken duel of songs between a Leprechaun and a Dark Elven Lord went on far longer than seems healthy. At least the buffet was spectacular!");
+            break;
+        default:
+            msg_print("In the Winner's Lounge, you briefly meet the gaze of a Nightwalker wearing a tiny party hat. Considering that his fierce visage and fists still bear the blood of the last couple of revellers who dared to comment, you think better of it.");
+            break;
+        }
+    }
+}
+
+void arena_finish_victory_exit(void)
+{
+    /* Player is not victorious unless they manage to leave the arena alive! */
+    if (p_ptr->arena_number > MAX_ARENA_MONS) p_ptr->arena_number++;
+    p_ptr->arena_number++;
+
+    _arena_winners_lounge();
+
+    /* Don't save the arena as saved floor */
+    prepare_change_floor_mode(CFM_SAVE_FLOORS | CFM_NO_RETURN);
+
+    p_ptr->inside_arena = FALSE;
+    p_ptr->leaving = TRUE;
+
+    /* Re-enter the arena */
+    command_new = SPECIAL_KEY_BUILDING;
+
+    /* Refresh buildings (otherwise bad things happen if we saved and loaded inside the arena) */
+    refresh_buildings();
+
+    /* No energy needed to re-enter the arena */
+    energy_use = 0;
 }
 
 static bool _battle_curse_blackout(void)
@@ -4351,25 +4476,7 @@ void do_cmd_bldg(void)
                 return;
             }
 
-            /* Player is not victorious unless they manage to leave the
-             * arena alive! */
-            if (p_ptr->arena_number > MAX_ARENA_MONS) p_ptr->arena_number++;
-            p_ptr->arena_number++;
-
-            /* Don't save the arena as saved floor */
-            prepare_change_floor_mode(CFM_SAVE_FLOORS | CFM_NO_RETURN);
-
-            p_ptr->inside_arena = FALSE;
-            p_ptr->leaving = TRUE;
-
-            /* Re-enter the arena */
-            command_new = SPECIAL_KEY_BUILDING;
-
-            /* Refresh buildings (otherwise bad things happen if we saved and loaded inside the arena) */
-            refresh_buildings();
-
-            /* No energy needed to re-enter the arena */
-            energy_use = 0;
+            arena_finish_victory_exit();
         }
 
         return;
@@ -4524,4 +4631,3 @@ void do_cmd_bldg(void)
     /* Window stuff */
     p_ptr->window |= (PW_OVERHEAD | PW_DUNGEON);
 }
-

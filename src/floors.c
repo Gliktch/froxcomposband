@@ -35,6 +35,7 @@ void init_saved_floors(bool force)
     int i;
     int fd = -1;
     int mode = 0644;
+    bool prompt_for_cleanup = FALSE;
 
 #ifdef SET_UID
 # ifdef SECURE
@@ -64,7 +65,22 @@ void init_saved_floors(bool force)
         {
             if (!force)
             {
-                if (prompt_temp_files)
+                switch (temp_file_policy)
+                {
+                case TEMP_FILE_POLICY_PROMPT:
+                    prompt_for_cleanup = TRUE;
+                    break;
+
+                case TEMP_FILE_POLICY_AUTO:
+                    prompt_for_cleanup = !(arg_protected_session && savefile_session_lock_supported());
+                    break;
+
+                default:
+                    prompt_for_cleanup = FALSE;
+                    break;
+                }
+
+                if (prompt_for_cleanup)
                 {
                     if (!get_check("Temporary dungeon files from a previous session were found. Delete them and continue loading? "))
                         quit("Aborted.");

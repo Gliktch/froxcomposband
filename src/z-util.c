@@ -11,6 +11,8 @@
 /* Purpose: Low level utilities -BEN- */
 #include "z-util.h"
 
+extern void remove_loc(void);
+
 
 /*
  * Convenient storage of the program name
@@ -94,6 +96,8 @@ void (*quit_aux)(cptr) = NULL;
  */
 void quit(cptr str)
 {
+    remove_loc();
+
     /* Attempt to use the aux function */
     if (quit_aux) (*quit_aux)(str);
 
@@ -264,4 +268,3 @@ void s64b_mod(s32b *A1, u32b *A2, s32b B1, u32b B2)
     s64b_mul(&tmp1, &tmp2, B1, B2);
     s64b_sub(A1, A2, tmp1, tmp2);
 }
-

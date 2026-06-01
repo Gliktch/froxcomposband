@@ -1501,6 +1501,29 @@ void sync_retry_options(void)
     failed_item_retry_count_dummy = failed_item_retry_count ? TRUE : FALSE;
 }
 
+static cptr _temp_file_policy_desc(void)
+{
+    switch (temp_file_policy)
+    {
+    case TEMP_FILE_POLICY_PROMPT:
+        return "prompt";
+    case TEMP_FILE_POLICY_FORCE:
+        return "auto-clean";
+    default:
+        return "auto";
+    }
+}
+
+static void _temp_file_policy_cycle(int delta)
+{
+    if (delta > 0)
+        temp_file_policy = (temp_file_policy + 1) % 3;
+    else if (temp_file_policy == 0)
+        temp_file_policy = 2;
+    else
+        temp_file_policy--;
+}
+
 static byte _inc_message_pane_wrap_width(byte width)
 {
     width = message_pane_wrap_width_normalize(width);
@@ -1885,6 +1908,13 @@ void do_cmd_options_aux(int page, cptr info)
                 sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
                 sprintf(buf + strlen(buf), "%s ", lv_size_options[small_level_type]);
             }
+            else if (option_info[opt[i]].o_var == &temp_file_policy_dummy)
+            {
+                sprintf(buf, "%-48s: %s (%.19s)",
+                    option_info[opt[i]].o_desc,
+                    _temp_file_policy_desc(),
+                    option_info[opt[i]].o_text);
+            }
             else
             {
                 sprintf(buf, "%-48s: %s (%.19s)",
@@ -2102,6 +2132,10 @@ void do_cmd_options_aux(int page, cptr info)
                         }
                     }
                 }
+                else if (option_info[opt[k]].o_var == &temp_file_policy_dummy)
+                {
+                    _temp_file_policy_cycle(1);
+                }
                 else
                 {
                     if (option_info[opt[k]].o_var == &suppress_main_messages && !_has_message_window())
@@ -2225,6 +2259,10 @@ void do_cmd_options_aux(int page, cptr info)
                         small_level_type--;
                         if (small_level_type == 0) always_small_levels = FALSE;
                     }
+                }
+                else if (option_info[opt[k]].o_var == &temp_file_policy_dummy)
+                {
+                    _temp_file_policy_cycle(-1);
                 }
                 else
                 {
@@ -2488,7 +2526,8 @@ static bool _special_option_blocks_letter_toggle(bool *o_var)
         || o_var == &ironman_empty_levels
         || o_var == &single_pantheon
         || o_var == &guaranteed_pantheon
-        || o_var == &always_small_levels;
+        || o_var == &always_small_levels
+        || o_var == &temp_file_policy_dummy;
 }
 
 

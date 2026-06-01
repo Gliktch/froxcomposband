@@ -836,7 +836,9 @@ static void rd_extra(savefile_ptr file)
     if (!always_repeat_count && always_repeat)
         always_repeat_count = 100;
     failed_item_retry_count = retry_count_normalize(savefile_read_s32b(file));
-    prompt_temp_files = savefile_read_s32b(file) ? TRUE : FALSE;
+    temp_file_policy = savefile_read_s32b(file);
+    if (temp_file_policy > TEMP_FILE_POLICY_FORCE)
+        temp_file_policy = TEMP_FILE_POLICY_FORCE;
     map_edge_center_distance = map_edge_center_distance_normalize(savefile_read_s32b(file));
     sync_retry_options();
     for (i = 0; i < 9; i++) (void)savefile_read_s32b(file);

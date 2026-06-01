@@ -12,6 +12,10 @@
 
 #include "angband.h"
 
+#ifdef SIGTERM
+extern int kill(int, int);
+#endif
+
 /*Exo's character information patch*/
 void updatecharinfoS(void)
 {
@@ -865,7 +869,7 @@ static void wr_extra(savefile_ptr file)
     savefile_write_s32b(file, autorun_max_steps);
     savefile_write_s32b(file, always_repeat_count);
     savefile_write_s32b(file, failed_item_retry_count);
-    savefile_write_s32b(file, prompt_temp_files ? 1 : 0);
+    savefile_write_s32b(file, temp_file_policy);
     savefile_write_s32b(file, map_edge_center_distance_normalize(map_edge_center_distance));
     for (i = 0; i < 9; i++)
         savefile_write_s32b(file, 0); /* Future use */
@@ -1472,18 +1476,21 @@ bool save_player(void)
 
 #ifdef VERIFY_SAVEFILE
 
-        /* Lock on savefile */
-        strcpy(temp, savefile);
-        strcat(temp, ".lok");
+        if (!arg_protected_session)
+        {
+            /* Lock on savefile */
+            strcpy(temp, savefile);
+            strcat(temp, ".lok");
 
-        /* Grab permissions */
-        safe_setuid_grab();
+            /* Grab permissions */
+            safe_setuid_grab();
 
-        /* Remove lock file */
-        fd_kill(temp);
+            /* Remove lock file */
+            fd_kill(temp);
 
-        /* Drop permissions */
-        safe_setuid_drop();
+            /* Drop permissions */
+            safe_setuid_drop();
+        }
 
 #endif
 
@@ -1554,6 +1561,459 @@ extern byte versio_sovitus(void)
 	return 4;
 }
 
+static int _savefile_session_lock_fd = -1;
+static char _savefile_session_lock_path[1024];
+static bool _savefile_session_lock_acquire(void);
+
+typedef struct
+{
+    bool valid;
+    char savefile[1024];
+    long pid;
+    unsigned long uid;
+    unsigned long when;
+    bool has_pid;
+    bool has_uid;
+    bool has_when;
+} _savefile_lock_meta_t;
+
+enum
+{
+    _SAVEFILE_PID_UNKNOWN = 0,
+    _SAVEFILE_PID_RUNNING,
+    _SAVEFILE_PID_NOT_FOUND,
+    _SAVEFILE_PID_INACCESSIBLE
+};
+
+bool savefile_session_lock_supported(void)
+{
+#ifdef SET_UID
+# ifdef USG
+#  if defined(F_SETLK)
+    return TRUE;
+#  endif
+# else
+#  if defined(LOCK_EX) && defined(LOCK_NB)
+    return TRUE;
+#  endif
+# endif
+#endif
+    return FALSE;
+}
+
+bool savefile_session_lock_refresh(void)
+{
+    return _savefile_session_lock_acquire();
+}
+
+static errr _savefile_session_try_lock(int fd)
+{
+    if (fd < 0) return -1;
+    if (!savefile_session_lock_supported()) return -1;
+
+#ifdef SET_UID
+# ifdef USG
+#  if defined(F_SETLK)
+    struct flock lock;
+
+    memset(&lock, 0, sizeof(lock));
+    lock.l_type = F_WRLCK;
+    lock.l_whence = SEEK_SET;
+
+    if (fcntl(fd, F_SETLK, &lock) != 0) return 1;
+#  endif
+# else
+#  if defined(LOCK_EX) && defined(LOCK_NB)
+    if (flock(fd, LOCK_EX | LOCK_NB) != 0) return 1;
+#  endif
+# endif
+#endif
+
+    return 0;
+}
+
+static void _savefile_lock_meta_init(_savefile_lock_meta_t *meta)
+{
+    memset(meta, 0, sizeof(*meta));
+}
+
+static void _savefile_lock_meta_parse(_savefile_lock_meta_t *meta, char *buf)
+{
+    char *line = buf;
+
+    _savefile_lock_meta_init(meta);
+
+    while (line && *line)
+    {
+        char *next = strchr(line, '\n');
+        char *sep = strchr(line, '=');
+
+        if (next) *next++ = '\0';
+
+        if (sep)
+        {
+            *sep++ = '\0';
+
+            if (streq(line, "savefile"))
+            {
+                my_strcpy(meta->savefile, sep, sizeof(meta->savefile));
+                meta->valid = TRUE;
+            }
+            else if (streq(line, "pid"))
+            {
+                meta->pid = atol(sep);
+                meta->has_pid = meta->pid > 0;
+                meta->valid = TRUE;
+            }
+            else if (streq(line, "uid"))
+            {
+                meta->uid = strtoul(sep, NULL, 10);
+                meta->has_uid = TRUE;
+                meta->valid = TRUE;
+            }
+            else if (streq(line, "time"))
+            {
+                meta->when = strtoul(sep, NULL, 10);
+                meta->has_when = TRUE;
+                meta->valid = TRUE;
+            }
+        }
+
+        line = next;
+    }
+}
+
+static bool _savefile_lock_meta_read(int fd, _savefile_lock_meta_t *meta)
+{
+    char buf[512];
+    int len;
+
+    _savefile_lock_meta_init(meta);
+
+    if (fd < 0) return FALSE;
+    if (fd_seek(fd, 0)) return FALSE;
+
+    len = read(fd, buf, sizeof(buf) - 1);
+    if (len <= 0) return FALSE;
+
+    buf[len] = '\0';
+    _savefile_lock_meta_parse(meta, buf);
+    return meta->valid;
+}
+
+static int _savefile_pid_status(long pid)
+{
+#ifdef SIGTERM
+    if (pid > 0)
+    {
+        if (kill((int)pid, 0) == 0) return _SAVEFILE_PID_RUNNING;
+        if (errno == ESRCH) return _SAVEFILE_PID_NOT_FOUND;
+        if (errno == EPERM) return _SAVEFILE_PID_INACCESSIBLE;
+    }
+#endif
+    return _SAVEFILE_PID_UNKNOWN;
+}
+
+static cptr _savefile_pid_status_desc(long pid)
+{
+    switch (_savefile_pid_status(pid))
+    {
+    case _SAVEFILE_PID_RUNNING:
+        return "running";
+    case _SAVEFILE_PID_NOT_FOUND:
+        return "not found";
+    case _SAVEFILE_PID_INACCESSIBLE:
+        return "inaccessible";
+    default:
+        return "unknown";
+    }
+}
+
+static void _savefile_lock_owner_desc(char *buf, int size, _savefile_lock_meta_t *meta)
+{
+    if (meta->has_uid)
+    {
+        char user[32];
+        cptr same = meta->uid == (unsigned long)getuid() ? "same user" : "different user";
+
+        user_name(user, (int)meta->uid);
+        if (user[0])
+            strnfmt(buf, size, "%s [%lu] (%s)", user, meta->uid, same);
+        else
+            strnfmt(buf, size, "[%lu] (%s)", meta->uid, same);
+    }
+    else
+        my_strcpy(buf, "unknown", size);
+}
+
+static void _savefile_lock_time_desc(char *buf, int size, _savefile_lock_meta_t *meta)
+{
+    if (meta->has_when)
+    {
+        time_t now = (time_t)meta->when;
+        struct tm *tm = localtime(&now);
+
+        if (tm && strftime(buf, size, "%Y-%m-%d %H:%M:%S", tm)) return;
+    }
+
+    my_strcpy(buf, "unknown", size);
+}
+
+static void _savefile_lock_command_desc(char *buf, int size, long pid)
+{
+#ifdef __linux__
+    if (pid > 0)
+    {
+        FILE *fff;
+        char path[64];
+        char cmd[256];
+        int i;
+        int len;
+
+        strnfmt(path, sizeof(path), "/proc/%ld/cmdline", pid);
+        fff = fopen(path, "r");
+        if (fff)
+        {
+            len = fread(cmd, 1, sizeof(cmd) - 1, fff);
+            fclose(fff);
+
+            if (len > 0)
+            {
+                cmd[len] = '\0';
+                for (i = 0; i < len - 1; i++)
+                {
+                    if (cmd[i] == '\0') cmd[i] = ' ';
+                }
+                my_strcpy(buf, cmd, size);
+                return;
+            }
+        }
+    }
+#endif
+    my_strcpy(buf, "unavailable", size);
+}
+
+static void _savefile_lock_show_details(cptr path, _savefile_lock_meta_t *meta)
+{
+    char when[80];
+    char owner[80];
+    char cmd[256];
+    char tmp[1280];
+    int row = 2;
+
+    _savefile_lock_time_desc(when, sizeof(when), meta);
+    _savefile_lock_owner_desc(owner, sizeof(owner), meta);
+    _savefile_lock_command_desc(cmd, sizeof(cmd), meta->pid);
+
+    Term_clear();
+    prt("Savefile Lock Details", row++, 0);
+    row++;
+    strnfmt(tmp, sizeof(tmp), "Savefile: %s", meta->savefile[0] ? meta->savefile : savefile);
+    prt(tmp, row++, 0);
+    strnfmt(tmp, sizeof(tmp), "Lock file: %s", path);
+    prt(tmp, row++, 0);
+    strnfmt(tmp, sizeof(tmp), "PID: %s", meta->has_pid ? format("%ld", meta->pid) : "unknown");
+    prt(tmp, row++, 0);
+    strnfmt(tmp, sizeof(tmp), "Lock time: %s", when);
+    prt(tmp, row++, 0);
+    strnfmt(tmp, sizeof(tmp), "Process status: %s", meta->has_pid ? _savefile_pid_status_desc(meta->pid) : "unknown");
+    prt(tmp, row++, 0);
+    strnfmt(tmp, sizeof(tmp), "Owner: %s", owner);
+    prt(tmp, row++, 0);
+    strnfmt(tmp, sizeof(tmp), "Command: %s", cmd);
+    prt(tmp, row++, 0);
+    prt("Press any key to return.", row + 2, 0);
+    (void)inkey();
+}
+
+static bool _savefile_lock_try_terminate(int fd, _savefile_lock_meta_t *meta, cptr *msg1, cptr *msg2)
+{
+#ifdef SIGTERM
+    int i;
+
+    if (!meta->has_pid)
+    {
+        *msg1 = "No valid PID was found in the session lock.";
+        *msg2 = "Press ? for details, or any other key to exit.";
+        return FALSE;
+    }
+
+    if (!meta->has_uid || meta->uid != (unsigned long)getuid())
+    {
+        *msg1 = "Termination is only available for a lock owned by the same user.";
+        *msg2 = "Press ? for details, or any other key to exit.";
+        return FALSE;
+    }
+
+    if (kill((int)meta->pid, SIGTERM) != 0)
+    {
+        *msg1 = "The other process could not be terminated.";
+        *msg2 = "It may already be exiting, or permission may have been denied.";
+        return FALSE;
+    }
+
+    for (i = 0; i < 25; i++)
+    {
+        Term_xtra(TERM_XTRA_DELAY, 100);
+        if (_savefile_session_try_lock(fd) == 0) return TRUE;
+    }
+
+    *msg1 = "The other process did not release the savefile lock in time.";
+    *msg2 = "Wait a moment and try again, or close it manually.";
+    return FALSE;
+#else
+    *msg1 = "Process termination is not available on this build.";
+    *msg2 = "Press ? for details, or any other key to exit.";
+    return FALSE;
+#endif
+}
+
+static void _savefile_lock_quit_screen(cptr msg1, cptr msg2)
+{
+    Term_clear();
+    c_prt(TERM_RED, "Savefile is currently in use by another running copy of the game.", 2, 0);
+    c_prt(TERM_RED, "It's not possible to continue safely, without a strong likelihood of corruption or data loss.", 3, 0);
+    if (msg1) prt(msg1, 6, 0);
+    if (msg2) prt(msg2, 7, 0);
+    prt("Press t to attempt termination, ? for details, or any other key to exit.", 9, 0);
+}
+
+static bool _savefile_session_lock_conflict(int fd, cptr path)
+{
+    _savefile_lock_meta_t meta;
+    cptr msg1 = NULL;
+    cptr msg2 = NULL;
+
+    (void)_savefile_lock_meta_read(fd, &meta);
+
+    while (TRUE)
+    {
+        char cmd;
+
+        _savefile_lock_quit_screen(msg1, msg2);
+        cmd = inkey();
+
+        if (cmd == '?')
+        {
+            _savefile_lock_show_details(path, &meta);
+            continue;
+        }
+
+        if (cmd == 't' || cmd == 'T')
+        {
+            if (_savefile_lock_try_terminate(fd, &meta, &msg1, &msg2))
+                return TRUE;
+
+            (void)_savefile_lock_meta_read(fd, &meta);
+            continue;
+        }
+
+        quit(NULL);
+    }
+}
+
+static void _savefile_session_unlock(int fd)
+{
+    if (fd < 0) return;
+
+#ifdef SET_UID
+# ifdef USG
+#  if defined(F_SETLK)
+    struct flock lock;
+
+    memset(&lock, 0, sizeof(lock));
+    lock.l_type = F_UNLCK;
+    lock.l_whence = SEEK_SET;
+
+    (void)fcntl(fd, F_SETLK, &lock);
+#  endif
+# else
+#  if defined(LOCK_UN)
+    (void)flock(fd, LOCK_UN);
+#  endif
+# endif
+#endif
+}
+
+static void _savefile_session_lock_release(void)
+{
+    if (_savefile_session_lock_fd < 0) return;
+
+    safe_setuid_grab();
+    _savefile_session_unlock(_savefile_session_lock_fd);
+    (void)fd_close(_savefile_session_lock_fd);
+    if (_savefile_session_lock_path[0])
+        (void)fd_kill(_savefile_session_lock_path);
+    safe_setuid_drop();
+
+    _savefile_session_lock_fd = -1;
+    _savefile_session_lock_path[0] = '\0';
+}
+
+static void _protected_session_mode_unsupported(void)
+{
+    Term_clear();
+    prt("Protected session mode was requested via the -p launch parameter,", 2, 0);
+    prt("but this build/platform does not support session locking.", 3, 0);
+    prt("Press any key to exit.", 5, 0);
+    (void)inkey();
+    quit(NULL);
+}
+
+static bool _savefile_session_lock_acquire(void)
+{
+    char path[1024];
+    char meta[256];
+    int fd;
+
+    if (!arg_protected_session) return TRUE;
+    if (!savefile[0]) return TRUE;
+    if (!savefile_session_lock_supported())
+    {
+        _protected_session_mode_unsupported();
+        return FALSE;
+    }
+
+    strnfmt(path, sizeof(path), "%s.lok", savefile);
+
+    if (_savefile_session_lock_fd >= 0)
+    {
+        if (streq(_savefile_session_lock_path, path)) return TRUE;
+        _savefile_session_lock_release();
+    }
+
+    safe_setuid_grab();
+    fd = fd_open(path, O_RDWR);
+    if (fd < 0)
+        fd = fd_make(path, 0644);
+    if (fd < 0)
+    {
+        safe_setuid_drop();
+        quit("Cannot create the savefile lock.");
+    }
+
+    if (_savefile_session_try_lock(fd) != 0)
+    {
+        safe_setuid_drop();
+        if (_savefile_session_lock_conflict(fd, path))
+            safe_setuid_grab();
+        else
+            quit(NULL);
+    }
+
+    strnfmt(meta, sizeof(meta),
+        "FroxComposband save session lock\nsavefile=%s\npid=%ld\nuid=%lu\ntime=%lu\n",
+        savefile, (long)getpid(), (unsigned long)getuid(), (unsigned long)time(NULL));
+    (void)fd_seek(fd, 0);
+    (void)fd_chop(fd, 0);
+    (void)fd_write(fd, meta, strlen(meta));
+    safe_setuid_drop();
+
+    _savefile_session_lock_fd = fd;
+    my_strcpy(_savefile_session_lock_path, path, sizeof(_savefile_session_lock_path));
+    return TRUE;
+}
+
 /*
  * Attempt to Load a "savefile"
  *
@@ -1603,6 +2063,8 @@ bool load_player(void)
     /* Allow empty savefile name */
     if (!savefile[0]) return (TRUE);
 
+    if (!_savefile_session_lock_acquire()) return FALSE;
+
 
 #if !defined(MACINTOSH) && !defined(WINDOWS) && !defined(VM)
 
@@ -1626,7 +2088,7 @@ bool load_player(void)
 #ifdef VERIFY_SAVEFILE
 
     /* Verify savefile usage */
-    if (!err)
+    if (!err && !arg_protected_session)
     {
         FILE *fkk;
 
@@ -1809,7 +2271,7 @@ bool load_player(void)
 #ifdef VERIFY_SAVEFILE
 
     /* Verify savefile usage */
-    if (TRUE)
+    if (!arg_protected_session)
     {
         char temp[1024];
 
@@ -1822,6 +2284,9 @@ bool load_player(void)
     }
 
 #endif
+
+    if (arg_protected_session)
+        _savefile_session_lock_release();
 
 
     /* Message */
@@ -1836,6 +2301,14 @@ bool load_player(void)
 
 void remove_loc(void)
 {
+    if (arg_protected_session)
+    {
+        _savefile_session_lock_release();
+        return;
+    }
+
+    if (!savefile[0]) return;
+
 #ifdef VERIFY_SAVEFILE
     char temp[1024];
 #endif /* VERIFY_SAVEFILE */

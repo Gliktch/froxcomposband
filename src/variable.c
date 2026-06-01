@@ -78,6 +78,7 @@ bool arg_monochrome;        /* Command arg -- Request monochrome mode */
 bool arg_force_original;    /* Command arg -- Request original keyset */
 bool arg_force_roguelike;    /* Command arg -- Request roguelike keyset */
 bool arg_bigtile = FALSE;    /* Command arg -- Request big tile mode */
+bool arg_protected_session; /* Command arg -- Request protected session mode */
 
 /*
  * Various things
@@ -346,7 +347,8 @@ bool expand_list;    /* Expand the power of the list commands */
 bool bound_walls_perm;    /* Boundary walls become 'permanent wall' */
 bool delay_autopick;  /* Always use delayed autopick */
 bool last_words;    /* Leave last words when your character dies */
-bool prompt_temp_files; /* Prompt at login when temporary dungeon files are found */
+byte temp_file_policy = TEMP_FILE_POLICY_FORCE; /* Temporary dungeon file handling policy */
+bool temp_file_policy_dummy; /* Option-page anchor for temp_file_policy */
 
 #ifdef WORLD_SCORE
 bool send_score;    /* Send score dump to the world score server */

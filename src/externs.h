@@ -130,6 +130,7 @@ extern bool arg_monochrome;
 extern bool arg_force_original;
 extern bool arg_force_roguelike;
 extern bool arg_bigtile;
+extern bool arg_protected_session;
 extern bool character_generated;
 extern bool character_dungeon;
 extern bool character_loaded;
@@ -382,7 +383,8 @@ extern bool expand_list;    /* Expand the power of the list commands */
 extern bool bound_walls_perm;    /* Boundary walls become 'permanent wall' */
 extern bool delay_autopick;  /* Always use delayed autopick */
 extern bool last_words;    /* Leave last words when your character dies */
-extern bool prompt_temp_files; /* Prompt at login when temporary dungeon files are found */
+extern byte temp_file_policy; /* Temporary dungeon file handling policy */
+extern bool temp_file_policy_dummy; /* Option-page anchor for temp_file_policy */
 
 #ifdef WORLD_SCORE
 extern bool send_score;    /* Send score dump to the world score server */
@@ -1587,6 +1589,8 @@ extern void obj_essence_flags(object_type *o_ptr, u32b flgs[OF_ARRAY_SIZE]);
 /* save.c */
 extern bool save_player(void);
 extern bool load_player(void);
+extern bool savefile_session_lock_supported(void);
+extern bool savefile_session_lock_refresh(void);
 extern void remove_loc(void);
 extern bool save_floor(saved_floor_type *sf_ptr, u32b mode);
 extern byte versio_sovitus(void);

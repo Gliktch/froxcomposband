@@ -481,6 +481,13 @@ int main(int argc, char *argv[])
 				break;
 			}
 
+			case 'P':
+			case 'p':
+			{
+				arg_protected_session = TRUE;
+				break;
+			}
+
 			case 'm':
 			{
 				if (!argv[i][2]) goto usage;
@@ -524,6 +531,7 @@ int main(int argc, char *argv[])
 				puts("  -o       Request original keyset");
 				puts("  -r       Request rogue-like keyset");
 				puts("  -M       Request monochrome mode");
+				puts("  -p       Enable protected session mode");
 				puts("  -u<who>  Use your <who> savefile");
 				puts("  -m<sys>  Force 'main-<sys>.c' usage");
 				puts("  -d<def>  Define a 'lib' dir sub-path");
@@ -786,6 +794,5 @@ int main(int argc, char *argv[])
 }
 
 #endif
-
 
 

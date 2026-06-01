@@ -2346,8 +2346,8 @@ option_type option_info[] =
     { &last_words,                  TRUE,  OPT_PAGE_GAMEPLAY, 0, 28,
     "last_words",                   "Leave last words when your character dies" },
 
-    { &prompt_temp_files,           FALSE, OPT_PAGE_GAMEPLAY, 2, 6,
-    "prompt_temp_files",            "Prompt at login when temporary dungeon files are found" },
+    { &temp_file_policy_dummy,      FALSE, OPT_PAGE_GAMEPLAY, 2, 6,
+    "temp_file_policy",             "Temporary dungeon file handling when stale floor files are found" },
 
 #ifdef ALLOW_WIZARD
     { &allow_debug_opts,            FALSE, OPT_PAGE_GAMEPLAY, 6, 11,

@@ -571,6 +571,11 @@ errr process_pref_file_command(char *buf)
         cptr opt_name = buf + 2;
         if (streq(opt_name, "display_distance"))
             opt_name = "monlist_range";
+        if (streq(opt_name, "temp_file_policy"))
+        {
+            temp_file_policy = (buf[0] == 'Y') ? TEMP_FILE_POLICY_PROMPT : TEMP_FILE_POLICY_FORCE;
+            return 0;
+        }
 
         for (i = 0; option_info[i].o_desc; i++)
         {
@@ -2770,6 +2775,12 @@ void process_player_name(bool sf)
 
         /* Build the filename */
         path_build(savefile, sizeof(savefile), ANGBAND_DIR_SAVE, temp);
+
+        if (arg_protected_session && !temporary_name_hack && angband_term[0])
+        {
+            if (!savefile_session_lock_refresh())
+                quit(NULL);
+        }
     }
 
     /* Load an autopick preference file */

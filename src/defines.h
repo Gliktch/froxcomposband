@@ -3583,6 +3583,10 @@ enum r_drop_e
 #define OPT_PAGE_LIST           8
 #define OPT_PAGE_PLAYRECORD    10
 
+#define TEMP_FILE_POLICY_AUTO      0
+#define TEMP_FILE_POLICY_PROMPT    1
+#define TEMP_FILE_POLICY_FORCE     2
+
 #define OPT_PAGE_JAPANESE_ONLY 99
 
 

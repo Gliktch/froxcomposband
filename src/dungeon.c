@@ -2425,7 +2425,18 @@ static void process_world_aux_curse(void)
         /* Teleport player */
         if ((p_ptr->cursed & OFC_TELEPORT) && one_in_(200) && !p_ptr->anti_tele)
         {
+            char o_name[MAX_NLEN];
+            object_type *o_ptr = choose_cursed_obj_name(OFC_TELEPORT);
+
             disturb(0, 0);
+            if (o_ptr)
+            {
+                object_desc(o_name, o_ptr, (OD_OMIT_PREFIX | OD_NAME_ONLY));
+                msg_format("Your %s %s a low thrumming noise, and suddenly you're somewhere else!",
+                    o_name, object_plural(o_ptr) ? "make" : "makes");
+                obj_learn_curse(o_ptr, OFC_TELEPORT);
+                obj_learn_flag(o_ptr, OF_TELEPORT);
+            }
 
             /* Teleport player */
             teleport_player(40, TELEPORT_PASSIVE);

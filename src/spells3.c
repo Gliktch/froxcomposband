@@ -1135,6 +1135,9 @@ bool apply_disenchant(int mode)
             (to_a != o_ptr->to_a) || (pval != o_ptr->pval))
         {
             msg_format("Your %s was disenchanted!", o_name);
+            if (pval != o_ptr->pval)
+                msg_format("Your %s %s permanently reduced in power!",
+                    o_name, object_plural(o_ptr) ? "are" : "is");
             if ((pval != o_ptr->pval) && (alert_item_major || (alert_insc_gone && obj_is_inscribed(o_ptr))))
                 msg_print(NULL);
             else if (((to_h != o_ptr->to_h) || (to_d != o_ptr->to_d) || (to_a != o_ptr->to_a)) && alert_item_minor)

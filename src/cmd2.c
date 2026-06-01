@@ -3795,9 +3795,22 @@ bool do_cmd_fire(void)
         return FALSE;
     }
 
-    if (bow->sval == SV_HARP || bow->sval == SV_FLUTE)
+    if (bow->sval == SV_HARP)
     {
-        msg_print("You play a soothing melody, but not much else happens.");
+        if (p_ptr->pclass == CLASS_BARD)
+            msg_print("You play a soothing melody, but not much else happens.");
+        else
+            msg_print("Twang! You're not very good at that.");
+        flush();
+        return FALSE;
+    }
+
+    if (bow->sval == SV_FLUTE)
+    {
+        if (p_ptr->pclass == CLASS_BARD)
+            msg_print("You play a soothing melody, but not much else happens.");
+        else
+            msg_print("Toot! You're not very good at that.");
         flush();
         return FALSE;
     }

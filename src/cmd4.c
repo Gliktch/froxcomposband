@@ -19,7 +19,7 @@
 
 static void browser_cursor(char ch, int *column, int *grp_cur, int grp_cnt, int *list_cur, int list_cnt);
 static bool _has_message_window(void);
-static bool _special_option_blocks_letter_toggle(bool *o_var);
+static bool _special_option_handle_direction(bool *o_var, int delta);
 
 /*
  * A set of functions to maintain automatic dumps of various kinds.
@@ -1597,6 +1597,199 @@ static byte _dec_retry_count(byte count)
     return count - 10;
 }
 
+static bool _special_option_handle_direction(bool *o_var, int delta)
+{
+    if (delta > 0)
+    {
+        if (o_var == &random_artifacts)
+        {
+            if (!random_artifacts)
+            {
+                random_artifacts = TRUE;
+                random_artifact_pct = 10;
+            }
+            else
+            {
+                random_artifact_pct += 10;
+                if (random_artifact_pct > 100) random_artifacts = FALSE;
+            }
+        }
+        else if (o_var == &obj_list_width)
+        {
+            int maksi = MAX(50, Term->wid - 15);
+            maksi &= ~(0x01);
+            object_list_width += 2;
+            if (object_list_width > maksi) object_list_width = maksi;
+        }
+        else if (o_var == &mon_list_width)
+        {
+            int maksi = MAX(50, Term->wid - 15);
+            maksi &= ~(0x01);
+            monster_list_width += 2;
+            if (monster_list_width > maksi) monster_list_width = maksi;
+        }
+        else if (o_var == &msg_pane_wrap_width)
+            message_pane_wrap_width = _inc_message_pane_wrap_width(message_pane_wrap_width);
+        else if (o_var == &autorun_max_steps_dummy)
+            autorun_max_steps = _inc_autorun_max_steps(autorun_max_steps);
+        else if (o_var == &map_edge_center_dummy)
+            map_edge_center_distance = _inc_map_edge_center_distance(map_edge_center_distance);
+        else if (o_var == &always_repeat)
+        {
+            always_repeat_count = _inc_retry_count(always_repeat_count);
+            sync_retry_options();
+        }
+        else if (o_var == &failed_item_retry_count_dummy)
+        {
+            failed_item_retry_count = _inc_retry_count(failed_item_retry_count);
+            sync_retry_options();
+        }
+        else if (o_var == &reduce_uniques)
+        {
+            if (!reduce_uniques)
+            {
+                reduce_uniques = TRUE;
+                reduce_uniques_pct = 10;
+            }
+            else
+            {
+                reduce_uniques_pct += 10;
+                if (reduce_uniques_pct >= 100) reduce_uniques = FALSE;
+            }
+        }
+        else if (o_var == &ironman_empty_levels)
+        {
+            generate_empty++;
+            if (generate_empty == EMPTY_MAX) generate_empty = 0;
+            ironman_empty_levels = (generate_empty == EMPTY_ALWAYS);
+        }
+        else if (o_var == &single_pantheon)
+        {
+            pantheon_count++;
+            if (pantheon_count >= PANTHEON_MAX) pantheon_count = 1;
+        }
+        else if (o_var == &guaranteed_pantheon)
+        {
+            game_pantheon++;
+            if (game_pantheon >= PANTHEON_MAX) game_pantheon = 0;
+        }
+        else if (o_var == &always_small_levels)
+        {
+            if (!always_small_levels)
+            {
+                always_small_levels = TRUE;
+                small_level_type = 1;
+            }
+            else
+            {
+                small_level_type++;
+                if (small_level_type > SMALL_LVL_MAX)
+                {
+                    always_small_levels = FALSE;
+                    small_level_type = 0;
+                }
+            }
+        }
+        else if (o_var == &temp_file_policy_dummy)
+            _temp_file_policy_cycle(1);
+        else
+            return FALSE;
+    }
+    else
+    {
+        if (o_var == &random_artifacts)
+        {
+            if (!random_artifacts)
+            {
+                random_artifacts = TRUE;
+                random_artifact_pct = 100;
+            }
+            else
+            {
+                random_artifact_pct -= 10;
+                if (random_artifact_pct <= 0) random_artifacts = FALSE;
+            }
+        }
+        else if (o_var == &reduce_uniques)
+        {
+            if (!reduce_uniques)
+            {
+                reduce_uniques = TRUE;
+                reduce_uniques_pct = 90;
+            }
+            else
+            {
+                reduce_uniques_pct -= 10;
+                if (reduce_uniques_pct <= 0)
+                {
+                    reduce_uniques = FALSE;
+                    reduce_uniques_pct = 100;
+                }
+            }
+        }
+        else if (o_var == &obj_list_width)
+        {
+            object_list_width -= 2;
+            if (object_list_width < 24) object_list_width = 24;
+        }
+        else if (o_var == &mon_list_width)
+        {
+            monster_list_width -= 2;
+            if (monster_list_width < 24) monster_list_width = 24;
+        }
+        else if (o_var == &msg_pane_wrap_width)
+            message_pane_wrap_width = _dec_message_pane_wrap_width(message_pane_wrap_width);
+        else if (o_var == &autorun_max_steps_dummy)
+            autorun_max_steps = _dec_autorun_max_steps(autorun_max_steps);
+        else if (o_var == &map_edge_center_dummy)
+            map_edge_center_distance = _dec_map_edge_center_distance(map_edge_center_distance);
+        else if (o_var == &always_repeat)
+        {
+            always_repeat_count = _dec_retry_count(always_repeat_count);
+            sync_retry_options();
+        }
+        else if (o_var == &failed_item_retry_count_dummy)
+        {
+            failed_item_retry_count = _dec_retry_count(failed_item_retry_count);
+            sync_retry_options();
+        }
+        else if (o_var == &ironman_empty_levels)
+        {
+            if (generate_empty == 0) generate_empty = EMPTY_MAX - 1;
+            else generate_empty--;
+            ironman_empty_levels = (generate_empty == EMPTY_ALWAYS);
+        }
+        else if (o_var == &single_pantheon)
+        {
+            pantheon_count--;
+            if (pantheon_count < 1) pantheon_count = PANTHEON_MAX - 1;
+        }
+        else if (o_var == &guaranteed_pantheon)
+        {
+            if (game_pantheon) game_pantheon--;
+            else game_pantheon = PANTHEON_MAX - 1;
+        }
+        else if (o_var == &always_small_levels)
+        {
+            if (!always_small_levels)
+            {
+                always_small_levels = TRUE;
+                small_level_type = SMALL_LVL_MAX;
+            }
+            else
+            {
+                small_level_type--;
+                if (small_level_type == 0) always_small_levels = FALSE;
+            }
+        }
+        else if (o_var == &temp_file_policy_dummy)
+            _temp_file_policy_cycle(-1);
+        else
+            return FALSE;
+    }
+    return TRUE;
+}
+
 
 /*
  * Interact with some options for autosaving
@@ -2032,110 +2225,8 @@ void do_cmd_options_aux(int page, cptr info)
             case SKEY_RIGHT:
             {
                 if (browse_only) break;
-                if ((ch == 'y' || ch == 'Y') && _special_option_blocks_letter_toggle(option_info[opt[k]].o_var))
-                {
-                    bell();
+                if (_special_option_handle_direction(option_info[opt[k]].o_var, 1))
                     break;
-                }
-                if (option_info[opt[k]].o_var == &random_artifacts)
-                {
-                    if (!random_artifacts)
-                    {
-                        random_artifacts = TRUE;
-                        random_artifact_pct = 10;
-                    }
-                    else
-                    {
-                        random_artifact_pct += 10;
-                        if (random_artifact_pct > 100) random_artifacts = FALSE;
-                    }
-                }
-                else if (option_info[opt[k]].o_var == &obj_list_width)
-                {
-                    int maksi = MAX(50, Term->wid - 15);
-                    maksi &= ~(0x01);
-                    object_list_width += 2;
-                    if (object_list_width > maksi) object_list_width = maksi;
-                }
-                else if (option_info[opt[k]].o_var == &mon_list_width)
-                {
-                    int maksi = MAX(50, Term->wid - 15);
-                    maksi &= ~(0x01);
-                    monster_list_width += 2;
-                    if (monster_list_width > maksi) monster_list_width = maksi;
-                }
-                else if (option_info[opt[k]].o_var == &msg_pane_wrap_width)
-                {
-                    message_pane_wrap_width = _inc_message_pane_wrap_width(message_pane_wrap_width);
-                }
-                else if (option_info[opt[k]].o_var == &autorun_max_steps_dummy)
-                {
-                    autorun_max_steps = _inc_autorun_max_steps(autorun_max_steps);
-                }
-                else if (option_info[opt[k]].o_var == &map_edge_center_dummy)
-                {
-                    map_edge_center_distance = _inc_map_edge_center_distance(map_edge_center_distance);
-                }
-                else if (option_info[opt[k]].o_var == &always_repeat)
-                {
-                    always_repeat_count = _inc_retry_count(always_repeat_count);
-                    sync_retry_options();
-                }
-                else if (option_info[opt[k]].o_var == &failed_item_retry_count_dummy)
-                {
-                    failed_item_retry_count = _inc_retry_count(failed_item_retry_count);
-                    sync_retry_options();
-                }
-                else if (option_info[opt[k]].o_var == &reduce_uniques)
-                {
-                    if (!reduce_uniques)
-                    {
-                        reduce_uniques = TRUE;
-                        reduce_uniques_pct = 10;
-                    }
-                    else
-                    {
-                        reduce_uniques_pct += 10;
-                        if (reduce_uniques_pct >= 100) reduce_uniques = FALSE;
-                    }
-                }
-                else if (option_info[opt[k]].o_var == &ironman_empty_levels)
-                {
-                    generate_empty++;
-                    if (generate_empty == EMPTY_MAX) generate_empty = 0;
-                    ironman_empty_levels = (generate_empty == EMPTY_ALWAYS);
-                }
-                else if (option_info[opt[k]].o_var == &single_pantheon)
-                {
-                    pantheon_count++;
-                    if (pantheon_count >= PANTHEON_MAX) pantheon_count = 1;
-                }
-                else if (option_info[opt[k]].o_var == &guaranteed_pantheon)
-                {
-                    game_pantheon++;
-                    if (game_pantheon >= PANTHEON_MAX) game_pantheon = 0;
-                }
-                else if (option_info[opt[k]].o_var == &always_small_levels)
-                {
-                    if (!always_small_levels)
-                    {
-                        always_small_levels = TRUE;
-                        small_level_type = 1;
-                    }
-                    else
-                    {
-                        small_level_type++;
-                        if (small_level_type > SMALL_LVL_MAX)
-                        {
-                            always_small_levels = FALSE;
-                            small_level_type = 0;
-                        }
-                    }
-                }
-                else if (option_info[opt[k]].o_var == &temp_file_policy_dummy)
-                {
-                    _temp_file_policy_cycle(1);
-                }
                 else
                 {
                     if (option_info[opt[k]].o_var == &suppress_main_messages && !_has_message_window())
@@ -2164,106 +2255,8 @@ void do_cmd_options_aux(int page, cptr info)
             case SKEY_LEFT:
             {
                 if (browse_only) break;
-                if ((ch == 'n' || ch == 'N') && _special_option_blocks_letter_toggle(option_info[opt[k]].o_var))
-                {
-                    bell();
+                if (_special_option_handle_direction(option_info[opt[k]].o_var, -1))
                     break;
-                }
-                if (option_info[opt[k]].o_var == &random_artifacts)
-                {
-                    if (!random_artifacts)
-                    {
-                        random_artifacts = TRUE;
-                        random_artifact_pct = 100;
-                    }
-                    else
-                    {
-                        random_artifact_pct -= 10;
-                        if (random_artifact_pct <= 0) random_artifacts = FALSE;
-                    }
-                }
-                else if (option_info[opt[k]].o_var == &reduce_uniques)
-                {
-                    if (!reduce_uniques)
-                    {
-                        reduce_uniques = TRUE;
-                        reduce_uniques_pct = 90;
-                    }
-                    else
-                    {
-                        reduce_uniques_pct -= 10;
-                        if (reduce_uniques_pct <= 0)
-                        {
-                            reduce_uniques = FALSE;
-                            reduce_uniques_pct = 100;
-                        }
-                    }
-                }
-                else if (option_info[opt[k]].o_var == &obj_list_width)
-                {
-                    object_list_width -= 2;
-                    if (object_list_width < 24) object_list_width = 24;
-                }
-                else if (option_info[opt[k]].o_var == &mon_list_width)
-                {
-                    monster_list_width -= 2;
-                    if (monster_list_width < 24) monster_list_width = 24;
-                }
-                else if (option_info[opt[k]].o_var == &msg_pane_wrap_width)
-                {
-                    message_pane_wrap_width = _dec_message_pane_wrap_width(message_pane_wrap_width);
-                }
-                else if (option_info[opt[k]].o_var == &autorun_max_steps_dummy)
-                {
-                    autorun_max_steps = _dec_autorun_max_steps(autorun_max_steps);
-                }
-                else if (option_info[opt[k]].o_var == &map_edge_center_dummy)
-                {
-                    map_edge_center_distance = _dec_map_edge_center_distance(map_edge_center_distance);
-                }
-                else if (option_info[opt[k]].o_var == &always_repeat)
-                {
-                    always_repeat_count = _dec_retry_count(always_repeat_count);
-                    sync_retry_options();
-                }
-                else if (option_info[opt[k]].o_var == &failed_item_retry_count_dummy)
-                {
-                    failed_item_retry_count = _dec_retry_count(failed_item_retry_count);
-                    sync_retry_options();
-                }
-                else if (option_info[opt[k]].o_var == &ironman_empty_levels)
-                {
-                    if (generate_empty == 0) generate_empty = EMPTY_MAX - 1;
-                    else generate_empty--;
-                    ironman_empty_levels = (generate_empty == EMPTY_ALWAYS);
-                }
-                else if (option_info[opt[k]].o_var == &single_pantheon)
-                {
-                    pantheon_count--;
-                    if (pantheon_count < 1) pantheon_count = PANTHEON_MAX - 1;
-                }
-                else if (option_info[opt[k]].o_var == &guaranteed_pantheon)
-                {
-                    if (game_pantheon) game_pantheon--;
-                    else game_pantheon = PANTHEON_MAX - 1;
-                }
-                else if (option_info[opt[k]].o_var == &always_small_levels)
-                {
-                    if (!always_small_levels)
-                    {
-                        always_small_levels = TRUE;
-                        small_level_type = SMALL_LVL_MAX;
-                    }
-                    else
-                    {
-                        small_level_type--;
-                        if (small_level_type == 0) always_small_levels = FALSE;
-                    }
-                }
-                else if (option_info[opt[k]].o_var == &temp_file_policy_dummy)
-                {
-                    _temp_file_policy_cycle(-1);
-                }
                 else
                 {
                     (*option_info[opt[k]].o_var) = FALSE;
@@ -2281,11 +2274,8 @@ void do_cmd_options_aux(int page, cptr info)
             case 'T':
             {
                 if (browse_only) break;
-                if (_special_option_blocks_letter_toggle(option_info[opt[k]].o_var))
-                {
-                    bell();
+                if (_special_option_handle_direction(option_info[opt[k]].o_var, 1))
                     break;
-                }
                 (*option_info[opt[k]].o_var) = !(*option_info[opt[k]].o_var);
                 break;
             }
@@ -2511,25 +2501,6 @@ static bool _has_message_window(void)
     }
     return FALSE;
 }
-
-static bool _special_option_blocks_letter_toggle(bool *o_var)
-{
-    return o_var == &random_artifacts
-        || o_var == &obj_list_width
-        || o_var == &mon_list_width
-        || o_var == &msg_pane_wrap_width
-        || o_var == &autorun_max_steps_dummy
-        || o_var == &map_edge_center_dummy
-        || o_var == &always_repeat
-        || o_var == &failed_item_retry_count_dummy
-        || o_var == &reduce_uniques
-        || o_var == &ironman_empty_levels
-        || o_var == &single_pantheon
-        || o_var == &guaranteed_pantheon
-        || o_var == &always_small_levels
-        || o_var == &temp_file_policy_dummy;
-}
-
 
 #define OPT_NUM 15
 

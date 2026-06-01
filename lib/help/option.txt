@@ -107,7 +107,7 @@ Turning this option on prevents non-jewelry ego items from generating randomly. 
 With this option on, the player cannot sell items for money (only give them for free), and turning items into gold through Alchemy is less effective; but gold drops in quests and dungeons are increased to compensate. (Gold drops in the wilderness are not affected.)
 
 <topic:reduce_uniques><color:U>Reduce the number of uniques (randomly)</color> <color:D>(reduce_uniques)</color>
-This option removes some percentage of uniques from the game. A few uniques (mostly those who appear in either quests or the Thalos arena) are fixed and will never be removed.
+This option removes some percentage of uniques from the game. A few uniques (mostly those who appear in either quests or the Gladiator Ring) are fixed and will never be removed.
 
 <topic:single_pantheon><color:U>Active pantheons</color> <color:D>(single_pantheon)</color>
 This option allows you to set how many of the four possible pantheons will appear in the game. It can take any value between one and four.

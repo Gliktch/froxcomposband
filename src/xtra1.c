@@ -1634,9 +1634,9 @@ static void prt_depth(void)
         if (p_ptr->wild_mode)
             sprintf(buf, "%s", "Surface");
         else if (p_ptr->inside_arena)
-            sprintf(buf, "%s", "Arena");
+            sprintf(buf, "%s", "Gladiator Ring");
         else if (p_ptr->inside_battle)
-            sprintf(buf, "%s", "Monster Arena");
+            sprintf(buf, "%s", "Monster Pit");
         else if (p_ptr->town_num)
             sprintf(buf, "%s", town_name(p_ptr->town_num));
         else if ((wilderness[p_ptr->wilderness_y][p_ptr->wilderness_x].entrance) && ((p_ptr->total_winner) ||

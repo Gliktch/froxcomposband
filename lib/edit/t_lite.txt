@@ -279,9 +279,9 @@ B:1:A:0:Request quest:0:0:q:6:0
 B:1:A:1:Identify item:100:100:i:44:0
 B:1:A:2:Legal Name Change:10:10:c:57:0
 
-B:2:N:Arena:Hideshi:Human
+B:2:N:Gladiator Ring:Hideshi:Human
 #B:9:A:0:RULES:0:0:a:9:0
-B:2:A:0:Enter in arena:0:0:e:10:0
+B:2:A:0:Enter the ring:0:0:e:10:0
 B:2:A:1:Look at poster:0:0:p:8:0
 #B:2:A:2:Palace of heros:0:0:s:11:0
 
@@ -315,7 +315,7 @@ B:6:A:0:In-Between:0:0:b:12:0
 B:6:A:2:Play craps:0:0:c:14:0
 B:6:A:3:Spin the wheel:0:0:s:15:0
 B:6:A:4:Play dice slots:0:0:d:16:0
-B:6:A:4:Monster arena:0:0:m:36:0
+B:6:A:4:Monster Pit:0:0:m:36:0
 B:6:A:5:Poker:0:0:p:43:0
 B:6:A:1:Game rules:0:0:r:13:0
 

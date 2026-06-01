@@ -154,9 +154,9 @@ Librarians are experts in all kinds of lore, and will identify or *Identify* you
 
 Many towns have a holy temple, usually connected to or in the immediate vicinity of the Temple Shop. Temples provide healing and restoration (as long as you pay offerings).
 
-<color:B>Arena</color> (<$:FF_BUILDING_2>)
+<color:B>Gladiator Ring</color> (<$:FF_BUILDING_2>)
 
-There is only one Arena in the game (in either Thalos or Lite-Town). The Arena is a special building where you may fight a single monster at a time, for the entertainment of the townsfolk. During these fights, you cannot use magical devices, read scrolls, quaff potions, activate equipment or (usually) summon help. Winning an Arena fight increases your fame (some enemies also drop fixed valuable items); but losing a fight severely damages your fame and results in a ban from further Arena fights. You cannot physically die in the Arena; you will exit at 0 HP, with cuts and poisoning healed. Do be careful not to die just outside the Arena, though...
+There is only one Gladiator Ring in the game (in either Thalos or Lite-Town). The Gladiator Ring is a special building where you may fight a single monster at a time, for the entertainment of the townsfolk. During these fights, you cannot use magical devices, read scrolls, quaff potions, activate equipment or (usually) summon help. Winning a Gladiator fight increases your fame (some enemies also drop fixed valuable items); but losing a fight severely damages your fame and results in a ban from further Gladiator matches. You cannot physically die in the Gladiator Ring; you will exit at 0 HP, with cuts and poisoning healed. Do be careful not to die just outside the ring, though...
 
 <color:B>Gambling Dens</color> (<$:FF_BUILDING_6>)
 
@@ -355,4 +355,3 @@ Updated    : PosChengband 4.0.0
 Updated    : FrogComposband 7.0.nougat
 Updated    : FrogComposband 7.1.liquorice
 </color>
-

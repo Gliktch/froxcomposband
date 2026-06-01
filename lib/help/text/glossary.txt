@@ -23,11 +23,8 @@ ambush: A random situation that forces you to leave the global map.
 Ambushes often surround you with a large number of hostile monsters.
 
 Arena: 1) A level 50 to 80 dungeon with the Metal Babble as its bottom 
-guardian, characterized by its distinctive winding corridors and bubble 
-rooms each containing a single high-level monster. 2) A special 
-building, found in Thalos and Lite-Town, where you can fight one 
-monster at a time until you lose. 3) Monster arena; a building where 
-you can bet on cloned monsters fighting each other. 4) Arena level; a 
+guardian, characterized by its distinctive winding corridors and bubble
+rooms each containing a single high-level monster. 2) Arena level; a
 description of a dungeon level where rooms are connected by open space.
 
 artifact: A special item that can only be found once in a game. 
@@ -274,6 +271,9 @@ option for how telepathy works.
 genocide: An attempt to remove a monster species (all monsters sharing 
 the same glyph) from a dungeon level. Does not affect uniques. See [f].
 
+Gladiator Ring: A special building, found in Thalos and Lite-Town,
+where you can fight one monster at a time until you lose.
+
 global map: Also overworld map; a scaled map of the FrogComposband 
 world, accessible in towns and the wilderness through the '<' command 
 and generally used for travelling from towns to dungeons or from 
@@ -424,6 +424,9 @@ subwindow or through the 'Y' and '[' commands.
 monster mode: A mode of play, selected during character creation, in 
 which your character gains the qualities of a monster race instead of 
 choosing a normal race and class.
+
+Monster Pit: A gambling building where you can bet on cloned monsters
+fighting each other.
 
 monster race: 1) A monster kind, e.g. filthy street urchin, or small 
 kobold. 2) A player monster race; a race selected at character creation 
@@ -900,5 +903,3 @@ worst thing due to Keepers of Secrets being the worst.
 
 
 Original   : FrogComposband 7.1.liquorice
-
-

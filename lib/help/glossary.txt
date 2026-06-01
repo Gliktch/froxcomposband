@@ -12,7 +12,7 @@ See <link:objects.txt#InscriptionAbbrev> for item attribute abbreviations.
 
 <color:keyword>ambush</color>: A random situation that forces you to leave the global map. Ambushes often surround you with a large number of hostile monsters.
 
-<color:keyword>Arena</color>: 1) A level 50 to 80 dungeon with the Metal Babble as its bottom guardian, characterized by its distinctive winding corridors and bubble rooms each containing a single high-level monster. 2) A special building, found in Thalos and Lite-Town, where you can fight one monster at a time until you lose. 3) Monster arena; a building where you can bet on cloned monsters fighting each other. 4) Arena level; a description of a dungeon level where rooms are connected by open space.
+<color:keyword>Arena</color>: 1) A level 50 to 80 dungeon with the Metal Babble as its bottom guardian, characterized by its distinctive winding corridors and bubble rooms each containing a single high-level monster. 2) Arena level; a description of a dungeon level where rooms are connected by open space.
 
 <color:keyword>artifact</color>: A special item that can only be found once in a game. Includes both <color:o>standard artifacts</color>, which remain the same or almost the same from game to game, and <color:o>random artifacts</color>, which are unpredictable.
 
@@ -132,6 +132,8 @@ See <link:objects.txt#InscriptionAbbrev> for item attribute abbreviations.
 
 <color:keyword>genocide</color>: An attempt to remove a monster species (all monsters sharing the same glyph) from a dungeon level. Does not affect uniques. See <link:monster.txt#Genocide>.
 
+<color:keyword>Gladiator Ring</color>: A special building, found in Thalos and Lite-Town, where you can fight one monster at a time until you lose.
+
 <color:keyword>global map</color>: Also <color:keyword>overworld map</color>; a scaled map of the FrogComposband world, accessible in towns and the wilderness through the '<' command and generally used for travelling from towns to dungeons or from dungeon to dungeon.
 
 <color:keyword>good object</color>: An item that has some magical enchantments on it, but is not an artifact or ego item.
@@ -209,6 +211,8 @@ See <link:objects.txt#InscriptionAbbrev> for item attribute abbreviations.
 <color:keyword>monster list</color>: A list of all currently visible monsters, available as a subwindow or through the 'Y' and '[' commands.
 
 <color:keyword>monster mode</color>: A mode of play, selected during character creation, in which your character gains the qualities of a monster race instead of choosing a normal race and class.
+
+<color:keyword>Monster Pit</color>: A gambling building where you can bet on cloned monsters fighting each other.
 
 <color:keyword>monster race</color>: 1) A monster kind, e.g. filthy street urchin, or small kobold. 2) A player monster race; a race selected at character creation in Monster mode.
 

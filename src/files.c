@@ -1794,9 +1794,9 @@ cptr map_name(void)
     else if (p_ptr->wild_mode)
         return "Surface";
     else if (p_ptr->inside_arena)
-        return "Arena";
+        return "Gladiator Ring";
     else if (p_ptr->inside_battle)
-        return "Monster Arena";
+        return "Monster Pit";
     else if (!dun_level && p_ptr->town_num)
         return town_name(p_ptr->town_num);
     else

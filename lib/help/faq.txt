@@ -448,7 +448,7 @@ Reforge from strong slots to strong slots, weak slots to weak slots, and - if ne
 
 <color:G>Q:</color> What determines my reforge power limit?
 
-<color:R>A:</color> Your reforge power limit is determined by how famous you are. You gain fame by completing quests, turning in wanted monsters, killing enemies in the Thalos arena, and killing uniques (especially high-level uniques). You lose fame by failing quests or being defeated in an Arena fight. There is a soft reforge-power limit of 90000 or slot-adjusted equivalent - it is possible for a sufficiently famous player to use a source artifact that exceeds this limit, but the extra power will be ignored.
+<color:R>A:</color> Your reforge power limit is determined by how famous you are. You gain fame by completing quests, turning in wanted monsters, killing enemies in the Gladiator Ring, and killing uniques (especially high-level uniques). You lose fame by failing quests or being defeated in a Gladiator fight. There is a soft reforge-power limit of 90000 or slot-adjusted equivalent - it is possible for a sufficiently famous player to use a source artifact that exceeds this limit, but the extra power will be ignored.
 
 
 <color:G>Q:</color> When should I reforge?

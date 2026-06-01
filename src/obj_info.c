@@ -314,8 +314,7 @@ bool display_origin(object_type *o_ptr, doc_ptr doc)
         }
         case ORIGIN_ARENA_REWARD:
         {
-            if (!no_wilderness) doc_printf(doc, "Dropped by %s in the Thalos Arena.", pudottaja);
-            else doc_printf(doc, "Dropped by %s in the Arena.", pudottaja);
+            doc_printf(doc, "Dropped by %s in the Gladiator Ring.", pudottaja);
             break;
         }
         case ORIGIN_NAGA:

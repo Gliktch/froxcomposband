@@ -1915,7 +1915,7 @@ void genocide_spell(int cmd, variant *res)
         var_set_string(res, "Genocide");
         break;
     case SPELL_DESC:
-        var_set_string(res, "Attempts to remove from the level all monsters of a specified species, exhausting you.");
+        var_set_string(res, "Attempts to eliminate all monsters of a specified species, exhausting you.\nPowerful monsters may resist, and unique monsters are immune.");
         break;
     case SPELL_INFO:
         var_set_string(res, info_power(spell_power(p_ptr->lev*3)));
@@ -1987,4 +1987,3 @@ void grow_mold_spell(int cmd, variant *res)
     }
 }
 bool cast_grow_mold(void) { return cast_spell(grow_mold_spell); }
-

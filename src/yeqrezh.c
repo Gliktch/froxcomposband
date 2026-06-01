@@ -256,7 +256,7 @@ static void _genocide_one_spell(int cmd, variant *res)
         var_set_string(res, info_power(power));
         break;
     case SPELL_DESC:
-        var_set_string(res, "Attempts to vanish a monster.");
+        var_set_string(res, "Attempts to eliminate a single monster.\nPowerful monsters may resist, and unique monsters are immune.");
         break;
     case SPELL_CAST:
     {
@@ -1750,4 +1750,3 @@ class_t *yeqrezh_get_class(void)
 
     return &me;
 }
-

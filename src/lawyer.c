@@ -223,7 +223,7 @@ cptr do_law_spell(int spell, int mode)
 
     case 9:
         if (name) return "Slow Monster";
-        if (desc) return "Attempts to slow a monster.";
+        if (desc) return "Attempts to slow a single monster.\nPowerful monsters may resist, and unique monsters are immune.";
 
         {
             int power = spell_power(plev * 2);

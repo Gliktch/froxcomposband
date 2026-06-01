@@ -1425,7 +1425,7 @@ static cptr do_life_spell(int spell, int mode)
 
     case 26:
         if (name) return "Annihilate Undead";
-        if (desc) return "Eliminates all nearby undead monsters, exhausting you. Powerful or unique monsters may be able to resist.";
+        if (desc) return "Attempts to eliminate all nearby undead monsters, exhausting you.\nPowerful monsters may resist, and unique monsters are immune.";
 
         {
             int power = spell_power(plev + 50);
@@ -1646,7 +1646,7 @@ static cptr do_sorcery_spell(int spell, int mode)
 
     case 6:
         if (name) return "Sleep Monster";
-        if (desc) return "Attempts to sleep a monster.";
+        if (desc) return "Attempts to put to sleep a single monster.\nPowerful monsters may resist, and unique monsters are immune.";
 
         {
             int power = spell_power(plev * 3 /2);
@@ -1720,7 +1720,7 @@ static cptr do_sorcery_spell(int spell, int mode)
 
     case 10:
         if (name) return "Slow Monster";
-        if (desc) return "Attempts to slow a monster.";
+        if (desc) return "Attempts to slow a single monster.\nPowerful monsters may resist, and unique monsters are immune.";
 
         {
             int power = spell_power(plev * 2);
@@ -1740,7 +1740,7 @@ static cptr do_sorcery_spell(int spell, int mode)
         if (plev < 35)
         {
             if (name) return "Mass Sleep";
-            if (desc) return "Attempts to sleep all monsters in sight.";
+            if (desc) return "Attempts to put to sleep all monsters in sight.\nPowerful monsters may resist, and unique monsters are immune.";
         }
         else
         {
@@ -3526,7 +3526,7 @@ static cptr do_death_spell(int spell, int mode)
 
     case 4:
         if (name) return "Black Sleep";
-        if (desc) return "Attempts to sleep a monster.";
+        if (desc) return "Attempts to put to sleep a single monster.\nPowerful monsters may resist, and unique monsters are immune.";
 
         {
             int power = spell_power(plev * 2);
@@ -3677,7 +3677,7 @@ static cptr do_death_spell(int spell, int mode)
 
     case 11:
         if (name) return "Genocide One";
-        if (desc) return "Attempts to vanish a monster.";
+        if (desc) return "Attempts to eliminate a single monster.\nPowerful monsters may resist, and unique monsters are immune.";
 
         {
             int power = spell_power(plev*3);
@@ -3770,7 +3770,7 @@ static cptr do_death_spell(int spell, int mode)
 
     case 15:
         if (name) return "Genocide";
-        if (desc) return "Eliminates an entire class of monster, exhausting you. Powerful or unique monsters may resist.";
+        if (desc) return "Attempts to eliminate all monsters of a specified species, exhausting you.\nPowerful monsters may resist, and unique monsters are immune.";
 
         {
             int power = spell_power(plev*3);
@@ -4041,7 +4041,7 @@ static cptr do_death_spell(int spell, int mode)
 
     case 29:
         if (name) return "Mass Genocide";
-        if (desc) return "Eliminates all nearby monsters, exhausting you. Powerful or unique monsters may be able to resist.";
+        if (desc) return "Attempts to eliminate all nearby monsters, exhausting you.\nPowerful monsters may resist, and unique monsters are immune.";
 
         {
             int power = spell_power(plev*3);
@@ -7666,7 +7666,7 @@ static cptr do_music_spell(int spell, int mode)
 
     case 21:
         if (name) return "The Voice of Saruman";
-        if (desc) return "Attempts to slow and sleep all monsters in sight.";
+        if (desc) return "Attempts to slow and put to sleep all monsters in sight.\nPowerful monsters may resist, and unique monsters are immune.";
 
         /* Stop singing before start another */
         if (cast || fail) bard_stop_singing();

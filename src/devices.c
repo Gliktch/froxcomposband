@@ -1705,7 +1705,7 @@ static cptr _do_scroll(int sval, int mode)
         }
         break;
     case SV_SCROLL_GENOCIDE:
-        if (desc) return "Attempts to remove from the level all monsters of a specified species, exhausting you.";
+        if (desc) return "Attempts to eliminate all monsters of a specified species, exhausting you.\nPowerful monsters may resist, and unique monsters are immune.";
         if (cast)
         {
             if (((!quests_allow_all_spells()) || (p_ptr->inside_arena) || (p_ptr->inside_battle))
@@ -1715,7 +1715,7 @@ static cptr _do_scroll(int sval, int mode)
         }
         break;
     case SV_SCROLL_MASS_GENOCIDE:
-        if (desc) return "Attempts to eliminate all nearby monsters, exhausting you.";
+        if (desc) return "Attempts to eliminate all nearby monsters, exhausting you.\nPowerful monsters may resist, and unique monsters are immune.";
         if (cast)
         {
             if (((!quests_allow_all_spells()) || (p_ptr->inside_arena) || (p_ptr->inside_battle))
@@ -3787,7 +3787,7 @@ cptr do_effect(effect_t *effect, int mode, int boost)
     {
         int power = _extra(effect, effect->power * 3);
         if (name) return "Genocide";
-        if (desc) return "Attempts to remove from the level all monsters of a specified species, exhausting you.";
+        if (desc) return "Attempts to eliminate all monsters of a specified species, exhausting you.\nPowerful monsters may resist, and unique monsters are immune.";
         if (info) return format("power %d", _BOOST(power));
         if (value) return format("%d", power*50);
         if (color) return format("%d", TERM_L_DARK);
@@ -3802,7 +3802,7 @@ cptr do_effect(effect_t *effect, int mode, int boost)
     {
         int power = _extra(effect, 100 + effect->power * 3);
         if (name) return "Mass Genocide";
-        if (desc) return "Attempts to eliminate all nearby monsters, exhausting you.";
+        if (desc) return "Attempts to eliminate all nearby monsters, exhausting you.\nPowerful monsters may resist, and unique monsters are immune.";
         if (info) return format("power %d", _BOOST(power));
         if (value) return format("%d", power*60);
         if (color) return format("%d", TERM_L_DARK);
@@ -4082,7 +4082,7 @@ cptr do_effect(effect_t *effect, int mode, int boost)
     {
         int power = _extra(effect, 50 + effect->power * 3);
         if (name) return "Annihilation";
-        if (desc) return "It removes a monster from current dungeon level unless resisted when you use it.";
+        if (desc) return "Attempts to eliminate a single monster.\nPowerful monsters may resist, and unique monsters are immune.";
         if (info) return format("power %d", _BOOST(power));
         if (value) return format("%d", power*50);
         if (color) return format("%d", TERM_L_DARK);
@@ -6691,7 +6691,7 @@ cptr do_effect(effect_t *effect, int mode, int boost)
     {
         int pow = _extra(effect, effect->power*3);
         if (name) return "Sleep Monsters";
-        if (desc) return "It attempts to sleep all nearby visible monsters.";
+        if (desc) return "Attempts to put to sleep all nearby visible monsters.\nPowerful monsters may resist, and unique monsters are immune.";
         if (info) return format("power %d", pow);
         if (value) return format("%d", 15*pow);
         if (color) return format("%d", TERM_BLUE);
@@ -6706,7 +6706,7 @@ cptr do_effect(effect_t *effect, int mode, int boost)
     {
         int pow = _extra(effect, effect->power*3);
         if (name) return "Slow Monsters";
-        if (desc) return "It attempts to slow all nearby visible monsters.";
+        if (desc) return "Attempts to slow all nearby visible monsters.\nPowerful monsters may resist, and unique monsters are immune.";
         if (info) return format("power %d", pow);
         if (value) return format("%d", 15*pow);
         if (color) return format("%d", TERM_SLATE);
@@ -6870,7 +6870,7 @@ cptr do_effect(effect_t *effect, int mode, int boost)
     {
         int power = _extra(effect, 10 + effect->power);
         if (name) return "Sleep Monster";
-        if (desc) return "It puts a monster to sleep when you use it.";
+        if (desc) return "Attempts to put to sleep a single monster.\nPowerful monsters may resist, and unique monsters are immune.";
         if (info) return format("power %d", _BOOST(power));
         if (value) return format("%d", 10*power);
         if (color) return format("%d", TERM_BLUE);
@@ -6886,7 +6886,7 @@ cptr do_effect(effect_t *effect, int mode, int boost)
     {
         int power = _extra(effect, MAX(10, effect->power * 2 - 6));
         if (name) return "Slow Monster";
-        if (desc) return "It slows a monster down when you use it.";
+        if (desc) return "Attempts to slow a single monster.\nPowerful monsters may resist, and unique monsters are immune.";
         if (info) return format("power %d", _BOOST(power));
         if (value) return format("%d", 15 * power);
         if (color) return format("%d", TERM_SLATE);
@@ -7457,4 +7457,3 @@ cptr do_effect(effect_t *effect, int mode, int boost)
     return "";
 }
 #undef _BOOST
-

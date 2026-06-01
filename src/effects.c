@@ -49,8 +49,22 @@ void set_action(int typ)
             p_ptr->redraw |= PR_EFFECTS;
             break;
         case ACTION_REST:
+        {
+            bool report_rest = resting_start_turn >= 0;
+            bool fully_rested = resting < 0;
+            s32b rest_turns = player_turn - resting_start_turn;
             resting = 0;
+            resting_start_turn = -1;
+            if (report_rest && rest_turns > 0)
+            {
+                msg_format("You rested for %d turn%s.", (int)rest_turns, rest_turns == 1 ? "" : "s");
+            }
+            else if (report_rest && fully_rested)
+            {
+                msg_print("You are already fully rested.");
+            }
             break;
+        }
         case ACTION_CYTOMORPH:
             jelly_cancel_cytomorph();
             break;

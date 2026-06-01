@@ -115,6 +115,7 @@ s16b energy_use;        /* Energy use this turn */
 
 s16b running;            /* Current counter for running, if any */
 s16b resting;            /* Current counter for resting, if any */
+s32b resting_start_turn = -1; /* Player turn when resting began; -1 means unknown */
 
 s16b cur_hgt;            /* Current dungeon height */
 s16b cur_wid;            /* Current dungeon width */

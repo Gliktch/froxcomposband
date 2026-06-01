@@ -2719,6 +2719,7 @@ void do_cmd_rest(void)
     }
     /* Save the rest code */
     resting = command_arg;
+    resting_start_turn = player_turn;
     p_ptr->action = ACTION_REST;
 
     /* Recalculate bonuses */

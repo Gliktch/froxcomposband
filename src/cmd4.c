@@ -2560,7 +2560,7 @@ void do_cmd_options(void)
         Term_clear();
 
         /* Why are we here */
-        prt("FrogComposband Options", 1, 0);
+        prt("FroxComposband Options", 1, 0);
 
         while(1)
         {
@@ -5964,13 +5964,15 @@ void do_cmd_note(void)
 void do_cmd_version(void)
 {
     cptr xtra = "";
-    if (VER_MINOR == 0)
+    if (VERSION_IS_DEVELOPMENT)
+        xtra = " (Development)";
+    else if (VER_MINOR == 0)
     {
 /*        if (VER_PATCH == 0) xtra = " (Alpha)"; */
         if (VER_MAJOR != 7) xtra = " (Beta)";
     }
-    msg_format("You are playing <color:B>FrogComposband</color> <color:r>%d.%d.%s%s</color>.",
-        VER_MAJOR, VER_MINOR, VER_PATCH, xtra);
+    msg_format("You are playing <color:B>FroxComposband</color> <color:r>%d.%d.%s.%d%s</color>.",
+        VER_MAJOR, VER_MINOR, VER_PATCH, VER_EXTRA, xtra);
     if (1)
     {
         rect_t r = ui_map_rect();

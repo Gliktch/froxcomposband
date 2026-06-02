@@ -1911,7 +1911,7 @@ static errr file_character(cptr name, bool no_msgs)
             }
             strcat(nuname, ".html");
             file_character(nuname, TRUE);
-            msg_format("Secondarily dumped as %s (angband.oook.cz ladder format)", nuname);
+            msg_format("Secondarily dumped as %s (angband.live ladder format)", nuname);
         }
         msg_print(NULL);
     }
@@ -2370,7 +2370,7 @@ bool show_file(bool show_version, cptr name, cptr what, int line, int mode)
         if (show_version)
         {
             prt(format(
-                "[FrogComposband %d.%d.%s, %s, Line %d/%d]",
+                "[FroxComposband %d.%d.%s, %s, Line %d/%d]",
                VER_MAJOR, VER_MINOR, VER_PATCH,
                caption, line, size), 0, 0);
         }
@@ -2831,7 +2831,6 @@ void get_player_base_name(char *buf, int max)
 
     if (!buf[0]) strcpy(buf, "PLAYER");
 }
-
 
 bool py_get_name(void)
 {

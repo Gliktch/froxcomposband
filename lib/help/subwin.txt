@@ -30,15 +30,15 @@ Select <color:keyword>Window</color> from the toolbar at the top and choose the 
 
 Use the command line to specify subwindow size and placement as you launch the game. Here are a few examples:
 
-<color:y>$ ./frogcomposband -mgcu -uCrusher -- -right 57x26,*</color>
+<color:y>$ ./froxcomposband -mgcu -uCrusher -- -right 57x26,*</color>
 
 This specifies a subwindow strip to the right of the main display that is 57 columns wide; this strip will contain two subwindows, one that is 26 rows high and one that fills whatever space still remains.
 
-<color:y>$ ./frogcomposband -mgcu -uCrusher -- -right 57x26,* -bottom *x10</color>
+<color:y>$ ./froxcomposband -mgcu -uCrusher -- -right 57x26,* -bottom *x10</color>
 
 Specifies the same two subwindows as before plus a third subwindow (Term-3) below the main display, occupying 10 rows and (TOTAL-57) columns.
 
-<color:y>$ ./frogcomposband -mgcu -uCrusher -- -bottom *x10 -right 57x26,*</color>
+<color:y>$ ./froxcomposband -mgcu -uCrusher -- -bottom *x10 -right 57x26,*</color>
 
 Same as above, except that the subwindow at the bottom is now Term-1 and gets to occupy every column.
 

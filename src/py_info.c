@@ -2772,7 +2772,7 @@ static void _add_html_header(doc_ptr doc)
     string_printf(header,  " <meta name='score' value='%d'>\n", hof_score()); /* ?? Does oook need this? */
     string_printf(header,  " <meta name='fame' value='%d'>\n", p_ptr->fame);
 
-    /* For angband.oook.cz ... I'm not sure what is best for proper display of html dumps so I'll need to ask pav
+    /* For the angband.live ladder ... I'm not sure what is best for proper display of html dumps so I'll need to ask pav
      * Note: A retired winning player is_dead, but has died_from set to 'Ripe Old Age'.
      * Approach #1: Give oook a string status field */
     string_printf(header,  " <meta name='status' value='%s'>\n",
@@ -2832,7 +2832,7 @@ void py_display_character_sheet(doc_ptr doc)
     _add_html_header(doc);
     doc_change_html_footer(doc, _character_dump_html_footer());
 
-    doc_insert(doc, "<style:wide>  [FrogComposband <$:version> Character Dump]\n");
+    doc_insert(doc, "<style:wide>  [FroxComposband <$:version> Character Dump]\n");
     if (p_ptr->total_winner)
         doc_insert(doc, "              <color:B>***WINNER***</color>\n");
     else if (p_ptr->is_dead)

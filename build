@@ -1,4 +1,3 @@
 #!/bin/bash
 make -j4
-cp src/frogcomposband .
-ls -lah frog*
+ls -lah frox*

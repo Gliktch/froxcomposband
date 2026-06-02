@@ -751,7 +751,7 @@ static errr init_help_files(void)
         generate_spoilers();
         path_build(buf, sizeof(buf), ANGBAND_DIR_EDIT, "help_upd.txt");
         tiedosto = my_fopen(buf, "w");
-        if (!tiedosto) return -1;
+        if (!tiedosto) return 0;
         fprintf(tiedosto, "### Version marker for automatic help file updates ###\n");
         fprintf(tiedosto, "V:%d.%d.%s.%d\n", VER_MAJOR, VER_MINOR, VER_PATCH, VER_EXTRA);
         my_fclose(tiedosto);
@@ -1072,7 +1072,7 @@ static errr init_other(void)
     /*** Pre-allocate space for the "format()" buffer ***/
 
     /* Hack -- Just call the "format()" function */
-    (void)format("%s (%s).", "FrogComposband", "Hack Whack");
+    (void)format("%s (%s).", "FroxComposband", "Hack Whack");
 
 
     /* Success */
@@ -1656,4 +1656,3 @@ void init_angband(void)
     /* We are now initialized */
     initialized = TRUE;
 }
-

@@ -1,1 +1,0 @@
-The html documentation is automatically generated from the /lib/help/ documentation files. Begin browsing on start.html.

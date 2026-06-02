@@ -27,8 +27,8 @@ static void _help_file(cptr name, _file_fn fn)
     }
 
     fn(fp);
-    fprintf(fp, "\n\n<color:s>Automatically generated for FrogComposband %d.%d.%s.</color>\n",
-            VER_MAJOR, VER_MINOR, VER_PATCH);
+    fprintf(fp, "\n\n<color:s>Automatically generated for FroxComposband %d.%d.%s.</color>\n",
+        VER_MAJOR, VER_MINOR, VER_PATCH);
 
     my_fclose(fp);
     if (character_dungeon) msg_format("Created %s", buf);

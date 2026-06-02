@@ -5,7 +5,7 @@ SUBDIRS = src lib
 CLEAN = config.status config.log *.dll *.exe
 
 .PHONY: manual dist
-TAG = frogcomposband-`git describe`
+TAG = froxcomposband-`git describe`
 OUT = $(TAG).tar.gz
 
 manual:

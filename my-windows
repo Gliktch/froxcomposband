@@ -4,14 +4,14 @@
 ./my-configure mingw
 make clean
 make -j4
-cp src/frogcomposband.exe .
+cp src/froxcomposband.exe .
 if [ -n "$1" ]
 then
-    file=frogcomposband-"$1".zip
+    file=froxcomposband-"$1".zip
 else
-    file=frogcomposband-"$(git describe)".zip
+    file=froxcomposband-"$(git describe)".zip
 fi
 
 rm $file
 find ./lib -name Makefile -prune -o -name .deps -prune -o -print | zip $file -@
-zip $file frogcomposband.exe readme.txt
+zip $file froxcomposband.exe README.md

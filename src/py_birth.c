@@ -389,8 +389,8 @@ bool name_is_numbered(char *nimi)
 }
 
 /************************************************************************
- * Welcome to FrogComposband!
- ***********************************************************************/ 
+ * Welcome to FroxComposband!
+ ***********************************************************************/
 static void _set_mode(int mode);
 static s16b _stats_changed = -1;
 static bool lukittu = FALSE;
@@ -409,13 +409,14 @@ static int _welcome_ui(void)
         doc_clear(_doc);
 
         doc_insert(_doc,
-            "Welcome to <color:keyword>FrogComposband</color>, a dungeon exploration "
-            "role-playing game. Your goal is to defeat the dreaded <color:keyword>"
-            "Serpent of Chaos</color>, but before you can face it, you must battle "
-            "many foes. Your first step is to create a character for this quest. "
-            "The following screens will guide you through this process so that you "
-            "may quickly begin playing. You can get general help at any time by "
-            "pressing <color:keypress>?</color>.\n\n"
+            "Welcome to <color:keyword>FroxComposband</color>, an updated version "
+            "of <color:keyword>FrogComposband</color>, a dungeon exploration "
+            "role-playing game. Your goal is to defeat the dreaded "
+            "<color:keyword>Serpent of Chaos</color>, but before you can face it, "
+            "you must battle many foes. Your first step is to create a character "
+            "for this quest. The following screens will guide you through this "
+            "process so that you may quickly begin playing. You can get general "
+            "help at any time by pressing <color:keypress>?</color>.\n\n"
         );
 
         doc_insert(_doc,
@@ -3426,7 +3427,7 @@ static void _birth_finalize(void)
         else
         {
             Term_clear();
-            if (msg_prompt("The No Wilderness option is intended for coffee-break mode <color:v>only</color><color:w>. Normal game speed is balanced entirely around the presence of a</color> <color:G>wilderness</color> <color:w>and the</color> <color:B>many towns</color> and <color:B>dungeons</color> that come with it, while the no-wilderness option is balanced around the</color> <color:U>coffee-break</color> <color:w>and</color> <color:U>instant-coffee</color> <color:w>modes. Trying to combine Normal speed with the lack of a wilderness will make the game very <color:r>tedious</color> and <color:r>repetitive</color>, and you will miss out on much of what should make FrogComposband unique, enjoyable and engaging.\n\n</color><color:v>REALLY</color> <color:w>play with no wilderness?</color> <color:y>[y/n]</color>", "ny", PROMPT_DEFAULT) != 'y')
+            if (msg_prompt("The No Wilderness option is intended for coffee-break mode <color:v>only</color><color:w>. Normal game speed is balanced entirely around the presence of a</color> <color:G>wilderness</color> <color:w>and the</color> <color:B>many towns</color> and <color:B>dungeons</color> that come with it, while the no-wilderness option is balanced around the</color> <color:U>coffee-break</color> <color:w>and</color> <color:U>instant-coffee</color> <color:w>modes. Trying to combine Normal speed with the lack of a wilderness will make the game very <color:r>tedious</color> and <color:r>repetitive</color>, and you will miss out on much of what should make FroxComposband unique, enjoyable and engaging.\n\n</color><color:v>REALLY</color> <color:w>play with no wilderness?</color> <color:y>[y/n]</color>", "ny", PROMPT_DEFAULT) != 'y')
 //        else if (!get_check("REALLY? (The no-wilderness option is intended for coffee-break mode only.)"))
             {
                 no_wilderness = FALSE;

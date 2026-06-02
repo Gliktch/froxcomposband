@@ -1,8 +1,8 @@
-<style:note>Note: Although pressing <color:keypress>?</color> on the introduction screen will take you here, and this page does give a quick overview of much in the game, it is not the main page for the entire help system. Press <color:keypress>!</color> if you wish to access other parts of the FrogComposband help.</style>
+<style:note>Note: Although pressing <color:keypress>?</color> on the introduction screen will take you here, and this page does give a quick overview of much in the game, it is not the main page for the entire help system. Press <color:keypress>!</color> if you wish to access other parts of the FroxComposband help.</style>
 
 <topic:CreateAt><style:title>Creating a Character</style>
 
-FrogComposband is a role-playing game in which you - the player - control a character in a dangerous world of myth and magic, populated with demons, dragons, deities, ducks and other rare and strange creatures of the Last Days. The most important decision you make on your quest to slay the <color:keyword>Serpent of Chaos</color> is what kind of character to play: spell-wielding magician or sword-waving warrior? Stealthy rogue or musical bard? Holy priest or evil spawn of chaos? The choices are myriad, and the process of generating a new character is described in this help file, which will also serve to introduce you to many of the core concepts of the game.
+FroxComposband is an updated version of FrogComposband and a role-playing game in which you - the player - control a character in a dangerous world of myth and magic, populated with demons, dragons, deities, ducks and other rare and strange creatures of the Last Days. The most important decision you make on your quest to slay the <color:keyword>Serpent of Chaos</color> is what kind of character to play: spell-wielding magician or sword-waving warrior? Stealthy rogue or musical bard? Holy priest or evil spawn of chaos? The choices are myriad, and the process of generating a new character is described in this help file, which will also serve to introduce you to many of the core concepts of the game.
 
 Character creation, or birth, is controlled through a variety of choices. You must choose your character's race (<color:keyword>Human</color>, <color:keyword>Dwarf</color>, <color:keyword>Hobbit</color>, <color:keyword>Ogre</color>, <color:keyword>Vampire</color>, <color:keyword>Werewolf</color>, etc), your character's class (<color:keyword>Warrior</color>, <color:keyword>Mage</color>, <color:keyword>Priest</color>, <color:keyword>Lawyer</color>, etc) and your character's personality (<color:keyword>Mighty</color>, <color:keyword>Shrewd</color>, <color:keyword>Chaotic</color>, <color:keyword>Split</color>, etc). Each of these choices is described in the help files (see <link:raceclass_contents.txt>).
 
@@ -11,7 +11,8 @@ There are three main screens for the birth process. The first is a brief welcome
 <topic:Welcome><style:heading>The Welcome Screen</style>
 The first screen is the Welcome Screen. It simply introduces you to the game and allows you to choose one of several options that will control the birth process. It looks something like this:
 <style:screenshot>  <indent>
-Welcome to <color:R>FrogComposband</color>, a dungeon exploration role-playing game.
+Welcome to <color:R>FroxComposband</color>, an updated version of <color:R>FrogComposband</color>, a
+dungeon exploration role-playing game.
 Your goal is to defeat the dreaded <color:R>Serpent of Chaos</color>, but before you can         
 face it, you must battle many foes. Your first step is to create a              
 character for this quest. The following screens will guide you through          

@@ -15,7 +15,7 @@ endif
 
 CFLAGS += -I. -std=c99 -O0 -Wdeclaration-after-statement -fno-omit-frame-pointer
 
-CLEAN = $(ROOT_PROG) frogcomposband.o $(OBJECTS) win/frogcomposband.res
+CLEAN = $(ROOT_PROG) froxcomposband.o $(OBJECTS) win/froxcomposband.res
 DISTCLEAN = autoconf.h
 
 export CFLAGS LDFLAGS LIBS
@@ -27,8 +27,8 @@ $(PROG): $(OBJECTS) $(MAINFILES)
 	@printf "%10s %-20s\n" LINK $@
 
 $(ROOT_PROG): $(PROG)
-	cp $(PROG) $(ROOT_PROG)
-	@printf "%10s %-20s\n" COPY $@
+	ln -sfn src/$(PROG) $(ROOT_PROG)
+	@printf "%10s %-20s\n" LINK $@
 
 $(PROGNAME).res: $(PROGNAME).rc
 	$(RC) $< -O coff -o $@

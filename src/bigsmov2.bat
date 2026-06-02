@@ -313,7 +313,7 @@ move ..\autogen.sh ..\autogen.sh
 move ..\autopick.txt ..\autopick.txt
 move ..\config.log ..\config.log
 move ..\config.sub ..\config.sub
-move ..\readme.txt ..\readme.txt
+move ..\README.md ..\README.md
 move ..\lib\help\attack.txt ..\lib\help\attack.txt
 move ..\lib\help\birth.txt ..\lib\help\birth.txt
 move ..\lib\help\bldg.txt ..\lib\help\bldg.txt

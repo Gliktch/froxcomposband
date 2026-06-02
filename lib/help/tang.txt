@@ -744,7 +744,7 @@ Death in FrogComposband is permanent. Saving is meant only to let you pick up wh
 </indent>
   <indent><color:B>I'm still unsure about something...?</color>
 
-Try looking elsewhere in the help, particularly in the Frequently Asked Questions. It's called that for a reason! You can also ask your question at the angband.oook.cz forums or the angband.live online chat; both usually have friendly people willing to share their maxed-out wisdom.</indent>
+Try looking elsewhere in the help, particularly in the Frequently Asked Questions. It's called that for a reason! You can also ask your question at ask.band which hosts a specialised angband games AI, or the angband.live online chat, which usually has friendly people willing to share their maxed-out wisdom.</indent>
 
 <topic:OnBigBoyPants><style:heading>On Big Boy Pants</style>
 

@@ -482,7 +482,7 @@ Other characters do not receive any special benefits from swimsuits, but may sti
 <color:R>A:</color> If your character is still alive, press Shift+C for the character sheet, then press | to dump it. If you're dead, the tombstone screen offers easy character dumping - simply type the filename you want (usually something like "name.html" or "name_dead.html") and press Enter. If you died earlier and forgot to take a character dump, access the character sheet through the high score list (the '~' key, followed by the 'H' key) and then press '|' as before. If you're playing on the angband.live online server and have trouble dumping your character (users on some keyboard/browser combinations have experienced problems using the '|' key online), you can request help from your fellow players; the angband.live high score list is shared between all players, so anyone can use it to create a dump of your character.
 
 
-<color:G>Q:</color> I want to post my character dump to the ladder on angband.oook.cz. Should I use a TXT dump or an HTML dump?
+<color:G>Q:</color> I want to post my character dump to the ladder at angband.live/ladder/. Should I use a TXT dump or an HTML dump?
 
 <color:R>A:</color> Use an HTML dump.
 

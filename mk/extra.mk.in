@@ -1,5 +1,6 @@
 LIB_CPPFLAGS = @LIB_CPPFLAGS@
 SETEGID = @SETEGID@
+PRIVATE_USER_PATHS = @PRIVATE_USER_PATHS@
 LIBDIR = ${libdir}
 libdatadir = @libdatadir@
 vardatadir = @vardatadir@

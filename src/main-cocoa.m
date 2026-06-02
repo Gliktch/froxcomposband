@@ -32,7 +32,7 @@
 
 static NSSize const AngbandScaleIdentity = {1.0, 1.0};
 static NSString * const AngbandDirectoryNameLib = @"lib";
-static NSString * const AngbandDirectoryNameBase = @"PosChengband";
+static NSString * const AngbandDirectoryNameBase = @"FroxComposband";
 
 static NSString * const AngbandTerminalsDefaultsKey = @"Terminals";
 static NSString * const AngbandTerminalRowsDefaultsKey = @"Rows";
@@ -269,6 +269,9 @@ static NSFont *default_font;
 
 /* Begins an Angband game. This is the entry point for starting off. */
 + (void)beginGame;
+
+/* Prepares paths without opening the UI; used by package smoke tests. */
++ (void)prepareFilePathsAndDirectories;
 
 /* Ends an Angband game. */
 + (void)endGame;
@@ -898,7 +901,7 @@ static int compare_advances(const void *ap, const void *bp)
     if( !libExists || !isDirectory )
     {
         NSLog( @"[%@ %@]: can't find %@/ in bundle: isDirectory: %d libExists: %d", NSStringFromClass( [self class] ), NSStringFromSelector( _cmd ), AngbandDirectoryNameLib, isDirectory, libExists );
-        NSRunAlertPanel( @"Missing Resources", @"PosChengband was unable to find required resources and must quit. Please report a bug on the Angband forums.", @"Quit", nil, nil );
+        NSRunAlertPanel( @"Missing Resources", @"FroxComposband was unable to find required resources and must quit. Please report a bug on the Angband forums.", @"Quit", nil, nil );
         exit( 0 );
     }
 
@@ -943,10 +946,16 @@ static int compare_advances(const void *ap, const void *bp)
 + (void)beginGame
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    int test_status = 0;
     
     /* Hooks in some "z-util.c" hooks */
-    plog_aux = hook_plog;
-    quit_aux = hook_quit;
+    if (arg_test)
+        package_test_install_hooks();
+    else
+    {
+        plog_aux = hook_plog;
+        quit_aux = hook_quit;
+    }
     
     // initialize file paths
     [self prepareFilePathsAndDirectories];
@@ -980,6 +989,16 @@ static int compare_advances(const void *ap, const void *bp)
     
     /* Handle pending events (most notably update) and flush input */
     Term_flush();
+
+    if (arg_test)
+    {
+        test_status = package_test_run(FALSE);
+        prt("[Choose 'New' or 'Open' from the 'File' menu]", 23, 17);
+        Term_fresh();
+        package_test_log("Frontend final render: completed");
+        [pool drain];
+        exit(package_test_finish(test_status));
+    }
     
     /*
      * Play a game -- "new_game" is set by "new", "open" or the open document
@@ -1506,7 +1525,7 @@ static void Term_init_cocoa(term *t)
     /* Set its title and, for auxiliary terms, tentative size */
     if (termIdx == 0)
     {
-        [window setTitle:@"PosChengband"];
+        [window setTitle:@"FroxComposband"];
     }
     else
     {
@@ -2554,7 +2573,7 @@ static errr cocoa_get_cmd(cmd_context context, bool wait)
 /* Return the directory into which we put data (save and config) */
 static NSString *get_data_directory(void)
 {
-    return [@"~/Documents/PosChengband/" stringByExpandingTildeInPath];
+    return [@"~/Documents/FroxComposband/" stringByExpandingTildeInPath];
 }
 
 /*
@@ -3114,7 +3133,7 @@ static bool cocoa_get_file(const char *suggested_name, char *path, size_t len)
     NSMenu *windowsMenu = [[NSApplication sharedApplication] windowsMenu];
     [windowsMenu addItem: [NSMenuItem separatorItem]];
 
-    NSMenuItem *angbandItem = [[NSMenuItem alloc] initWithTitle: @"PosChengband" action: @selector(selectWindow:) keyEquivalent: @"0"];
+    NSMenuItem *angbandItem = [[NSMenuItem alloc] initWithTitle: @"FroxComposband" action: @selector(selectWindow:) keyEquivalent: @"0"];
     [angbandItem setTarget: self];
     [angbandItem setTag: AngbandWindowMenuItemTagBase];
     [windowsMenu addItem: angbandItem];
@@ -3310,6 +3329,27 @@ static bool cocoa_get_file(const char *suggested_name, char *path, size_t len)
 
 int main(int argc, char* argv[])
 {
+    int i;
+
+    argv0 = argv[0];
+
+    for (i = 1; i < argc; i++)
+    {
+        package_test_parse_arg(argv[i]);
+    }
+
+    if (arg_test && arg_test_headless)
+    {
+        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+        int test_status;
+
+        package_test_install_hooks();
+        [AngbandContext prepareFilePathsAndDirectories];
+        test_status = package_test_run(TRUE);
+        [pool drain];
+        return package_test_finish(test_status);
+    }
+
     NSApplicationMain(argc, (void*)argv);    
     return (0);
 }

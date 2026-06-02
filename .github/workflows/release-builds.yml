@@ -1,0 +1,265 @@
+name: Release Builds
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Tag/version to use for artifact naming
+        required: true
+        default: v7.2.2-beta
+      platforms:
+        description: Platform set to build for manual runs
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - linux
+          - windows
+          - macos
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref_name }}
+
+jobs:
+  prepare-help:
+    name: Prepare Generated Help
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libncurses-dev rsync
+
+      - name: Build Linux binary for help generation
+        run: |
+          chmod +x ./configure
+          ./configure --with-no-install --enable-curses --disable-x11 --disable-sdl --disable-win
+          make clean
+          make MANIFEST=1
+
+      - name: Generate reusable help artifacts
+        run: |
+          chmod +x scripts/release/*.sh
+          scripts/release/generate-help.sh ./src/froxcomposband dist/generated-help
+
+      - name: Upload generated help
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-help-${{ env.RELEASE_TAG }}
+          path: dist/generated-help
+
+  linux:
+    name: Linux Tarball and Debian Package
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux'
+    needs: prepare-help
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download generated help
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-help-${{ env.RELEASE_TAG }}
+          path: dist/generated-help
+
+      - name: Install Linux packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev libncurses-dev rsync
+
+      - name: Build standalone Linux release
+        run: |
+          chmod +x ./configure scripts/release/*.sh
+          scripts/release/apply-generated-help.sh dist/generated-help
+          ./configure --with-no-install --enable-curses --disable-x11 --disable-sdl --disable-win
+          make clean
+          make MANIFEST=1
+          scripts/release/package-linux-tarball.sh
+
+      - name: Smoke test standalone Linux release
+        run: |
+          rm -rf dist/linux-smoke
+          mkdir -p dist/linux-smoke
+          tar -xzf "dist/froxcomposband-${RELEASE_TAG}-linux-x86_64.tar.gz" -C dist/linux-smoke --strip-components=1
+          TERM=xterm-256color script -q -e -c "cd dist/linux-smoke && ./froxcomposband -mgcu --test --test-log=smoke-test.log" /tmp/frox-linux-smoke.typescript
+          cat dist/linux-smoke/smoke-test.log
+
+      - name: Build Debian package
+        run: |
+          scripts/release/apply-generated-help.sh dist/generated-help
+          ./configure --with-private-dirs --enable-curses --disable-x11 --disable-sdl --disable-win --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+          make clean
+          make MANIFEST=1
+          scripts/release/package-linux-deb.sh
+
+      - name: Smoke test Debian package install
+        run: |
+          sudo dpkg -i "dist/froxcomposband-${RELEASE_TAG}-linux-x86_64.deb"
+          sudo cat /var/log/froxcomposband/install-test.log
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ env.RELEASE_TAG }}
+          path: |
+            dist/*.tar.gz
+            dist/*.deb
+
+  windows:
+    name: Windows Zip
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows'
+    needs: prepare-help
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download generated help
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-help-${{ env.RELEASE_TAG }}
+          path: dist/generated-help
+
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            unzip
+            zip
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-binutils
+            mingw-w64-x86_64-make
+
+      - name: Build and package Windows release
+        shell: msys2 {0}
+        run: |
+          chmod +x ./configure scripts/release/*.sh
+          scripts/release/apply-generated-help.sh dist/generated-help
+          ./configure --host=x86_64-w64-mingw32 --with-no-install --enable-win --disable-curses --disable-x11 --disable-sdl
+          make clean
+          make MANIFEST=1 LDFLAGS="-static -static-libgcc"
+          scripts/release/package-windows-zip.sh
+
+      - name: Smoke test Windows release
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force dist/windows-smoke -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force dist/windows-smoke | Out-Null
+          Expand-Archive -Path "dist/froxcomposband-${env:RELEASE_TAG}-windows-x86_64.zip" -DestinationPath dist/windows-smoke
+          $smokeDir = Join-Path $PWD "dist/windows-smoke"
+          $exe = Join-Path $smokeDir "froxcomposband.exe"
+          $log = Join-Path $smokeDir "smoke-test.log"
+          $process = Start-Process -FilePath $exe -ArgumentList @("--test", "--test-log=$log") -WorkingDirectory $smokeDir -PassThru
+          if (-not $process.WaitForExit(45000)) {
+            Write-Error "Windows smoke process did not exit within 45 seconds"
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            Get-ChildItem -Path $smokeDir -Recurse | ForEach-Object { Write-Host "Smoke dir entry: $($_.FullName)" }
+            exit 1
+          }
+          $status = $process.ExitCode
+          Write-Host "Windows smoke exit status: $status"
+          Get-ChildItem -Path $smokeDir -Recurse | ForEach-Object { Write-Host "Smoke dir entry: $($_.FullName)" }
+          Get-ChildItem -Path $smokeDir -Filter "*test*.log" -Recurse | ForEach-Object { Write-Host "Found smoke log: $($_.FullName)" }
+          if (Test-Path $log) {
+            Get-Content $log
+          } else {
+            Write-Error "Windows smoke log was not created"
+          }
+          exit $status
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ env.RELEASE_TAG }}
+          path: dist/*.zip
+
+  macos:
+    name: macOS DMG (${{ matrix.arch }})
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos'
+    needs: prepare-help
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download generated help
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-help-${{ env.RELEASE_TAG }}
+          path: dist/generated-help
+
+      - name: Build and package macOS release
+        env:
+          MACOS_ARCH: ${{ matrix.arch }}
+        run: |
+          chmod +x ./configure scripts/release/*.sh
+          scripts/release/apply-generated-help.sh dist/generated-help
+          ./configure --with-no-install
+          scripts/release/package-macos-dmg.sh
+
+      - name: Smoke test macOS release
+        env:
+          MACOS_ARCH: ${{ matrix.arch }}
+        run: |
+          dmg="dist/froxcomposband-${RELEASE_TAG}-macos-${MACOS_ARCH}.dmg"
+          mount_dir="$(mktemp -d)"
+          stdout="$PWD/dist/macos-smoke-${MACOS_ARCH}.stdout"
+          stderr="$PWD/dist/macos-smoke-${MACOS_ARCH}.stderr"
+          log="$PWD/dist/macos-smoke-${MACOS_ARCH}.log"
+          hdiutil attach "$dmg" -mountpoint "$mount_dir" -nobrowse -quiet
+          trap 'hdiutil detach "$mount_dir" -quiet || true; rmdir "$mount_dir" || true' EXIT
+          set +e
+          "$mount_dir/FroxComposband.app/Contents/MacOS/FroxComposband" --test --test-log="$log" >"$stdout" 2>"$stderr"
+          status=$?
+          set -e
+          echo "macOS smoke exit status: $status"
+          test ! -s "$stdout" || { echo "macOS smoke stdout:"; cat "$stdout"; }
+          test ! -s "$stderr" || { echo "macOS smoke stderr:"; cat "$stderr"; }
+          test ! -f "$log" || { echo "macOS smoke log:"; cat "$log"; }
+          hdiutil detach "$mount_dir" -quiet
+          rmdir "$mount_dir"
+          trap - EXIT
+          exit "$status"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}-${{ env.RELEASE_TAG }}
+          path: dist/*.dmg
+
+  publish:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    needs:
+      - linux
+      - windows
+      - macos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/release
+          merge-multiple: true
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/release/*

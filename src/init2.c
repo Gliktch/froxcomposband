@@ -25,12 +25,21 @@
 # include <fcntl.h>
 #endif
 
+#if defined(PRIVATE_USER_PATH) && defined(HAVE_UNISTD_H) && !defined(WINDOWS)
+# include <unistd.h>
+# include <pwd.h>
+#endif
+
 #if defined (WINDOWS) && !defined (CYGWIN)
 # define my_mkdir(path, perms) mkdir(path)
 #elif defined(HAVE_MKDIR) || defined(MACH_O_CARBON) || defined (CYGWIN)
 # define my_mkdir(path, perms) mkdir(path, perms)
 #else
 # define my_mkdir(path, perms) FALSE
+#endif
+
+#ifdef PRIVATE_USER_PATH
+static void private_user_base(char *buf, int max);
 #endif
 
 /*
@@ -99,6 +108,7 @@ void init_file_paths(const char *configpath, const char *libpath, const char *da
 
 #ifdef PRIVATE_USER_PATH
     char buf[1024];
+    char private_base[1024];
 #endif /* PRIVATE_USER_PATH */
 
     /*** Free everything ***/
@@ -164,8 +174,10 @@ void init_file_paths(const char *configpath, const char *libpath, const char *da
 
 #ifdef PRIVATE_USER_PATH
 
+    private_user_base(private_base, sizeof(private_base));
+
     /* Build the path to the user specific directory */
-    path_build(buf, sizeof(buf), PRIVATE_USER_PATH, VERSION_NAME);
+    path_build(buf, sizeof(buf), private_base, VERSION_NAME);
 
     /* Build a relative path name */
     ANGBAND_DIR_USER = z_string_make(buf);
@@ -300,6 +312,43 @@ bool dir_create(const char *path)
 bool dir_create(const char *path) { return FALSE; }
 #endif /* !HAVE_STAT */
 
+#ifdef PRIVATE_USER_PATH
+static void private_user_base(char *buf, int max)
+{
+    cptr xdg_data_home = getenv("XDG_DATA_HOME");
+    cptr home = getenv("HOME");
+#if defined(HAVE_UNISTD_H) && !defined(WINDOWS)
+    struct passwd *pw;
+#endif
+
+    if (xdg_data_home && xdg_data_home[0])
+    {
+        my_strcpy(buf, xdg_data_home, max);
+        return;
+    }
+
+    if (home && home[0])
+    {
+        path_build(buf, max, home, ".local/share");
+        return;
+    }
+
+#if defined(HAVE_UNISTD_H) && !defined(WINDOWS)
+    pw = getpwuid(getuid());
+    if (pw && pw->pw_dir && pw->pw_dir[0])
+    {
+        path_build(buf, max, pw->pw_dir, ".local/share");
+        return;
+    }
+
+    path_build(buf, max, PRIVATE_USER_PATH, format("froxcomposband-%lu", (unsigned long)getuid()));
+    return;
+#endif
+
+    my_strcpy(buf, PRIVATE_USER_PATH, max);
+}
+#endif
+
 
 /*
  * Create any missing directories. We create only those dirs which may be
@@ -325,8 +374,360 @@ void create_needed_dirs(void)
     path_build(dirpath, sizeof(dirpath), ANGBAND_DIR_DATA, "");
     if (!dir_create(dirpath)) quit_fmt("Cannot create '%s'", dirpath);
 
+    path_build(dirpath, sizeof(dirpath), ANGBAND_DIR_SCRIPT, "");
+    if (!dir_create(dirpath)) quit_fmt("Cannot create '%s'", dirpath);
+
     path_build(dirpath, sizeof(dirpath), ANGBAND_DIR_HELP, "");
     if (!dir_create(dirpath)) quit_fmt("Cannot create '%s'", dirpath);
+}
+
+static FILE *_package_test_log_file = NULL;
+static bool _package_test_log_is_stderr = FALSE;
+static int _package_test_failures = 0;
+
+static void _package_test_default_log_path(char *path, int max)
+{
+    cptr exe = argv0;
+    cptr sep;
+    cptr alt_sep;
+
+    if (!exe || !exe[0])
+    {
+        my_strcpy(path, "froxcomposband-test.log", max);
+        return;
+    }
+
+    sep = strrchr(exe, PATH_SEPC);
+#ifdef WINDOWS
+    alt_sep = strrchr(exe, '/');
+    if (!sep || (alt_sep && alt_sep > sep)) sep = alt_sep;
+#else
+    alt_sep = NULL;
+    (void)alt_sep;
+#endif
+
+    if (sep)
+    {
+        int len = (int)(sep - exe);
+        char dir[1024];
+
+        if (len <= 0 || len >= (int)sizeof(dir))
+        {
+            my_strcpy(path, "froxcomposband-test.log", max);
+            return;
+        }
+
+        my_strcpy(dir, exe, len + 1);
+        path_build(path, max, dir, "froxcomposband-test.log");
+        return;
+    }
+
+    my_strcpy(path, "froxcomposband-test.log", max);
+}
+
+static void _package_test_open_log(void)
+{
+    char path[1024];
+
+    if (_package_test_log_file) return;
+
+    if (arg_test_log[0])
+        my_strcpy(path, arg_test_log, sizeof(path));
+    else
+        _package_test_default_log_path(path, sizeof(path));
+
+    _package_test_log_file = my_fopen(path, "w");
+
+    if (!_package_test_log_file && !arg_test_log[0])
+    {
+        cptr tmp = getenv("TMPDIR");
+
+#ifdef WINDOWS
+        if (!tmp || !tmp[0]) tmp = getenv("TEMP");
+        if (!tmp || !tmp[0]) tmp = getenv("TMP");
+#endif
+
+        if (tmp && tmp[0])
+        {
+            path_build(path, sizeof(path), tmp, "froxcomposband-test.log");
+            _package_test_log_file = my_fopen(path, "w");
+        }
+    }
+
+    if (!_package_test_log_file)
+    {
+        _package_test_log_file = stderr;
+        _package_test_log_is_stderr = TRUE;
+        my_strcpy(path, "<stderr>", sizeof(path));
+    }
+
+    fprintf(_package_test_log_file, "FroxComposband package smoke test\n");
+    fprintf(_package_test_log_file, "Version: %d.%d.%s.%d%s\n",
+        VER_MAJOR, VER_MINOR, VER_PATCH, VER_EXTRA,
+        VERSION_IS_DEVELOPMENT ? " (Development)" : "");
+    fprintf(_package_test_log_file, "Log: %s\n", path);
+    fflush(_package_test_log_file);
+}
+
+void package_test_log(cptr fmt, ...)
+{
+    va_list vp;
+
+    _package_test_open_log();
+
+    va_start(vp, fmt);
+    vfprintf(_package_test_log_file, fmt, vp);
+    va_end(vp);
+
+    fputc('\n', _package_test_log_file);
+    fflush(_package_test_log_file);
+}
+
+static void _package_test_plog(cptr str)
+{
+    package_test_log("plog: %s", str ? str : "(null)");
+}
+
+static void _package_test_quit(cptr str)
+{
+    if (str) package_test_log("quit: %s", str);
+    package_test_finish(str ? 1 : 0);
+    exit(str ? 1 : 0);
+}
+
+void package_test_install_hooks(void)
+{
+    plog_aux = _package_test_plog;
+    quit_aux = _package_test_quit;
+    core_aux = _package_test_quit;
+}
+
+bool package_test_parse_arg(cptr arg)
+{
+    if (!arg) return FALSE;
+
+    if (streq(arg, "--test"))
+    {
+        arg_test = TRUE;
+        return TRUE;
+    }
+
+    if (streq(arg, "--test=headless"))
+    {
+        arg_test = TRUE;
+        arg_test_headless = TRUE;
+        return TRUE;
+    }
+
+    if (prefix(arg, "--test-log="))
+    {
+        arg_test = TRUE;
+        my_strcpy(arg_test_log, arg + strlen("--test-log="), sizeof(arg_test_log));
+        return TRUE;
+    }
+
+    if (prefix(arg, "--test="))
+    {
+        cptr value = arg + strlen("--test=");
+
+        arg_test = TRUE;
+        if (streq(value, "headless"))
+            arg_test_headless = TRUE;
+        else
+            my_strcpy(arg_test_log, value, sizeof(arg_test_log));
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+void package_test_parse_cmdline(cptr cmdline)
+{
+    char arg[1024];
+    cptr s = cmdline;
+
+    if (!s) return;
+
+    while (*s)
+    {
+        int i = 0;
+        char quote = '\0';
+
+        while (*s && isspace((unsigned char)*s)) s++;
+        if (!*s) break;
+
+        if (*s == '"' || *s == '\'') quote = *s++;
+
+        while (*s && i < (int)sizeof(arg) - 1)
+        {
+            if (quote)
+            {
+                if (*s == quote)
+                {
+                    s++;
+                    break;
+                }
+            }
+            else if (isspace((unsigned char)*s))
+                break;
+
+            arg[i++] = *s++;
+        }
+        arg[i] = '\0';
+
+        if (arg[0]) package_test_parse_arg(arg);
+        while (*s && isspace((unsigned char)*s)) s++;
+    }
+}
+
+static void _package_test_fail(cptr fmt, ...)
+{
+    va_list vp;
+
+    _package_test_open_log();
+
+    fprintf(_package_test_log_file, "FAIL: ");
+    va_start(vp, fmt);
+    vfprintf(_package_test_log_file, fmt, vp);
+    va_end(vp);
+    fputc('\n', _package_test_log_file);
+    fflush(_package_test_log_file);
+    _package_test_failures++;
+}
+
+static void _package_test_pass(cptr fmt, ...)
+{
+    va_list vp;
+
+    _package_test_open_log();
+
+    fprintf(_package_test_log_file, "OK: ");
+    va_start(vp, fmt);
+    vfprintf(_package_test_log_file, fmt, vp);
+    va_end(vp);
+    fputc('\n', _package_test_log_file);
+    fflush(_package_test_log_file);
+}
+
+static void _package_test_dir(cptr label, cptr path, bool must_write)
+{
+    char tmp[1024];
+    FILE *fp;
+
+    if (!path || !path[0])
+    {
+        _package_test_fail("%s path is empty", label);
+        return;
+    }
+
+    if (!dir_exists(path))
+    {
+        _package_test_fail("%s directory missing: %s", label, path);
+        return;
+    }
+
+    _package_test_pass("%s directory exists: %s", label, path);
+
+    if (!must_write) return;
+
+    path_build(tmp, sizeof(tmp), path, ".frox-package-test.tmp");
+    fp = my_fopen(tmp, "w");
+    if (!fp)
+    {
+        _package_test_fail("%s directory is not writable: %s", label, path);
+        return;
+    }
+
+    fprintf(fp, "FroxComposband package smoke test\n");
+    if (my_fclose(fp))
+        _package_test_fail("%s test file could not be closed cleanly: %s", label, tmp);
+    else
+        _package_test_pass("%s directory is writable: %s", label, path);
+
+    remove(tmp);
+}
+
+static void _package_test_file(cptr label, cptr base, cptr name)
+{
+    char path[1024];
+    FILE *fp;
+
+    if (!base || !base[0])
+    {
+        _package_test_fail("%s base path is empty", label);
+        return;
+    }
+
+    path_build(path, sizeof(path), base, name);
+    fp = my_fopen(path, "r");
+    if (!fp)
+    {
+        _package_test_fail("%s missing or unreadable: %s", label, path);
+        return;
+    }
+
+    my_fclose(fp);
+    _package_test_pass("%s readable: %s", label, path);
+}
+
+int package_test_run(bool headless)
+{
+    _package_test_failures = 0;
+
+    package_test_log("Mode: %s", headless ? "headless" : "frontend");
+    package_test_log("Frontend: %s", ANGBAND_SYS ? ANGBAND_SYS : "(not initialized)");
+    package_test_log("ANGBAND_DIR: %s", ANGBAND_DIR ? ANGBAND_DIR : "(null)");
+
+    _package_test_dir("edit", ANGBAND_DIR_EDIT, FALSE);
+    _package_test_dir("file", ANGBAND_DIR_FILE, FALSE);
+    _package_test_dir("help", ANGBAND_DIR_HELP, FALSE);
+    _package_test_dir("pref", ANGBAND_DIR_PREF, FALSE);
+    _package_test_dir("xtra", ANGBAND_DIR_XTRA, FALSE);
+    _package_test_dir("info", ANGBAND_DIR_INFO, FALSE);
+    _package_test_dir("user", ANGBAND_DIR_USER, TRUE);
+    _package_test_dir("save", ANGBAND_DIR_SAVE, TRUE);
+    _package_test_dir("scores", ANGBAND_DIR_APEX, TRUE);
+    _package_test_dir("data", ANGBAND_DIR_DATA, TRUE);
+    _package_test_dir("script", ANGBAND_DIR_SCRIPT, TRUE);
+
+    _package_test_file("news", ANGBAND_DIR_FILE, "news.txt");
+    _package_test_file("artifact template", ANGBAND_DIR_EDIT, "a_info.txt");
+    _package_test_file("object template", ANGBAND_DIR_EDIT, "k_info.txt");
+    _package_test_file("monster template", ANGBAND_DIR_EDIT, "r_info.txt");
+    _package_test_file("help version marker", ANGBAND_DIR_EDIT, "help_upd.txt");
+    _package_test_file("default preferences", ANGBAND_DIR_PREF, "pref.prf");
+    _package_test_file("help index", ANGBAND_DIR_HELP, "start.txt");
+    _package_test_file("generated text help", ANGBAND_DIR_HELP, "text/start.txt");
+    _package_test_file("generated html help", ANGBAND_DIR_HELP, "html/start.html");
+
+    if (headless)
+        package_test_log("Frontend startup/render check: skipped by headless mode");
+    else if (Term)
+        package_test_log("Frontend startup/render check: term %dx%d active", Term->wid, Term->hgt);
+    else
+        _package_test_fail("Frontend startup/render check: no active term");
+
+    if (_package_test_failures)
+        package_test_log("Result: FAIL (%d failure%s)", _package_test_failures, _package_test_failures == 1 ? "" : "s");
+    else
+        package_test_log("Result: PASS");
+
+    return _package_test_failures ? 1 : 0;
+}
+
+int package_test_finish(int status)
+{
+    if (!_package_test_log_file) return status;
+
+    package_test_log("Exit status: %d", status);
+
+    if (!_package_test_log_is_stderr)
+    {
+        my_fclose(_package_test_log_file);
+        _package_test_log_file = NULL;
+    }
+
+    return status;
 }
 
 

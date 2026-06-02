@@ -113,6 +113,7 @@ fi
 
 if test "x$with_private_dirs" != "x"; then
     AC_DEFINE(USE_PRIVATE_PATHS, 1, [Define to use private save and score paths.])
+    AC_DEFINE(PRIVATE_USER_PATH, "/var/tmp", [Last-resort base path for private user data.])
 fi
 
 # Only change bindir if it's the configure-supplied default, which handily doesn't expand exec_prefix
@@ -179,8 +180,9 @@ AC_DEFINE_UNQUOTED([DEFAULT_CONFIG_PATH], "${configdir}", [Path to the game's co
 AC_DEFINE_UNQUOTED([DEFAULT_LIB_PATH], "${libdatadir}", [Path to the game's lib directory])
 AC_DEFINE_UNQUOTED([DEFAULT_DATA_PATH], "${vardatadir}", [Path to the game's variable data])
 
-NOINSTALL="$with_noinstall"; AC_SUBST(NOINSTALL)
-SETEGID="$with_setgid";      AC_SUBST(SETEGID)
+NOINSTALL="$with_noinstall";             AC_SUBST(NOINSTALL)
+SETEGID="$with_setgid";                  AC_SUBST(SETEGID)
+PRIVATE_USER_PATHS="$with_private_dirs"; AC_SUBST(PRIVATE_USER_PATHS)
 
 dnl Frontends
 AC_ARG_ENABLE(curses,
@@ -406,7 +408,7 @@ echo "  var path:                               ${displayedvardatadir}"
 if test "x$wsetgid" = "xyes"; then
     echo "  (as group ${SETEGID})"
 elif test "x$with_private_dirs" = "xyes"; then
-    echo "  (with private save and score files in ~/.angband/FroxComposband/)"
+    echo "  (with private save and score files in XDG_DATA_HOME or ~/.local/share)"
 fi
 
 echo

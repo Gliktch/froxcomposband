@@ -79,6 +79,9 @@ bool arg_force_original;    /* Command arg -- Request original keyset */
 bool arg_force_roguelike;    /* Command arg -- Request roguelike keyset */
 bool arg_bigtile = FALSE;    /* Command arg -- Request big tile mode */
 bool arg_protected_session; /* Command arg -- Request protected session mode */
+bool arg_test;              /* Command arg -- Run release smoke test */
+bool arg_test_headless;     /* Command arg -- Run release smoke test without frontend */
+char arg_test_log[1024];    /* Command arg -- Release smoke test log path */
 
 /*
  * Various things

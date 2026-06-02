@@ -4404,13 +4404,16 @@ static void init_stuff(void)
     int i;
 
     char path[1024];
+    static char module_path[512];
 
 
     /* Get program name with full path */
-    GetModuleFileName(hInstance, path, 512);
+    GetModuleFileName(hInstance, module_path, sizeof(module_path));
 
     /* Save the "program name" XXX XXX XXX */
-    argv0 = path;
+    argv0 = module_path;
+
+    my_strcpy(path, module_path, sizeof(path));
 
     /* Get the name of the "*.ini" file */
     strcpy(path + strlen(path) - 4, ".INI");
@@ -4526,6 +4529,7 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
                LPSTR lpCmdLine, int nCmdShow)
 {
     int i;
+    int test_status = 0;
 
     WNDCLASS wc;
     HDC hdc;
@@ -4536,6 +4540,8 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
 
     /* Save globally */
     hInstance = hInst;
+
+    package_test_parse_cmdline(lpCmdLine);
 
     /* Initialize */
     if (hPrevInst == NULL)
@@ -4574,12 +4580,20 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
     }
 
     /* Temporary hooks */
-    plog_aux = hack_plog;
-    quit_aux = hack_quit;
-    core_aux = hack_quit;
+    if (arg_test)
+        package_test_install_hooks();
+    else
+    {
+        plog_aux = hack_plog;
+        quit_aux = hack_quit;
+        core_aux = hack_quit;
+    }
 
     /* Prepare the filepaths */
     init_stuff();
+
+    if (arg_test && arg_test_headless)
+        return package_test_finish(package_test_run(TRUE));
 
     /* Initialize the keypress analyzer */
     for (i = 0; special_key_list[i]; ++i)
@@ -4619,9 +4633,14 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
     init_windows();
 
     /* Activate hooks */
-    plog_aux = hook_plog;
-    quit_aux = hook_quit;
-    core_aux = hook_quit;
+    if (arg_test)
+        package_test_install_hooks();
+    else
+    {
+        plog_aux = hook_plog;
+        quit_aux = hook_quit;
+        core_aux = hook_quit;
+    }
 
     /* Set the system suffix */
     ANGBAND_SYS = "win";
@@ -4659,6 +4678,13 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
     display_news();
     c_prt(TERM_YELLOW, "                 [Choose 'New' or 'Open' from the 'File' menu]", Term->hgt - 1, 0);
     Term_fresh();
+
+    if (arg_test)
+    {
+        test_status = package_test_run(FALSE);
+        package_test_log("Frontend final render: completed");
+        return package_test_finish(test_status);
+    }
 
     /* Process messages forever */
     while (GetMessage(&msg, NULL, 0, 0))

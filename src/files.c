@@ -23,6 +23,9 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#if defined(HAVE_UNISTD_H) && !defined(WINDOWS)
+#include <pwd.h>
+#endif
 
 #ifdef SIGSTOP
 
@@ -2880,13 +2883,25 @@ static bool _frox_old_user_dir(char *buf, int max)
     return !streq(buf, ANGBAND_DIR_USER);
 }
 
-static bool _frox_old_save_dir(char *buf, int max)
+static bool _frox_legacy_angband_user_dir(char *buf, int max)
 {
-    char user_dir[1024];
+    cptr home = getenv("HOME");
+    char base[1024];
 
-    if (!_frox_old_user_dir(user_dir, sizeof(user_dir))) return FALSE;
-    path_build(buf, max, user_dir, "save");
-    return TRUE;
+#if defined(HAVE_UNISTD_H) && !defined(WINDOWS)
+    if (!home || !home[0])
+    {
+        struct passwd *pw = getpwuid(getuid());
+        if (pw && pw->pw_dir && pw->pw_dir[0])
+            home = pw->pw_dir;
+    }
+#endif
+
+    if (!home || !home[0]) return FALSE;
+
+    path_build(base, sizeof(base), home, ".angband");
+    path_build(buf, max, base, "FrogComposband");
+    return !streq(buf, ANGBAND_DIR_USER);
 }
 
 static void _frox_import_sentinel_path(char *buf, int max)
@@ -2981,16 +2996,29 @@ static bool _frox_dir_has_uncopied_files(cptr src_dir, cptr dst_dir, bool (*pred
 }
 #endif
 
+static bool _frox_old_data_pending_aux(cptr old_user)
+{
+    char old_save[1024];
+
+    if (_frox_dir_has_uncopied_files(old_user, ANGBAND_DIR_USER, _frox_root_file)) return TRUE;
+    path_build(old_save, sizeof(old_save), old_user, "save");
+    if (_frox_dir_has_uncopied_files(old_save, ANGBAND_DIR_SAVE, _frox_save_file)) return TRUE;
+    return FALSE;
+}
+
 static bool _frox_old_data_pending(void)
 {
     char old_user[1024];
-    char old_save[1024];
+    char legacy_user[1024];
 
-    if (!_frox_old_user_dir(old_user, sizeof(old_user))) return FALSE;
-    if (_frox_dir_has_uncopied_files(old_user, ANGBAND_DIR_USER, _frox_root_file)) return TRUE;
-    if (_frox_old_save_dir(old_save, sizeof(old_save))
-        && _frox_dir_has_uncopied_files(old_save, ANGBAND_DIR_SAVE, _frox_save_file))
+    if (_frox_old_user_dir(old_user, sizeof(old_user))
+        && _frox_old_data_pending_aux(old_user))
         return TRUE;
+
+    if (_frox_legacy_angband_user_dir(legacy_user, sizeof(legacy_user))
+        && _frox_old_data_pending_aux(legacy_user))
+        return TRUE;
+
     return FALSE;
 }
 
@@ -3021,14 +3049,25 @@ static int _frox_import_copy_all(void)
 {
     int copied = 0;
     char old_user[1024];
-    char old_save[1024];
+    char legacy_user[1024];
 
-    if (!_frox_old_user_dir(old_user, sizeof(old_user))) return 0;
+    if (_frox_old_user_dir(old_user, sizeof(old_user)))
+    {
+        char old_save[1024];
 
-    copied += _frox_copy_dir_files(old_user, ANGBAND_DIR_USER, _frox_root_file);
-
-    if (_frox_old_save_dir(old_save, sizeof(old_save)))
+        path_build(old_save, sizeof(old_save), old_user, "save");
+        copied += _frox_copy_dir_files(old_user, ANGBAND_DIR_USER, _frox_root_file);
         copied += _frox_copy_dir_files(old_save, ANGBAND_DIR_SAVE, _frox_save_file);
+    }
+
+    if (_frox_legacy_angband_user_dir(legacy_user, sizeof(legacy_user)))
+    {
+        char legacy_save[1024];
+
+        path_build(legacy_save, sizeof(legacy_save), legacy_user, "save");
+        copied += _frox_copy_dir_files(legacy_user, ANGBAND_DIR_USER, _frox_root_file);
+        copied += _frox_copy_dir_files(legacy_save, ANGBAND_DIR_SAVE, _frox_save_file);
+    }
 
     if (copied)
         _frox_import_suppress(FALSE);

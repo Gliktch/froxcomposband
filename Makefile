@@ -20,17 +20,19 @@ dist: manual
 	rm -rf $(TAG)
 
 install-extra:
-	${MKDIR_P} ${DESTDIR}${vardatadir}/apex \
-		${DESTDIR}${vardatadir}/data \
-		${DESTDIR}${vardatadir}/save \
-		${DESTDIR}${vardatadir}/user
-	if [ "x$(SETEGID)" != "x" ]; then \
-		chown -R root:$(SETEGID) ${DESTDIR}${vardatadir}/apex \
+	if [ "x$(PRIVATE_USER_PATHS)" != "xyes" ]; then \
+		${MKDIR_P} ${DESTDIR}${vardatadir}/apex \
 			${DESTDIR}${vardatadir}/data \
 			${DESTDIR}${vardatadir}/save \
 			${DESTDIR}${vardatadir}/user; \
-		chmod -R g+w ${DESTDIR}${vardatadir}/apex \
-			${DESTDIR}${vardatadir}/data \
-			${DESTDIR}${vardatadir}/save \
-			${DESTDIR}${vardatadir}/user; \
+		if [ "x$(SETEGID)" != "x" ]; then \
+			chown -R root:$(SETEGID) ${DESTDIR}${vardatadir}/apex \
+				${DESTDIR}${vardatadir}/data \
+				${DESTDIR}${vardatadir}/save \
+				${DESTDIR}${vardatadir}/user; \
+			chmod -R g+w ${DESTDIR}${vardatadir}/apex \
+				${DESTDIR}${vardatadir}/data \
+				${DESTDIR}${vardatadir}/save \
+				${DESTDIR}${vardatadir}/user; \
+		fi; \
 	fi

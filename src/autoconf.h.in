@@ -128,6 +128,9 @@
 /* Define to 1 if NCurses is found. */
 #undef USE_NCURSES
 
+/* Last-resort base path for private user data. */
+#undef PRIVATE_USER_PATH
+
 /* Define to use private save and score paths. */
 #undef USE_PRIVATE_PATHS
 

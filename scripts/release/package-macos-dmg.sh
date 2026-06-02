@@ -8,15 +8,16 @@ source "$script_dir/common.sh"
 tag="$(release_tag "${1:-}")"
 version="$(release_version "$tag")"
 artifact_dir="${ARTIFACT_DIR:-$repo_root/dist}"
+macos_arch="${MACOS_ARCH:-$(uname -m)}"
 dist_name="FroxComposband-${version}-osx.dmg"
 src_artifact="$repo_root/$dist_name"
-artifact_path="$artifact_dir/froxcomposband-${tag}-macos.dmg"
+artifact_path="$artifact_dir/froxcomposband-${tag}-macos-${macos_arch}.dmg"
 
 verify_generated_help_tree
 rm -f "$src_artifact" "$artifact_path"
 
 make -C "$repo_root/src" -f Makefile.osx clean
-make -C "$repo_root/src" -f Makefile.osx dist DIST_VERSION="$version"
+make -C "$repo_root/src" -f Makefile.osx dist DIST_VERSION="$version" ARCH="-arch $macos_arch"
 
 mv "$src_artifact" "$artifact_path"
 printf '%s\n' "$artifact_path"

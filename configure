@@ -664,6 +664,7 @@ XMKMF
 NCURSES_LIBS
 NCURSES_CFLAGS
 NCURSES_CONFIG
+PRIVATE_USER_PATHS
 SETEGID
 NOINSTALL
 docdatadir
@@ -4992,6 +4993,9 @@ if test "x$with_private_dirs" != "x"; then
 
 printf "%s\n" "#define USE_PRIVATE_PATHS 1" >>confdefs.h
 
+
+printf "%s\n" "#define PRIVATE_USER_PATH \"/var/tmp\"" >>confdefs.h
+
 fi
 
 # Only change bindir if it's the configure-supplied default, which handily doesn't expand exec_prefix
@@ -5114,6 +5118,7 @@ printf "%s\n" "#define DEFAULT_DATA_PATH \"${vardatadir}\"" >>confdefs.h
 
 NOINSTALL="$with_noinstall";
 SETEGID="$with_setgid";
+PRIVATE_USER_PATHS="$with_private_dirs";
 
 # Check whether --enable-curses was given.
 if test ${enable_curses+y}
@@ -8212,7 +8217,7 @@ echo "  var path:                               ${displayedvardatadir}"
 if test "x$wsetgid" = "xyes"; then
     echo "  (as group ${SETEGID})"
 elif test "x$with_private_dirs" = "xyes"; then
-    echo "  (with private save and score files in ~/.angband/FroxComposband/)"
+    echo "  (with private save and score files in XDG_DATA_HOME or ~/.local/share)"
 fi
 
 echo

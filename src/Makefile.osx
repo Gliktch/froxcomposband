@@ -118,6 +118,8 @@ LIBFILES = \
   ../lib/edit/*.txt \
   ../lib/file/*.txt \
   ../lib/help/*.txt \
+  ../lib/help/text/*.txt \
+  ../lib/help/html/*.html \
   ../lib/pref/*.prf \
 
 install: $(EXE) $(ICONFILES) $(PLIST) $(LIBFILES)
@@ -131,6 +133,9 @@ install: $(EXE) $(ICONFILES) $(PLIST) $(LIBFILES)
 	@mkdir -p $(APPRES)/lib/edit
 	@mkdir -p $(APPRES)/lib/file
 	@mkdir -p $(APPRES)/lib/help
+	@mkdir -p $(APPRES)/lib/help/text
+	@mkdir -p $(APPRES)/lib/help/html
+	@mkdir -p $(APPRES)/lib/info
 	@mkdir -p $(APPRES)/lib/pref
 	@mkdir -p $(APPRES)/lib/script
 	@mkdir -p $(APPRES)/lib/xtra/graf
@@ -140,6 +145,8 @@ install: $(EXE) $(ICONFILES) $(PLIST) $(LIBFILES)
 	@cp ../lib/edit/*.txt $(APPRES)/lib/edit
 	@cp ../lib/file/*.txt $(APPRES)/lib/file
 	@cp ../lib/help/*.txt $(APPRES)/lib/help
+	@cp ../lib/help/text/*.txt $(APPRES)/lib/help/text
+	@cp ../lib/help/html/*.html $(APPRES)/lib/help/html
 	@if ls ../lib/help/*.hlp >/dev/null 2>&1; then cp ../lib/help/*.hlp $(APPRES)/lib/help; fi
 	@cp ../lib/pref/*.prf $(APPRES)/lib/pref
 
@@ -192,13 +199,13 @@ dist: install
 	@rm -rf disttemp*
 	mkdir -p disttemp/Docs
 	cp ../README.md disttemp/Docs
-	cp -R -p "$(APPBNDL)" disttemp
+	ditto "$(APPBNDL)" disttemp/$(APPNAME)
 	@if command -v SetFile >/dev/null 2>&1; then SetFile -a B disttemp/$(APPNAME); fi
 
 	@-rm ../"$(PACKAGE_NAME)-osx.dmg"
 
-	hdiutil create -quiet -fs HFS+ -volname $(PACKAGE_NAME) -srcfolder disttemp disttemp.dmg
-	hdiutil convert disttemp.dmg -quiet -format UDZO -imagekey zlib-level=6 -o ../"$(PACKAGE_NAME)-osx.dmg"
+	hdiutil create -quiet -volname "$(PACKAGE_NAME)" -srcfolder disttemp \
+		-format UDZO -imagekey zlib-level=6 -ov ../"$(PACKAGE_NAME)-osx.dmg"
 
 	rm -rf disttemp*
 

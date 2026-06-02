@@ -411,6 +411,8 @@ int main(int argc, char *argv[])
 		/* Require proper options */
 		if (argv[i][0] != '-') goto usage;
 
+		if (package_test_parse_arg(argv[i])) continue;
+
 		/* Analyze option */
 		switch (argv[i][1])
 		{
@@ -532,6 +534,10 @@ int main(int argc, char *argv[])
 				puts("  -r       Request rogue-like keyset");
 				puts("  -M       Request monochrome mode");
 				puts("  -p       Enable protected session mode");
+				puts("  --test[=headless]");
+				puts("           Run a release smoke test");
+				puts("  --test-log=<path>");
+				puts("           Write release smoke test details to <path>");
 				puts("  -u<who>  Use your <who> savefile");
 				puts("  -m<sys>  Force 'main-<sys>.c' usage");
 				puts("  -d<def>  Define a 'lib' dir sub-path");
@@ -598,6 +604,7 @@ int main(int argc, char *argv[])
 		argv[1] = NULL;
 	}
 
+	if (arg_test) package_test_install_hooks();
 
 	/* Process the player name */
 	process_player_name(TRUE);
@@ -605,8 +612,11 @@ int main(int argc, char *argv[])
 	/* Create any missing directories */
 	create_needed_dirs();
 
+	if (arg_test && arg_test_headless)
+		return package_test_finish(package_test_run(TRUE));
+
 	/* Install "quit" hook */
-	quit_aux = quit_hook;
+	if (!arg_test) quit_aux = quit_hook;
 
 
 
@@ -783,6 +793,17 @@ int main(int argc, char *argv[])
 	/* Initialize */
 	init_angband();
 
+	if (arg_test)
+	{
+		int test_status = package_test_run(FALSE);
+
+		Term_clear();
+		c_prt(TERM_YELLOW, "FroxComposband release smoke test", 0, 0);
+		Term_fresh();
+		package_test_log("Frontend final render: completed");
+		return package_test_finish(test_status);
+	}
+
         /* Play the game */
 	play_game(new_game);
 
@@ -794,5 +815,3 @@ int main(int argc, char *argv[])
 }
 
 #endif
-
-

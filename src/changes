@@ -1,3 +1,185 @@
+Changes in FroxComposband 7.2.2:
+
+Build and release
+* Packaged release builds are now provided for Linux (.deb and standalone
+  binary), macOS, and Windows.
+* Renamed the visible variant, startup and packaging identity to
+  FroxComposband, and added an offer on first run to import older Frog saves
+  and preference files, as well as an on-demand option on the welcome
+  screen.
+
+Codebase cleanup
+* Cleaned up the codebase by first normalizing line endings (this made all my
+  diffs so much less noisy after that! Holy crap! xD).
+* Then spent many, many hours updating and normalizing intentional fallthrough
+  guards, hardening prompt and display buffers, and clearing a large backlog
+  of compiler warnings.
+
+Core fixes, state handling and anti-exploits
+* Added protected session mode (-p) to stop accidental duplicate-process play
+  on the same character, with live save-session locks, conflict details, and
+  safer stale temporary-dungeon-file handling.
+* Closed a whole set of farming and scumming loopholes, including Psion summon
+  farming, retaliation leech overflow, stair scumming with live guardians,
+  Android special-store scumming, overleveled Purple Disciple spell offers,
+  and jumping through glass walls.
+* Fixed several nasty state and gameplay edge cases, including arena death
+  recovery, Nightmare midnight curses breaking Monster Gambling, immediate
+  stair-bounce monster refreshes, and a range of stale UI-state or
+  prompt-state mismatches.
+* Resting now ends more cleanly and informatively, with better turn counts,
+  zero-turn */& feedback, and related player-visible flow cleanup.
+
+UI refreshes and list behavior
+* Object and monster lists, subwindows, and related panels now refresh
+  correctly after detections, teleports, clairvoyance, chest opening,
+  chameleon form changes, status changes, and similar state changes.
+* UI-only actions and special targeting no longer disturb monster visibility,
+  range indicators, list stability, or current monster-recall focus.
+* Monster-list sorting and display options were significantly improved,
+  including LOS sectioning, awake-first ordering, range display modes, and
+  level-vs-distance sorting.
+
+UI flow and interaction
+* Improved many interaction flows, including quantity shortcuts, Floor-tab
+  access, special bags, Igor Wanted turn-ins, target/look recall actions,
+  Shift+letter race jumps, item-damage alerts, search wraparound, item recall
+  in knowledge browsers, look-under mode, and targeting/confirmation cleanup.
+* Added persistent dungeon notes with a } notes menu for save-wide, dungeon,
+  floor, and building reminders.
+
+UI information display
+* Expanded visible information across prompts, lists, and the character sheet,
+  including sleeping status on the target line, Crossbowmaster close-range
+  bonus, Wanted/Hunter shortcuts, full activation names, casting-stat
+  indicators, floor ammo in shooter info, accurate sell prices, XP rate,
+  Quick Walk mana suppression, and clearer stack/toggle presentation.
+
+Macro and keymap overhaul
+* Replaced the old @ screen with a clearer Custom Keys interface.
+* Added selective loading and saving, replace/add modes, browsable change
+  review, editing, reverting, and reset-to-defaults.
+
+Pets
+* Significantly upgraded pet control with better listings, a sidebar
+  indicator, and improved prompts around pet loss or map transitions.
+* Simplified map-transition following to a straight 4-range rule, added
+  smarter pet shoving for failed swaps and tunneling, and now shows
+  more-relevant damage values when examining pets.
+
+Races and forms
+* Androids now keep unlocked racial attack powers, Hounds can choose their
+  final evolution, Mana Hounds gained stronger defenses, and late-game
+  Jellies can swap between Acidic Cytoplasm and Shoggoth without losing gained
+  slots.
+
+Items and inventory
+* Item lists are now more readable, with compact markers for cursed items,
+  artifacts, randarts and similar states, plus automatic Possessor corpse
+  levels.
+* Inventory and inscription handling got several practical upgrades,
+  including universal @* labels, blank-inscription removal, safer Scrolls of
+  Inventory Protection, downgraded curses on blasted items, and Adamantite
+  Plate Mail no longer being treated like disposable common armor.
+* Ammo and thrown-item handling were improved too: Spears now truly throw,
+  ammo piles generate and combine more sensibly, picked-up ammo can route into
+  the quiver when pack is full, thrown potions shatter on clean landing, and
+  ordinary ammo no longer bloats object statistics and counts.
+
+Spells, detection and combat messaging
+* Inventory Resistance now more clearly distinguishes itself from the scroll
+  effect, protects against theft, and makes inventory destruction easier to
+  resist.
+* Genocide now properly accepts ?, and sleep, slow, genocide, and
+  annihilation wording now better explains resistance and unique immunity.
+* Detect-all messaging is now shorter and clearer, correctly distinguishes
+  moving treasure from animate objects, and stays aligned with Bard detection
+  staging.
+* Monster-triggered Time Stop now has clearer death/resume messaging as a
+  player-visible combat-effect improvement.
+
+Options and defaults
+* Added and refined many interface and gameplay settings, including map
+  centering after stairs/teleports and at configurable edges, message-pane
+  wrap width, run-step prompting, melee attack confirmations, activation
+  auto-retries, and clearer percentage-bar handling.
+* Updated defaults and startup behavior, including no_selling by default for
+  new characters, refreshed starter presets, birth-option reset support, and
+  cleaner handling of leftover temporary dungeon files.
+
+Arena (now the Gladiator Ring)
+* Victorious players are now fully refreshed in the Winner's Lounge, including
+  Monster-Ring auto-return cases, and the arena screen now shows the next
+  challenger and lets the poster recall that monster.
+* Renamed the Thalos/Lite-Town Arena to the 'Gladiator Ring' and the monster
+  battle venue to the 'Monster Pit', so we don't have 4 things named Arena.
+
+-------------------------------------------------------
+
+Changes in FrogComposband 7.1.salmiak (nightly builds):
+
+* Added new monsters (Dokkaebi and Greater dokkaebi).
+
+* Added option to show damage ranges in monster info (thanks to JarrodB).
+
+* Documented samurai postures and improved timelord stasis power display.
+
+* Updated potion colors and fixed a double entry for Cyan.
+
+* Quality-of-life: improved always_pickup behavior, auto-identify arena
+rewards, expanded berserker destroy/no-pickup pickprefs, and improved
+recognition of old pickprefs.
+
+* Added support for the new isThrall parameter and updated Python bigsmov.
+
+* Fixed lagging icky light indicator (thanks to Rhukath for reporting).
+
+* Fixed bug with some object attributes not showing properly on shop
+inspection.
+
+* Fixed softlock and other issues caused by askfor() changes.
+
+* Fixed various issues with the kendo menu.
+
+* Fixed politician charming bugs.
+
+* Fixed bug with saving documents (thanks to Karkaroth and m0stlym0nk for
+reporting).
+
+* Fixed bug with repeated occurrences of Roman numerals.
+
+* Buffed Freesia.
+
+* Fixed bugs related to window redrawing.
+
+* Fixed hex-mage spelling cancellation (thanks to irie for reporting).
+
+* Fixed bugs with [Sh on rings.
+
+* Fixed instant-coffee capture ball bug.
+
+* Fixed a gcu (terminal) display crash caused by tiny window widths
+(thanks to Hugo for reporting).
+
+* Fixed a Word of Recall edge-case that could mis-handle stairs logic
+(thanks to wobbly for reporting).
+
+* Fixed archaeologist crash when identifying floor artifacts.
+
+* Fixed ancient bug with tracking monster-lit squares.
+
+* Fixed crashes with bows and gloves on skillmasters.
+
+* Fixed problem with wild-talent spell macros.
+
+* Fixed Saru's bug with tracking mana pool (thanks to Saru for reporting).
+
+* Fixed pluralization of objects eaten by monsters.
+
+* Numerous minor tweaks and fixes.
+
+-------------------------------------------------------
+
 Changes in FrogComposband 7.1.salmiak:
 
 * Added new dungeons and randomized which dungeons actually appear

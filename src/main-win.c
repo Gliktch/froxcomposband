@@ -1594,7 +1594,7 @@ void Term_inversed_area(HWND hWnd, int x, int y, int w, int h)
     HPEN oldPen;
     HBRUSH myBrush, oldBrush;
 
-    term_data *td = (term_data *)GetWindowLong(hWnd, 0);
+    term_data *td = (term_data *)GetWindowLongPtr(hWnd, 0);
     int tx = td->size_ow1 + x * td->tile_wid;
     int ty = td->size_oh1 + y * td->tile_hgt;
     int tw = w * td->tile_wid - 1;
@@ -3631,7 +3631,7 @@ LRESULT FAR PASCAL AngbandWndProc(HWND hWnd, UINT uMsg,
 
 
     /* Acquire proper "term_data" info */
-    td = (term_data *)GetWindowLong(hWnd, 0);
+    td = (term_data *)GetWindowLongPtr(hWnd, 0);
 
     /* Handle message */
     switch (uMsg)
@@ -3639,7 +3639,7 @@ LRESULT FAR PASCAL AngbandWndProc(HWND hWnd, UINT uMsg,
         /* XXX XXX XXX */
         case WM_NCCREATE:
         {
-            SetWindowLong(hWnd, 0, (LONG)(my_td));
+            SetWindowLongPtr(hWnd, 0, (LONG_PTR)(my_td));
             break;
         }
 
@@ -4016,7 +4016,7 @@ LRESULT FAR PASCAL AngbandListProc(HWND hWnd, UINT uMsg,
 
 
     /* Acquire proper "term_data" info */
-    td = (term_data *)GetWindowLong(hWnd, 0);
+    td = (term_data *)GetWindowLongPtr(hWnd, 0);
 
     /* Process message */
     switch (uMsg)
@@ -4024,7 +4024,7 @@ LRESULT FAR PASCAL AngbandListProc(HWND hWnd, UINT uMsg,
         /* XXX XXX XXX */
         case WM_NCCREATE:
         {
-            SetWindowLong(hWnd, 0, (LONG)(my_td));
+            SetWindowLongPtr(hWnd, 0, (LONG_PTR)(my_td));
             break;
         }
 
@@ -4542,14 +4542,18 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
     hInstance = hInst;
 
     package_test_parse_cmdline(lpCmdLine);
+    if (arg_test)
+        package_test_log("Windows WinMain: package test command line parsed");
 
     /* Initialize */
     if (hPrevInst == NULL)
     {
+        if (arg_test) package_test_log("Windows WinMain: registering window classes");
+
         wc.style         = CS_CLASSDC;
         wc.lpfnWndProc   = AngbandWndProc;
         wc.cbClsExtra    = 0;
-        wc.cbWndExtra    = 4; /* one long pointer to term_data */
+        wc.cbWndExtra    = sizeof(LONG_PTR); /* one pointer to term_data */
         wc.hInstance     = hInst;
         wc.hIcon         = hIcon = LoadIcon(hInst, AppName);
         wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
@@ -4558,12 +4562,14 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
         wc.lpszClassName = AppName;
 
         if (!RegisterClass(&wc)) exit(1);
+        if (arg_test) package_test_log("Windows WinMain: registered main window class");
 
         wc.lpfnWndProc   = AngbandListProc;
         wc.lpszMenuName  = NULL;
         wc.lpszClassName = AngList;
 
         if (!RegisterClass(&wc)) exit(2);
+        if (arg_test) package_test_log("Windows WinMain: registered list window class");
 
 #ifdef USE_SAVER
 
@@ -4590,7 +4596,9 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
     }
 
     /* Prepare the filepaths */
+    if (arg_test) package_test_log("Windows WinMain: initializing paths");
     init_stuff();
+    if (arg_test) package_test_log("Windows WinMain: initialized paths");
 
     if (arg_test && arg_test_headless)
         return package_test_finish(package_test_run(TRUE));
@@ -4630,7 +4638,14 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
     }
 
     /* Prepare the windows */
+    if (arg_test) package_test_log("Windows WinMain: initializing windows");
     init_windows();
+    if (arg_test) package_test_log("Windows WinMain: initialized windows");
+
+    /* The message system needs an active term during init_angband(). */
+    if (arg_test) package_test_log("Windows WinMain: activating main term");
+    Term_activate(&data[0].t);
+    if (arg_test) package_test_log("Windows WinMain: activated main term");
 
     /* Activate hooks */
     if (arg_test)
@@ -4669,10 +4684,13 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
     signals_init();
 
     /* Initialize */
+    if (arg_test) package_test_log("Windows WinMain: initializing game data");
     init_angband();
+    if (arg_test) package_test_log("Windows WinMain: initialized game data");
 
     /* Did the user double click on a save file? */
-    check_for_save_file(lpCmdLine);
+    if (!arg_test)
+        check_for_save_file(lpCmdLine);
 
     Term_flush();
     display_news();

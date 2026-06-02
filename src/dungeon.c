@@ -6125,6 +6125,8 @@ void play_game(bool new_game)
     /* Hack -- turn off the cursor */
     (void)Term_set_cursor(0);
 
+    frox_import_startup_prompt();
+
     /* Attempt to load */
     if (!load_player())
     {

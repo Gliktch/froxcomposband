@@ -14,6 +14,10 @@
 #include "equip.h"
 #include "z-doc.h"
 
+#ifdef HAVE_DIRENT_H
+#include <dirent.h>
+#endif
+
 #ifdef SIGSTOP
 
 /* OK, what header is this in? */
@@ -2831,6 +2835,267 @@ void get_player_base_name(char *buf, int max)
 
     if (!buf[0]) strcpy(buf, "PLAYER");
 }
+
+static bool _frox_has_suffix(cptr s, cptr suffix)
+{
+    size_t s_len = strlen(s);
+    size_t suffix_len = strlen(suffix);
+
+    if (suffix_len > s_len) return FALSE;
+    return streq(s + s_len - suffix_len, suffix);
+}
+
+static bool _frox_root_file(cptr name)
+{
+    if (!name[0] || name[0] == '.') return FALSE;
+    return _frox_has_suffix(name, ".prf");
+}
+
+static bool _frox_save_file(cptr name)
+{
+    if (!name[0] || name[0] == '.') return FALSE;
+    return !_frox_has_suffix(name, ".lok");
+}
+
+static bool _frox_old_user_dir(char *buf, int max)
+{
+    char temp[1024];
+    char *sep;
+
+    if (!buf || max <= 0) return FALSE;
+
+    my_strcpy(temp, ANGBAND_DIR_USER, sizeof(temp));
+    sep = strrchr(temp, PATH_SEP[0]);
+    if (!sep) return FALSE;
+    if (!streq(sep + 1, VERSION_NAME)) return FALSE;
+
+    *sep = '\0';
+    path_build(buf, max, temp, "FrogComposband");
+    return !streq(buf, ANGBAND_DIR_USER);
+}
+
+static bool _frox_old_save_dir(char *buf, int max)
+{
+    char user_dir[1024];
+
+    if (!_frox_old_user_dir(user_dir, sizeof(user_dir))) return FALSE;
+    path_build(buf, max, user_dir, "save");
+    return TRUE;
+}
+
+static void _frox_import_sentinel_path(char *buf, int max)
+{
+    path_build(buf, max, ANGBAND_DIR_USER, "frog-import-ignore.txt");
+}
+
+#ifdef HAVE_DIRENT_H
+static bool _frox_is_regular_file(cptr path)
+{
+#ifdef HAVE_STAT
+    struct stat st;
+
+    if (stat(path, &st) != 0) return FALSE;
+    return S_ISREG(st.st_mode) ? TRUE : FALSE;
+#else
+    return access(path, 0) == 0;
+#endif
+}
+
+static bool _frox_dir_has_uncopied_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
+{
+    bool found = FALSE;
+    DIR *dp = opendir(src_dir);
+    struct dirent *ent;
+
+    if (!dp) return FALSE;
+
+    while ((ent = readdir(dp)) != NULL)
+    {
+        char src[1024];
+        char dst[1024];
+
+        if (!pred(ent->d_name)) continue;
+
+        path_build(src, sizeof(src), src_dir, ent->d_name);
+        if (!_frox_is_regular_file(src)) continue;
+
+        path_build(dst, sizeof(dst), dst_dir, ent->d_name);
+        if (!_frox_is_regular_file(dst))
+        {
+            found = TRUE;
+            break;
+        }
+    }
+
+    closedir(dp);
+    return found;
+}
+
+static int _frox_copy_dir_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
+{
+    int copied = 0;
+    DIR *dp = opendir(src_dir);
+    struct dirent *ent;
+
+    if (!dp) return 0;
+
+    while ((ent = readdir(dp)) != NULL)
+    {
+        char src[1024];
+        char dst[1024];
+
+        if (!pred(ent->d_name)) continue;
+
+        path_build(src, sizeof(src), src_dir, ent->d_name);
+        if (!_frox_is_regular_file(src)) continue;
+
+        path_build(dst, sizeof(dst), dst_dir, ent->d_name);
+        if (fd_copy(src, dst) == 0)
+            copied++;
+    }
+
+    closedir(dp);
+    return copied;
+}
+#else
+static int _frox_copy_dir_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
+{
+    (void)src_dir;
+    (void)dst_dir;
+    (void)pred;
+    return 0;
+}
+
+static bool _frox_dir_has_uncopied_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
+{
+    (void)src_dir;
+    (void)dst_dir;
+    (void)pred;
+    return FALSE;
+}
+#endif
+
+static bool _frox_old_data_pending(void)
+{
+    char old_user[1024];
+    char old_save[1024];
+
+    if (!_frox_old_user_dir(old_user, sizeof(old_user))) return FALSE;
+    if (_frox_dir_has_uncopied_files(old_user, ANGBAND_DIR_USER, _frox_root_file)) return TRUE;
+    if (_frox_old_save_dir(old_save, sizeof(old_save))
+        && _frox_dir_has_uncopied_files(old_save, ANGBAND_DIR_SAVE, _frox_save_file))
+        return TRUE;
+    return FALSE;
+}
+
+static bool _frox_import_suppressed(void)
+{
+    char path[1024];
+
+    _frox_import_sentinel_path(path, sizeof(path));
+    return access(path, 0) == 0;
+}
+
+static void _frox_import_suppress(bool suppress)
+{
+    char path[1024];
+
+    _frox_import_sentinel_path(path, sizeof(path));
+
+    if (suppress)
+    {
+        FILE *fp = my_fopen(path, "w");
+        if (fp) my_fclose(fp);
+    }
+    else
+        (void)fd_kill(path);
+}
+
+static int _frox_import_copy_all(void)
+{
+    int copied = 0;
+    char old_user[1024];
+    char old_save[1024];
+
+    if (!_frox_old_user_dir(old_user, sizeof(old_user))) return 0;
+
+    copied += _frox_copy_dir_files(old_user, ANGBAND_DIR_USER, _frox_root_file);
+
+    if (_frox_old_save_dir(old_save, sizeof(old_save)))
+        copied += _frox_copy_dir_files(old_save, ANGBAND_DIR_SAVE, _frox_save_file);
+
+    if (copied)
+        _frox_import_suppress(FALSE);
+
+    return copied;
+}
+
+bool frox_import_available(void)
+{
+    return _frox_old_data_pending();
+}
+
+static bool _frox_import_should_prompt(void)
+{
+    if (!frox_import_available()) return FALSE;
+    return !_frox_import_suppressed();
+}
+
+void frox_import_startup_prompt(void)
+{
+    int copied;
+    int c;
+
+    if (!_frox_import_should_prompt()) return;
+
+    c = msg_prompt(
+        "FroxComposband uses a new user directory and can copy your existing FrogComposband saves and preference files into it now. Import them? <color:y>[Y/n]</color>",
+        "nY",
+        PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_CASE_SENSITIVE);
+
+    if (c == 'n' || c == 'N' || c == ESCAPE)
+    {
+        _frox_import_suppress(TRUE);
+        return;
+    }
+
+    copied = _frox_import_copy_all();
+    if (copied)
+        msg_format("Imported %d FrogComposband file%s into FroxComposband.", copied, copied == 1 ? "" : "s");
+    else
+        msg_print("No FrogComposband save or preference files were imported.");
+}
+
+bool frox_import_manual(void)
+{
+    int copied;
+    int c;
+
+    if (!frox_import_available())
+    {
+        msg_print("No FrogComposband saves or preference files are waiting to be imported.");
+        return FALSE;
+    }
+
+    c = msg_prompt(
+        "Copy your existing FrogComposband saves and preference files into FroxComposband now? <color:y>[Y/n]</color>",
+        "nY",
+        PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_CASE_SENSITIVE);
+
+    if (c == 'n' || c == 'N' || c == ESCAPE) return FALSE;
+
+    copied = _frox_import_copy_all();
+    if (copied)
+    {
+        msg_format("Imported %d FrogComposband file%s into FroxComposband.", copied, copied == 1 ? "" : "s");
+        msg_print("Imported savefiles will be available the next time you start FroxComposband.");
+        return TRUE;
+    }
+
+    msg_print("No FrogComposband save or preference files were imported.");
+    return FALSE;
+}
+
 
 bool py_get_name(void)
 {

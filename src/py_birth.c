@@ -431,6 +431,8 @@ static int _welcome_ui(void)
         doc_newline(_doc);
         if (previous_char.quick_ok)
             doc_insert(_doc, "  <color:y>q</color>) Quick Start\n");
+        if (frox_import_available())
+            doc_insert(_doc, "  <color:y>i</color>) Import Frog saves/prefs\n");
         if (game_mode != GAME_MODE_BEGINNER)
             doc_insert(_doc, "  <color:y>=</color>) Options\n");
         doc_insert(_doc, "  <color:y>?</color>) Help\n");
@@ -453,6 +455,8 @@ static int _welcome_ui(void)
             return UI_CANCEL;
         else if (cmd == '=')
             _birth_options();
+        else if (cmd == 'i')
+            frox_import_manual();
         else if (cmd == 'q' && previous_char.quick_ok)
         {
             int i;

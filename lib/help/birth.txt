@@ -27,6 +27,8 @@ the options available, simplifying things for new players.
   <color:y>n</color>) Normal                                                                     
   <color:y>m</color>) Monster                                                                    
                                                                                 
+  <color:y>i</color>) Import Frog saves/prefs                                                    
+                                                                                
   <color:y>=</color>) Options                                                                    
   <color:y>?</color>) Help                                                                       
   <color:y>s</color>) View Scores                                                                
@@ -42,6 +44,8 @@ If you are new to the game, consider the <color:keyword>Beginner</color> mode. W
 If you are truly bold you can experiment with the <color:keyword>Monster</color> option, which allows you to play as one of many different types of monster. Monsters don't have a class, but instead evolve into more powerful forms as they gain experience. They also tend to have variable body types, making the equipment sub-game both more fun and more challenging.
 
 Also on this screen may be an option to <color:keyword>Quick Start</color>. This option simply repeats the birth selections of your previous character, who presumably just met an untimely demise. This is a useful option if you are dying often in the early game, as it greatly speeds up the birth process.
+
+If FroxComposband finds older FrogComposband saves or preference files that have not yet been copied into its new user directory, this screen can also offer an <color:keyword>Import Frog saves/prefs</color> command.
 
 <topic:RaceClass><style:heading>The Race/Class Screen</style>
 On this screen, you can change your race, your class and (unless you picked Beginner Mode) your personality. The screen will look something like the following:

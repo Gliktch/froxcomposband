@@ -14,6 +14,9 @@
 #include "z-doc.h"
 
 #include <assert.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 /* Stop using auto_more and use the new improved handling instead! */
 #define AUTO_MORE_PROMPT     0
@@ -971,7 +974,7 @@ errr fd_read(int fd, char *buf, huge n)
     /* Verify the fd */
     if (fd < 0) return (-1);
 
-#ifndef SET_UID
+#if defined(WINDOWS) || defined(MSDOS) || defined(USE_EMX)
 
     /* Read pieces */
     while (n >= 16384)
@@ -1004,7 +1007,7 @@ errr fd_write(int fd, cptr buf, huge n)
     /* Verify the fd */
     if (fd < 0) return (-1);
 
-#ifndef SET_UID
+#if defined(WINDOWS) || defined(MSDOS) || defined(USE_EMX)
 
     /* Write pieces */
     while (n >= 16384)

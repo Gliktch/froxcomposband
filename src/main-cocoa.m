@@ -17,6 +17,8 @@
 
 #include "angband.h"
 
+#undef BOOL /* h-type.h's BOOL(E) macro collides with Cocoa's BOOL type */
+
 #if defined(MACH_O_CARBON)
 
 /* Default creator signature */
@@ -997,7 +999,7 @@ static int compare_advances(const void *ap, const void *bp)
 + (void)endGame
 {    
     /* Hack -- Forget messages */
-    msg_flag = FALSE;
+    msg_line_clear();
     
     p_ptr->playing = FALSE;
     p_ptr->leaving = TRUE;
@@ -2588,7 +2590,7 @@ static void quit_calmly(void)
     if (inkey_flag)
     {
         /* Hack -- Forget messages */
-        msg_flag = FALSE;
+        msg_line_clear();
         
         /* Save the game */
         do_cmd_save_game(FALSE);
@@ -3030,7 +3032,7 @@ static bool cocoa_get_file(const char *suggested_name, char *path, size_t len)
 - (IBAction)saveGame:sender
 {
     /* Hack -- Forget messages */
-    msg_flag = FALSE;
+    msg_line_clear();
     
     /* Save the game */
     do_cmd_save_game(FALSE);

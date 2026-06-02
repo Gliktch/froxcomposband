@@ -10,7 +10,24 @@ lib/user/*.csv
 lib/user/*.xlsx
 lib/help/*.csv
 lib/help/*.xlsx
+lib/help/html/
+lib/help/text/
+lib/help/Classes.txt
+lib/help/Demigods.txt
+lib/help/Demons.txt
+lib/help/Disciples.txt
+lib/help/Draconians.txt
+lib/help/DragonRealms.txt
+lib/help/Dragons.txt
+lib/help/MonsterRaces.txt
+lib/help/Orcs.txt
+lib/help/Personalities.txt
+lib/help/Races.txt
+lib/help/Warlocks.txt
+lib/help/Weaponmasters.txt
 lib/apex/*
+/froxcomposband
+/src/froxcomposband
 
 #################
 ## QtCreator
@@ -66,6 +83,9 @@ local.properties
 
 [Dd]ebug/
 [Rr]elease/
+!/scripts/
+!/scripts/release/
+!/scripts/release/*.sh
 x64/
 build/
 [Bb]in/

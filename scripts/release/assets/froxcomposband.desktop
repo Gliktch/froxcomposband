@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=FroxComposband
+GenericName=Roguelike Dungeon Crawler
+Comment=Single-player roguelike dungeon crawler
+Exec=/usr/games/froxcomposband
+TryExec=/usr/games/froxcomposband
+Terminal=true
+Icon=froxcomposband
+Categories=Game;RolePlaying;
+Keywords=roguelike;angband;froxcomposband;dungeon crawler;
+StartupNotify=false

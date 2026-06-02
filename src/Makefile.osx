@@ -18,17 +18,14 @@ EXE = $(NAME)
 # for consistency with older versions, use a lower case bundle ID
 BUNDLE_IDENTIFIER = org.rephial.angband
 
-ARCH = -arch i386 -arch x86_64
+ARCH ?= -arch $(shell uname -m)
 WARNINGS = -W -Wall -Wno-unused-parameter -Wno-missing-field-initializers
 JUST_C = -std=c99 -Wdeclaration-after-statement
-OBJ_CFLAGS = -std=c99 -x objective-c -mmacosx-version-min=10.5
+DEPLOYMENT_TARGET ?= 10.13
+OBJ_CFLAGS = -std=c99 -x objective-c -mmacosx-version-min=$(DEPLOYMENT_TARGET)
 CFLAGS = -g -I. $(WARNINGS) $(OPT) -DMACH_O_CARBON -DHAVE_MKSTEMP \
 	-fno-stack-protector $(ARCH)
 LIBS = -framework Cocoa
-# Fix for bug #1663: Set the deployment target via environment variable
-# for the final link command. See http://grauonline.de/wordpress/?p=71
-# or http://stackoverflow.com/questions/5509885/creating-app-for-old-mac-from-new-mac-machine
-DEPLOYMENT_TARGET = MACOSX_DEPLOYMENT_TARGET=10.5
 
 # Import user prefs
 # If you don't want to edit this file, put your module redefinitions
@@ -62,21 +59,18 @@ OSX_OBJS = main-cocoa.o
 
 
 $(EXE).o: $(OBJS)
-	@printf "%10s %-20s\n" LD $@.x86_64
-	@$(LD) -r -arch x86_64 -o $@.x86_64 $(OBJS)
-	@printf "%10s %-20s\n" LD $@.i386
-	@$(LD) -r -arch i386 -o $@.i386 $(OBJS)
-	lipo -arch x86_64 $@.x86_64 -arch i386 $@.i386 -create -output froxcomposband.o
+	@printf "%10s %-20s\n" LD $@
+	@$(LD) -r $(ARCH) -o $@ $(OBJS)
 
 $(EXE): $(EXE).o $(OSX_OBJS)
-	$(DEPLOYMENT_TARGET) $(CC) $(CFLAGS) $(LDFLAGS) -o $(EXE) $(EXE).o $(OSX_OBJS) $(LIBS) 
+	MACOSX_DEPLOYMENT_TARGET=$(DEPLOYMENT_TARGET) $(CC) $(CFLAGS) $(LDFLAGS) -o $(EXE) $(EXE).o $(OSX_OBJS) $(LIBS) 
 
 #
 # Clean up old junk
 #
 
 clean:
-	-rm -f $(OBJS) $(EXE) $(EXE).o.i386 $(EXE).o.x86_64 $(EXE).o $(OSX_OBJS)
+	-rm -f $(OBJS) $(EXE) $(EXE).o $(OSX_OBJS)
 
 
 #
@@ -124,7 +118,6 @@ LIBFILES = \
   ../lib/edit/*.txt \
   ../lib/file/*.txt \
   ../lib/help/*.txt \
-  ../lib/help/*.hlp \
   ../lib/pref/*.prf \
 
 install: $(EXE) $(ICONFILES) $(PLIST) $(LIBFILES)
@@ -147,7 +140,7 @@ install: $(EXE) $(ICONFILES) $(PLIST) $(LIBFILES)
 	@cp ../lib/edit/*.txt $(APPRES)/lib/edit
 	@cp ../lib/file/*.txt $(APPRES)/lib/file
 	@cp ../lib/help/*.txt $(APPRES)/lib/help
-	@cp ../lib/help/*.hlp $(APPRES)/lib/help
+	@if ls ../lib/help/*.hlp >/dev/null 2>&1; then cp ../lib/help/*.hlp $(APPRES)/lib/help; fi
 	@cp ../lib/pref/*.prf $(APPRES)/lib/pref
 
 	# 'optionally' install sound and graphics tiles, if present
@@ -170,7 +163,7 @@ install: $(EXE) $(ICONFILES) $(PLIST) $(LIBFILES)
 		-e 's/\$$BUNDLE_IDENTIFIER\$$/$(BUNDLE_IDENTIFIER)/' \
 		$(PLIST) > $(APPCONT)/Info.plist
 
-	SetFile -a B $(APPBNDL)
+	@if command -v SetFile >/dev/null 2>&1; then SetFile -a B $(APPBNDL); fi
 
 
 vars:
@@ -190,7 +183,8 @@ safe-install:
 		$(PLIST) > $(APPCONT)/Info.plist
 
 
-PACKAGE_NAME = $(NAME)-$(VERSION)
+DIST_VERSION ?= $(VERSION)
+PACKAGE_NAME = $(NAME)-$(DIST_VERSION)
 
 # In the unlikely event that tar+zip isn't enough...
 
@@ -199,7 +193,7 @@ dist: install
 	mkdir -p disttemp/Docs
 	cp ../README.md disttemp/Docs
 	cp -R -p "$(APPBNDL)" disttemp
-	SetFile -a B disttemp/$(APPNAME)
+	@if command -v SetFile >/dev/null 2>&1; then SetFile -a B disttemp/$(APPNAME); fi
 
 	@-rm ../"$(PACKAGE_NAME)-osx.dmg"
 

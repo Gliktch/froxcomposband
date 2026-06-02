@@ -12,6 +12,13 @@
 
 #include "angband.h"
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#ifdef WINDOWS
+#include <process.h>
+#endif
+
 #ifdef SIGTERM
 extern int kill(int, int);
 #endif
@@ -1714,6 +1721,26 @@ static int _savefile_pid_status(long pid)
     return _SAVEFILE_PID_UNKNOWN;
 }
 
+static long _savefile_current_pid(void)
+{
+#ifdef WINDOWS
+    return (long)_getpid();
+#elif defined(HAVE_UNISTD_H)
+    return (long)getpid();
+#else
+    return 0;
+#endif
+}
+
+static unsigned long _savefile_current_uid(void)
+{
+#ifdef SET_UID
+    return (unsigned long)getuid();
+#else
+    return 0;
+#endif
+}
+
 static cptr _savefile_pid_status_desc(long pid)
 {
     switch (_savefile_pid_status(pid))
@@ -1733,14 +1760,19 @@ static void _savefile_lock_owner_desc(char *buf, int size, _savefile_lock_meta_t
 {
     if (meta->has_uid)
     {
+        cptr same = meta->uid == _savefile_current_uid() ? "same user" : "different user";
+
+#ifdef SET_UID
         char user[32];
-        cptr same = meta->uid == (unsigned long)getuid() ? "same user" : "different user";
 
         user_name(user, (int)meta->uid);
         if (user[0])
             strnfmt(buf, size, "%s [%lu] (%s)", user, meta->uid, same);
         else
             strnfmt(buf, size, "[%lu] (%s)", meta->uid, same);
+#else
+        strnfmt(buf, size, "[%lu] (%s)", meta->uid, same);
+#endif
     }
     else
         my_strcpy(buf, "unknown", size);
@@ -1838,7 +1870,7 @@ static bool _savefile_lock_try_terminate(int fd, _savefile_lock_meta_t *meta, cp
         return FALSE;
     }
 
-    if (!meta->has_uid || meta->uid != (unsigned long)getuid())
+    if (!meta->has_uid || meta->uid != _savefile_current_uid())
     {
         *msg1 = "Termination is only available for a lock owned by the same user.";
         *msg2 = "Press ? for details, or any other key to exit.";
@@ -2003,7 +2035,7 @@ static bool _savefile_session_lock_acquire(void)
 
     strnfmt(meta, sizeof(meta),
         "FroxComposband save session lock\nsavefile=%s\npid=%ld\nuid=%lu\ntime=%lu\n",
-        savefile, (long)getpid(), (unsigned long)getuid(), (unsigned long)time(NULL));
+        savefile, _savefile_current_pid(), _savefile_current_uid(), (unsigned long)time(NULL));
     (void)fd_seek(fd, 0);
     (void)fd_chop(fd, 0);
     (void)fd_write(fd, meta, strlen(meta));

@@ -17,11 +17,15 @@ while incorporating over 50 fixes and dozens of quality-of-life updates and
 UI improvements, along with compatibility with and import of saves from older
 FrogComposband versions.
 
-## How to install
+## Downloads
 
-### Main download page is currently https://ask.band/frox - no need to build it yourself! 🤓👍️
+| Platform | Package | Size | Alternate | Size |
+|:---:|:---:|:---:|:---:|:---:|
+| [![Windows](https://ask.band/assets/frox-win.png)](https://github.com/Gliktch/froxcomposband/releases/download/v7.2.3-beta/froxcomposband-v7.2.3-beta-windows-x86_64.zip) | [Windows ZIP](https://github.com/Gliktch/froxcomposband/releases/download/v7.2.3-beta/froxcomposband-v7.2.3-beta-windows-x86_64.zip) | 8.15 MB |
+| [![macOS](https://ask.band/assets/frox-mac.png)](https://github.com/Gliktch/froxcomposband/releases/download/v7.2.3-beta/froxcomposband-v7.2.3-beta-macos-x86_64.dmg) | [macOS Intel DMG](https://github.com/Gliktch/froxcomposband/releases/download/v7.2.3-beta/froxcomposband-v7.2.3-beta-macos-x86_64.dmg) | 5.77 MB | [macOS Apple Silicon DMG](https://github.com/Gliktch/froxcomposband/releases/download/v7.2.3-beta/froxcomposband-v7.2.3-beta-macos-arm64.dmg) | 5.74 MB |
+| [![Linux](https://ask.band/assets/frox-linux.png)](https://github.com/Gliktch/froxcomposband/releases/download/v7.2.3-beta/froxcomposband-v7.2.3-beta-linux-x86_64.deb) | [Linux .deb package](https://github.com/Gliktch/froxcomposband/releases/download/v7.2.3-beta/froxcomposband-v7.2.3-beta-linux-x86_64.deb) | 4.83 MB | [Linux standalone tar.gz](https://github.com/Gliktch/froxcomposband/releases/download/v7.2.3-beta/froxcomposband-v7.2.3-beta-linux-x86_64.tar.gz) | 7.33 MB |
 
-### Manual build instructions for the nerdy:
+## How to install manually
 
 ### Linux
 

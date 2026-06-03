@@ -9,7 +9,7 @@ on:
       release_tag:
         description: Tag/version to use for artifact naming
         required: true
-        default: v7.2.2-beta
+        default: v7.2.3-beta
       platforms:
         description: Platform set to build for manual runs
         required: true

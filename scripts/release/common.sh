@@ -29,7 +29,7 @@ generated_help_csv=(
 release_tag() {
   local value="${RELEASE_TAG:-${1:-}}"
   if [[ -z "$value" ]]; then
-    echo "RELEASE_TAG is required (for example: v7.2.2-beta)." >&2
+    echo "RELEASE_TAG is required (for example: v7.2.3-beta)." >&2
     exit 1
   fi
   printf '%s\n' "$value"

@@ -297,7 +297,7 @@ bool show_item_markers; /* Show item-state markers in object listings */
 bool show_special_inventories; /* Show race/class special inventories in standard inventory lists */
 bool shops_mark_unseen;    /* Indicate unseen flavors in shop inventories */
 bool equippy_chars;    /* Display 'equippy' chars */
-bool suppress_main_messages; /* Suppress most ordinary messages in the main view */
+bool suppress_main_messages = FALSE; /* Suppress most ordinary messages in the main view */
 bool display_percentages; /* Display percentages rather than status bars */
 bool display_food_bar;
 bool display_hp_bar;
@@ -417,7 +417,7 @@ bool single_pantheon; /* Only use one pantheon */
 bool guaranteed_pantheon;
 byte game_pantheon = 0;
 byte active_pantheon = 0;
-byte pantheon_count = 2;
+byte pantheon_count = PANTHEON_MAX - 1;
 bool no_artifacts;
 bool no_egos;
 bool no_selling;

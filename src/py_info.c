@@ -673,7 +673,6 @@ static void _build_flags(doc_ptr doc, cptr name, int flg, int dec_flg, _flagzill
 static void _build_flags1(doc_ptr doc, _flagzilla_ptr flagzilla)
 {
     int i;
-    doc_insert(doc, "<topic:Resistances>");
     _equippy_chars(doc, 14);
     _equippy_heading(doc, "Resistances", 14);
 
@@ -1067,6 +1066,7 @@ static void _build_equipment(doc_ptr doc)
             }
         }
         doc_newline(doc);
+        doc_insert(doc, "<topic:Resistances>============================ <color:keypress>R</color>esistances/Abilities ============================\n\n");
 
 
         /* Flags */
@@ -2655,7 +2655,7 @@ static void _build_options(doc_ptr doc)
 
     {
         int mult = score_mult();
-        doc_printf(doc, "\n Experience Rate:   %d%%\n", p_ptr->expfact);
+        doc_printf(doc, "\n Experience Rate:    %d%%\n", p_ptr->expfact);
         doc_printf(doc, " Score Multiplier:   %d.%02d%%\n", mult / 100, mult % 100);
         if (p_ptr->noscore) doc_printf(doc, " Adjusted Score:     %d\n", hof_score());
         else doc_printf(doc, " Adjusted Score:     <color:B>%d</color>\n", hof_score());

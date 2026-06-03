@@ -2250,7 +2250,7 @@ option_type option_info[] =
     { &equippy_chars,               TRUE,  OPT_PAGE_TEXT, 1, 12,
     "equippy_chars",                "Display 'equippy' chars" },
 
-    { &suppress_main_messages,      FALSE, OPT_PAGE_TEXT, 2, 14,
+    { &suppress_main_messages,      FALSE, OPT_PAGE_TEXT, 3, 2,
     "suppress_main_messages",       "Suppress most ordinary messages in main view" },
 
     { &display_hp_bar,              FALSE,  OPT_PAGE_TEXT, 1, 1,
@@ -2347,7 +2347,7 @@ option_type option_info[] =
     "last_words",                   "Leave last words when your character dies" },
 
     { &temp_file_policy_dummy,      FALSE, OPT_PAGE_GAMEPLAY, 2, 6,
-    "temp_file_policy",             "Temporary dungeon file handling when stale floor files are found" },
+    "temp_file_policy",             "Temporary file handling for stale floors" },
 
 #ifdef ALLOW_WIZARD
     { &allow_debug_opts,            FALSE, OPT_PAGE_GAMEPLAY, 6, 11,
@@ -2629,7 +2629,7 @@ option_type option_info[] =
     "show_item_markers",            "Show item-state markers in object listings" },
 
     { &show_special_inventories,    FALSE, OPT_PAGE_LIST, 2, 15,
-    "show_special_inventories",     "Include special inventories in standard inventory lists" },
+    "show_special_inventories",     "Include special pack tabs in inventory lists" },
 
     { &shops_mark_unseen,           FALSE, OPT_PAGE_LIST, 0, 31,
     "shops_mark_unseen",            "Indicate unknown flavors in shop inventories" },

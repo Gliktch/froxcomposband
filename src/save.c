@@ -1552,6 +1552,7 @@ static char *versio_nimi(int tavu, int keski)
 				case 6: return "peach";
 				case 7: return "apricot";
 				case 8: return "blueberry";
+				case 9: return "munkki";
 				default: return "cloudberry";
 			}
 		}

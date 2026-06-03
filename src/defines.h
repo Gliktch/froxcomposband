@@ -19,7 +19,7 @@
 #define VER_MAJOR 7
 #define VER_MINOR 2
 #define VER_PATCH "munkki"
-#define VER_EXTRA 3
+#define VER_EXTRA 4
 #define VERSION_IS_DEVELOPMENT (TRUE)
 
 #define GAME_MODE_BEGINNER  0

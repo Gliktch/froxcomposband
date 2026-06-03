@@ -1299,7 +1299,7 @@ static void do_cmd_options_cheat(cptr info)
 
     int        i, k = 0, n = CHEAT_MAX;
 
-    char    buf[80];
+    char    buf[256];
 
 
     /* Clear screen */
@@ -1800,7 +1800,7 @@ static void do_cmd_options_autosave(cptr info)
 
     int     i, k = 0, n = 2;
 
-    char    buf[80];
+    char    buf[256];
 
 
     /* Clear screen */
@@ -1930,7 +1930,7 @@ static void _reset_birth_option_defaults(void)
     random_artifact_pct = 100;
     generate_empty = EMPTY_SOMETIMES;
     reduce_uniques_pct = 100;
-    pantheon_count = 2;
+    pantheon_count = PANTHEON_MAX - 1;
     game_pantheon = 0;
     small_level_type = 0;
 
@@ -1947,7 +1947,7 @@ void do_cmd_options_aux(int page, cptr info)
     int     ch;
     int     i, k = 0, n = 0, l;
     int     opt[40];
-    char    buf[80];
+    char    buf[256];
     bool    browse_only = (page == OPT_PAGE_BIRTH) && character_generated &&
                           (!p_ptr->wizard || !allow_debug_opts);
     bool    scroll_mode;
@@ -1977,7 +1977,7 @@ void do_cmd_options_aux(int page, cptr info)
         int dir;
 
         /* Prompt XXX XXX XXX */
-        sprintf(buf, "%s (RET:next, %s%s, ?:help) ", info,
+        strnfmt(buf, sizeof(buf), "%s (RET:next, %s%s, ?:help) ", info,
             browse_only ? "ESC:exit" : "y/n:change",
             (page == OPT_PAGE_BIRTH && !browse_only) ? ", r:reset all, ESC:accept" : ", ESC:accept");
 
@@ -1999,118 +1999,115 @@ void do_cmd_options_aux(int page, cptr info)
             /* Display the option text */
             if (option_info[opt[i]].o_var == &random_artifacts)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 if (random_artifacts)
-                    sprintf(buf + strlen(buf), "%d%% ", random_artifact_pct);
+                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%d%% ", random_artifact_pct);
                 else
-                    strcat(buf, "no  ");
-                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+                    my_strcat(buf, "no  ", sizeof(buf));
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &ironman_empty_levels)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
-                sprintf(buf + strlen(buf), "%s", empty_lv_description[generate_empty]);
+                strnfmt(buf, sizeof(buf), "%-48s: %s", option_info[opt[i]].o_desc, empty_lv_description[generate_empty]);
             }
             else if (option_info[opt[i]].o_var == &reduce_uniques)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 if (reduce_uniques)
-                    sprintf(buf + strlen(buf), "%d%% ", reduce_uniques_pct);
+                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%d%% ", reduce_uniques_pct);
                 else
-                    strcat(buf, "no  ");
-                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+                    my_strcat(buf, "no  ", sizeof(buf));
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &obj_list_width)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
-                sprintf(buf + strlen(buf), "%-3d ", object_list_width);
-                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", object_list_width);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &mon_list_width)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
-                sprintf(buf + strlen(buf), "%-3d ", monster_list_width);
-                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", monster_list_width);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &msg_pane_wrap_width)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 if (message_pane_wrap_width > 150)
-                    sprintf(buf + strlen(buf), "off ");
+                    my_strcat(buf, "off ", sizeof(buf));
                 else
-                    sprintf(buf + strlen(buf), "%-3d ", message_pane_wrap_width);
-                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", message_pane_wrap_width);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &autorun_max_steps_dummy)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 if (!autorun_max_steps)
-                    sprintf(buf + strlen(buf), "off ");
+                    my_strcat(buf, "off ", sizeof(buf));
                 else
-                    sprintf(buf + strlen(buf), "%-3d ", autorun_max_steps);
-                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", autorun_max_steps);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &map_edge_center_dummy)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 if (!map_edge_center_distance)
-                    sprintf(buf + strlen(buf), "default ");
+                    my_strcat(buf, "default ", sizeof(buf));
                 else
-                    sprintf(buf + strlen(buf), "%-3d ", map_edge_center_distance);
-                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", map_edge_center_distance);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &always_repeat)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 if (!always_repeat_count)
-                    sprintf(buf + strlen(buf), "off ");
+                    my_strcat(buf, "off ", sizeof(buf));
                 else
-                    sprintf(buf + strlen(buf), "%-3d ", always_repeat_count);
-                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", always_repeat_count);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &failed_item_retry_count_dummy)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 if (!failed_item_retry_count)
-                    sprintf(buf + strlen(buf), "off ");
+                    my_strcat(buf, "off ", sizeof(buf));
                 else
-                    sprintf(buf + strlen(buf), "%-3d ", failed_item_retry_count);
-                sprintf(buf + strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", failed_item_retry_count);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &single_pantheon)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
-                sprintf(buf + strlen(buf), "%d of %d", pantheon_count, PANTHEON_MAX - 1);
+                strnfmt(buf, sizeof(buf), "%-48s: %d of %d", option_info[opt[i]].o_desc, pantheon_count, PANTHEON_MAX - 1);
             }
             else if (option_info[opt[i]].o_var == &guaranteed_pantheon)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 if (pantheon_count == PANTHEON_MAX - 1)
                 {
-                    strcat(buf, "All ");
+                    my_strcat(buf, "All ", sizeof(buf));
                 }
                 else if ((game_pantheon) && (game_pantheon < PANTHEON_MAX))
                 {
-                    sprintf(buf + strlen(buf), "%.3s ", pant_list[game_pantheon].short_name);
+                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%.3s ", pant_list[game_pantheon].short_name);
                 }
                 else
-                    strcat(buf, "None");
+                    my_strcat(buf, "None", sizeof(buf));
             }
             else if (option_info[opt[i]].o_var == &always_small_levels)
             {
-                sprintf(buf, "%-48s: ", option_info[opt[i]].o_desc);
-                sprintf(buf + strlen(buf), "%s ", lv_size_options[small_level_type]);
+                strnfmt(buf, sizeof(buf), "%-48s: %s ", option_info[opt[i]].o_desc, lv_size_options[small_level_type]);
             }
             else if (option_info[opt[i]].o_var == &temp_file_policy_dummy)
             {
-                sprintf(buf, "%-48s: %s (%.19s)",
+                strnfmt(buf, sizeof(buf), "%-48s: %s (%.19s)",
                     option_info[opt[i]].o_desc,
                     _temp_file_policy_desc(),
                     option_info[opt[i]].o_text);
             }
             else
             {
-                sprintf(buf, "%-48s: %s (%.19s)",
+                strnfmt(buf, sizeof(buf), "%-48s: %s (%.19s)",
                     option_info[opt[i]].o_desc,
                     (*option_info[opt[i]].o_var ? "yes" : "no "),
                     option_info[opt[i]].o_text);
@@ -2157,8 +2154,13 @@ void do_cmd_options_aux(int page, cptr info)
             {
                 if (page == OPT_PAGE_BIRTH && !browse_only)
                 {
+                    if (msg_prompt("Reset all birth options to defaults? <color:y>[y/n]</color>", "ny", PROMPT_DEFAULT | PROMPT_FORCE_CHOICE) != 'y')
+                        break;
                     _reset_birth_option_defaults();
-                    msg_print("Game speed and all birth options have been reset to default values.");
+                    Term_clear();
+                    prt("Birth options and game speed were reset to defaults. Press any key.", 0, 0);
+                    inkey_special(TRUE);
+                    Term_clear();
                 }
                 break;
             }

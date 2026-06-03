@@ -19,6 +19,10 @@ FrogComposband versions.
 
 ## How to install
 
+### Main download page is currently https://ask.band/frox - no need to build it yourself! 🤓👍️
+
+### Manual build instructions for the nerdy:
+
 ### Linux
 
 Instructions originally by Chris Kousky, lightly edited.

@@ -1457,7 +1457,7 @@ static void innate_attacks(s16b m_idx, bool *fear, bool *mdeath, int mode)
     if ((p_ptr->pclass == CLASS_DUELIST) && ((!retaliation_hack) || (!p_ptr->duelist_target_idx)) && (m_ptr->maxhp > 100) && ((r_ptr->level >= (p_ptr->lev * 4 / 5)) || (m_ptr->maxhp > 1000)) && (m_idx != p_ptr->duelist_target_idx) && (!duelist_equip_error()))
     {
         p_ptr->duelist_target_idx = m_idx;
-        msg_format("You challenge %s to a duel!", duelist_current_challenge());
+        msg_format("You challenge %s to a duel!", duelist_current_challenge_name());
         set_monster_csleep(m_idx, 0);
         set_hostile(&m_list[m_idx]);
         p_ptr->redraw |= PR_STATUS;
@@ -2312,7 +2312,7 @@ static bool py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
 		{
 			int m_idx = c_ptr->m_idx;
 			p_ptr->duelist_target_idx = c_ptr->m_idx;
-			msg_format("You challenge %s to a duel!", duelist_current_challenge());
+			msg_format("You challenge %s to a duel!", duelist_current_challenge_name());
 			set_hostile(&m_list[m_idx]);
 			p_ptr->redraw |= PR_STATUS;
 			break;

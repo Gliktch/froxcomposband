@@ -2776,6 +2776,7 @@ extern void     troika_bonus_flags(object_type *o_ptr, u32b flgs[OF_ARRAY_SIZE])
 
 /* duelist.c */
 extern cptr duelist_current_challenge(void);
+extern cptr duelist_current_challenge_name(void);
 extern class_t *duelist_get_class(void);
 extern bool duelist_issue_challenge(void);
 extern bool duelist_can_challenge(void);

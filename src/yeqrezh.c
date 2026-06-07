@@ -1240,6 +1240,7 @@ static bool _yeqrezh_gain_spell(int slot)
     if (p_ptr->max_plv < taso) return FALSE;
     ct = _yeqrezh_get_spells_unlearned(spells, taso, valitse);
     if (!ct) return FALSE;
+    if (valitse && p_ptr->leaving) return FALSE;
 
     if (!valitse)
     {
@@ -1383,6 +1384,7 @@ static int _yeqrezh_gain_talent(int slot)
     if (!character_dungeon) return -1;
     if (_yq_pick[slot] != _INVALID_SPELL) return -1;
     if (p_ptr->max_plv < slot * 2 + 2) return -1;
+    if (p_ptr->leaving) return -1;
 
     for (i = 0; i < MAX_YEQREZH_MUT; i++)
     {

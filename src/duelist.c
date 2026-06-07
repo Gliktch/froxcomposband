@@ -47,6 +47,20 @@ cptr duelist_current_challenge(void)
     return "No Current Challenge";
 }
 
+cptr duelist_current_challenge_name(void)
+{
+    static char challenge_name[200];
+    cptr current = duelist_current_challenge();
+    cptr suffix = " (Foe)";
+    size_t len = strlen(current);
+    size_t suffix_len = strlen(suffix);
+
+    my_strcpy(challenge_name, current, sizeof(challenge_name));
+    if (len >= suffix_len && streq(challenge_name + len - suffix_len, suffix))
+        challenge_name[len - suffix_len] = '\0';
+    return challenge_name;
+}
+
 int duelist_skill_sav(int m_idx)
 {
     int result = p_ptr->skills.sav;
@@ -96,7 +110,7 @@ bool duelist_issue_challenge(void)
             /* of course, we must first set the target index before duelist_current_challenge()
                will return the correct text */
             p_ptr->duelist_target_idx = m_idx;
-            msg_format("You challenge %s to a duel!", duelist_current_challenge());
+            msg_format("You challenge %s to a duel!", duelist_current_challenge_name());
             set_monster_csleep(m_idx, 0);
             set_hostile(&m_list[m_idx]);
             result = TRUE;
@@ -646,4 +660,3 @@ class_t *duelist_get_class(void)
 
     return &me;
 }
-

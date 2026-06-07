@@ -1023,6 +1023,7 @@ void obj_inspect_ui(void)
     prompt.where[1] = INV_PACK;
     prompt.where[2] = INV_QUIVER;
     prompt.where[3] = INV_FLOOR;
+    prompt.top_loc = INV_PACK;
     prompt.cmd_handler = _inspector;
     _prompt_add_standard_special_packs(&prompt);
 

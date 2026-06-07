@@ -79,14 +79,7 @@ static void _activation_menu_desc(char *buf, size_t buf_size, obj_ptr obj)
     if (charging)
         strnfmt(buf, buf_size, "<color:r>%s</color>: <color:D>%s</color>", activation, item_name);
     else
-    {
-        effect_t effect = obj_get_effect(obj);
-        byte color = effect_color(&effect);
-        strnfmt(buf, buf_size, "<color:%c>%s</color>: %s",
-            attr_to_attr_char(color),
-            activation,
-            item_name);
-    }
+        strnfmt(buf, buf_size, "<color:B>%s</color>: %s", activation, item_name);
 }
 
 /* Creation */

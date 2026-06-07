@@ -93,6 +93,20 @@ static string_ptr _get_res_name(int res)
     );
 }
 
+static void _format_true_charge(char *buf, size_t buf_sz, int sp, int cost)
+{
+    long hundredths;
+
+    if (cost <= 0)
+    {
+        strnfmt(buf, buf_sz, "0.00");
+        return;
+    }
+
+    hundredths = ((long)sp * 100 + cost / 2) / cost;
+    strnfmt(buf, buf_sz, "%ld.%02ld", hundredths / 100, hundredths % 100);
+}
+
 /* Mid level helpers. Output one block of information at a time. */
 static void _display_name(object_type *o_ptr, doc_ptr doc)
 {
@@ -1765,10 +1779,12 @@ void device_display_doc(object_type *o_ptr, doc_ptr doc)
         if (obj_is_identified_fully(o_ptr))
         {
             int  charges = device_sp(o_ptr) / o_ptr->activation.cost;
-            int  max_charges = device_max_sp(o_ptr) / o_ptr->activation.cost;
+            char max_charges[20];
+
+            _format_true_charge(max_charges, sizeof(max_charges), device_max_sp(o_ptr), o_ptr->activation.cost);
             doc_printf(doc, "Cost   : <color:G>%d</color>\n", o_ptr->activation.cost);
-            doc_printf(doc, "Charges: <color:%c>%d</color>/<color:G>%d</color>\n",
-                        (charges < max_charges) ? 'y' : 'G', charges, max_charges);
+            doc_printf(doc, "Charges: <color:%c>%d</color>/<color:G>%s</color>\n",
+                        (device_sp(o_ptr) < device_max_sp(o_ptr)) ? 'y' : 'G', charges, max_charges);
             if (p_ptr->pclass == CLASS_MAGIC_EATER)
             {
                 int       per_mill = magic_eater_regen_amt(o_ptr->tval);
@@ -1877,8 +1893,11 @@ void device_display_smith(object_type *o_ptr, doc_ptr doc)
     if (o_ptr->activation.type != EFFECT_NONE)
     {
         int  fail = device_calc_fail_rate(o_ptr);
+        int  charges = device_sp(o_ptr) / o_ptr->activation.cost;
+        char max_charges[20];
         cptr desc;
 
+        _format_true_charge(max_charges, sizeof(max_charges), device_max_sp(o_ptr), o_ptr->activation.cost);
         doc_insert(doc, "<color:U>This device is loaded with a spell:</color>\n");
         doc_printf(doc, "Spell  : <color:B>%s</color>\n", do_device(o_ptr, SPELL_NAME, boost));
         desc = do_device(o_ptr, SPELL_INFO, boost);
@@ -1886,6 +1905,8 @@ void device_display_smith(object_type *o_ptr, doc_ptr doc)
             doc_printf(doc, "Info   : <color:w>%s</color>\n", desc);
         doc_printf(doc, "Level  : <color:G>%d</color>\n", o_ptr->activation.difficulty);
         doc_printf(doc, "Cost   : <color:G>%d</color>\n", o_ptr->activation.cost);
+        doc_printf(doc, "Charges: <color:%c>%d</color>/<color:G>%s</color>\n",
+                    (device_sp(o_ptr) < device_max_sp(o_ptr)) ? 'y' : 'G', charges, max_charges);
         doc_printf(doc, "Fail   : <color:G>%d.%d%%</color>\n", fail/10, fail%10);
     }
 

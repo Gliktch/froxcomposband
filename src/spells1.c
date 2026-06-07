@@ -1694,6 +1694,8 @@ static bool project_o(int who, int r, int y, int x, int dam, int typ)
         case GF_DISINTEGRATE:
             do_kill = TRUE;
             note_kill = (plural ? " evaporate!" : " evaporates!");
+            if (o_ptr->tval == TV_ROD && o_ptr->activation.type == EFFECT_BEAM_DISINTEGRATE)
+                ignore = TRUE;
             break;
         case GF_CHAOS:
             do_kill = TRUE;
@@ -3916,4 +3918,3 @@ bool binding_field( int dam )
 
     return TRUE;
 }
-

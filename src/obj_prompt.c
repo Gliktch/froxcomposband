@@ -432,10 +432,19 @@ static int _basic_cmd(obj_prompt_context_ptr context, int cmd)
         else
             context->prompt->flags |= INV_IGNORE_INSCRIPTIONS;
         break;
-    case KTRL('I'): case KTRL('P'): { /* fyi, TAB is ^I in current encoding scheme ... */
+    case KTRL('I'): { /* fyi, TAB is ^I in current encoding scheme ... */
         int tab = _find_tab(context->tabs, INV_PACK);
         if (tab >= 0)
-            context->tab = tab;
+        {
+            if (context->tab != tab)
+                context->tab = tab;
+            else
+            {
+                context->tab++;
+                if (context->tab == vec_length(context->tabs))
+                    context->tab = 0;
+            }
+        }
         return OP_CMD_HANDLED; }
     case KTRL('E'): {
         int tab = _find_tab(context->tabs, INV_EQUIP);
@@ -497,5 +506,3 @@ int _count_lines(cptr s)
     }
     return ct;
 }
-
-

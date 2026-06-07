@@ -58,7 +58,7 @@
 #define COL_HEALTH_BARS         0
 #define COUNT_HEALTH_BARS       7 /* HP, SP, Food, Upkeep, Riding, Monster Track, Target */
 
-#define ROW_EFFECTS            (p_ptr->pclass == CLASS_POLITICIAN ? 21 : 20)
+#define ROW_EFFECTS            (ROW_HEALTH_BARS + COUNT_HEALTH_BARS)
 #define COL_EFFECTS             0
 #define COUNT_EFFECTS          11       /* Could be off screen ... */
 

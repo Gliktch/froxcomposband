@@ -446,6 +446,9 @@ static int _basic_cmd(obj_prompt_context_ptr context, int cmd)
             }
         }
         return OP_CMD_HANDLED; }
+    case KTRL('P'):
+        show_power = !show_power;
+        return OP_CMD_HANDLED;
     case KTRL('E'): {
         int tab = _find_tab(context->tabs, INV_EQUIP);
         if (tab >= 0)

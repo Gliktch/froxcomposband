@@ -1848,6 +1848,10 @@ static obj_ptr _choose_item_to_sell(shop_ptr shop)
 
         switch (cmd)
         {
+        case KTRL('P'):
+            show_power = !show_power;
+            break;
+
         case SKEY_PGDOWN:
         case '3':
         case ' ':
@@ -2617,6 +2621,9 @@ bool shop_common_cmd_handler(int cmd)
         return TRUE;
     case KTRL('W'):
         show_weights = !show_weights;
+        return TRUE;
+    case KTRL('P'):
+        show_power = !show_power;
         return TRUE;
     case KTRL('G'):
         show_item_graph = !show_item_graph;

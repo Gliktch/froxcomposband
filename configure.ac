@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(FroxComposband, 7.2.munkki.4, http://ask.band/frox)
+AC_INIT(FroxComposband, 7.2.munkki.5, http://ask.band/frox)
 AC_CONFIG_SRCDIR(src)
 
 AC_CANONICAL_HOST

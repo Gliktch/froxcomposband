@@ -858,7 +858,7 @@ static errr Term_xtra_gcu_event(int v)
     * TODO */
 
    /* Backspace */
-   if (i == 0x7F)
+   if (i == 0x7F || i == 0xFF)
       i = '\b';
 
     if (i == 27) /* \e is not ansi c */
@@ -1714,4 +1714,3 @@ errr init_gcu(int argc, char *argv[])
 
 
 #endif /* USE_GCU */
-

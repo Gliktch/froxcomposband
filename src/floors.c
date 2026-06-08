@@ -1866,7 +1866,7 @@ void change_floor(void)
         viewport_force_center();
 
     if (character_generated)
-        notes_print_current_context();
+        notes_print_transition_context();
 
     /* Politicians have level-based resource pools */
     if (p_ptr->pclass == CLASS_POLITICIAN)

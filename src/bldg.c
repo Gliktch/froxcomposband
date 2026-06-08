@@ -4534,10 +4534,10 @@ void do_cmd_bldg(void)
     command_new = 0;
 
     leave_bldg = FALSE;
-    show_building(bldg);
-
+    msg_line_clear();
     msg_line_init(ui_shop_msg_rect());
     notes_print_building_context();
+    show_building(bldg);
     store_hack = TRUE;
 
     while (!leave_bldg)

@@ -499,6 +499,7 @@ void do_cmd_messages(int old_now_turn)
 
 #define MAX_DUNGEON_NOTES 256
 #define MAX_DUNGEON_NOTE_EDIT 120
+#define DUNGEON_NOTE_STORE_OFFSET MAX_BLDG
 
 enum
 {
@@ -682,14 +683,57 @@ static void _dungeon_notes_key_floor(dungeon_note_t *key, int dungeon_id, int de
     key->floor_status = DUNGEON_NOTE_ACTIVE;
 }
 
+static bool _dungeon_notes_is_store_subtype(int building_subtype)
+{
+    return building_subtype >= DUNGEON_NOTE_STORE_OFFSET;
+}
+
+static int _dungeon_notes_store_subtype(int building_subtype)
+{
+    return building_subtype - DUNGEON_NOTE_STORE_OFFSET;
+}
+
+static int _dungeon_notes_encode_store_subtype(int store_subtype)
+{
+    return DUNGEON_NOTE_STORE_OFFSET + store_subtype;
+}
+
+static cptr _dungeon_notes_store_name(int store_subtype)
+{
+    switch (store_subtype)
+    {
+    case SHOP_GENERAL: return "General Store";
+    case SHOP_ARMORY: return "Armory";
+    case SHOP_WEAPON: return "Weapon Smiths";
+    case SHOP_TEMPLE: return "Temple";
+    case SHOP_ALCHEMIST: return "Alchemy Shop";
+    case SHOP_MAGIC: return "Magic Shop";
+    case SHOP_BLACK_MARKET: return "Black Market";
+    case SHOP_HOME: return "Home";
+    case SHOP_BOOK: return "Bookstore";
+    case SHOP_MUSEUM: return "Museum";
+    case SHOP_JEWELER: return "Jewelry Shop";
+    case SHOP_SHROOMERY: return "Mushroom Store";
+    case SHOP_DRAGON: return "Dragonskin Emporium";
+    default: return "Unknown shop";
+    }
+}
+
 static bool _dungeon_notes_on_building_square(void)
 {
-    return cave_have_flag_bold(py, px, FF_BLDG);
+    return cave_have_flag_bold(py, px, FF_BLDG)
+        || cave_have_flag_bold(py, px, FF_STORE);
 }
 
 static void _dungeon_notes_get_current_building(dungeon_note_t *key)
 {
-    _dungeon_notes_key_building(key, p_ptr->town_num, f_info[cave[py][px].feat].subtype);
+    feature_type *f_ptr = &f_info[cave[py][px].feat];
+    int subtype = f_ptr->subtype;
+
+    if (have_flag(f_ptr->flags, FF_STORE))
+        subtype = _dungeon_notes_encode_store_subtype(subtype);
+
+    _dungeon_notes_key_building(key, p_ptr->town_num, subtype);
 }
 
 static cptr _dungeon_notes_dungeon_name(int dungeon_id)
@@ -702,9 +746,12 @@ static cptr _dungeon_notes_dungeon_name(int dungeon_id)
 static void _dungeon_notes_building_label(dungeon_note_t *note, char *buf, int max)
 {
     cptr town = note->town_id ? town_name(note->town_id) : "Unknown town";
-    cptr bldg = (0 <= note->building_subtype && note->building_subtype < MAX_BLDG)
-        ? building[note->building_subtype].name
-        : "Unknown building";
+    cptr bldg = "Unknown building";
+
+    if (_dungeon_notes_is_store_subtype(note->building_subtype))
+        bldg = _dungeon_notes_store_name(_dungeon_notes_store_subtype(note->building_subtype));
+    else if (0 <= note->building_subtype && note->building_subtype < MAX_BLDG)
+        bldg = building[note->building_subtype].name;
 
     snprintf(buf, max, "%s, %s", town, bldg);
 }
@@ -915,9 +962,11 @@ static void _dungeon_notes_print_text(cptr text)
         buf[i] = '\0';
         if (*p == '\n') p++;
         if (buf[0])
-            cmsg_print(TERM_L_BLUE, buf);
+            msg_format("<color:B>Note:</color> <color:G>%s</color>", buf);
     }
     msg_print(NULL);
+    p_ptr->window |= PW_MESSAGE;
+    window_stuff();
 }
 
 static void _dungeon_notes_emit_idx(int idx)
@@ -951,6 +1000,19 @@ void notes_print_current_context(void)
     }
 }
 
+void notes_print_transition_context(void)
+{
+    _dungeon_notes_load_if_needed();
+
+    if (dun_level && dungeon_type)
+    {
+        _dungeon_notes_emit_idx(_dungeon_notes_find_game());
+        _dungeon_notes_emit_idx(_dungeon_notes_find_dungeon(dungeon_type));
+        if (p_ptr->floor_id)
+            _dungeon_notes_emit_idx(_dungeon_notes_find_floor(dungeon_type, dun_level, p_ptr->floor_id));
+    }
+}
+
 void notes_print_building_context(void)
 {
     dungeon_note_t key;
@@ -958,7 +1020,6 @@ void notes_print_building_context(void)
     if (!_dungeon_notes_on_building_square()) return;
 
     _dungeon_notes_load_if_needed();
-    _dungeon_notes_emit_idx(_dungeon_notes_find_game());
     _dungeon_notes_get_current_building(&key);
     _dungeon_notes_emit_idx(_dungeon_note_find(&key));
 }

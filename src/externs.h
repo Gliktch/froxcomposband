@@ -952,6 +952,7 @@ extern void do_cmd_colors(void);
 extern void do_cmd_note(void);
 extern void notes_load(void);
 extern void notes_print_current_context(void);
+extern void notes_print_transition_context(void);
 extern void notes_print_building_context(void);
 extern void notes_expire_floor(int dungeon_id, int depth, int floor_id);
 extern void notes_expire_dungeon_floors(int dungeon_id);

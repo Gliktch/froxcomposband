@@ -1654,9 +1654,11 @@ static void _savefile_lock_meta_parse(_savefile_lock_meta_t *meta, char *buf)
     while (line && *line)
     {
         char *next = strchr(line, '\n');
-        char *sep = strchr(line, '=');
+        char *sep;
 
-        if (next) *next++ = '\0';
+        if (next) *next = '\0';
+        sep = strchr(line, '=');
+        if (next) next++;
 
         if (sep)
         {
@@ -1707,6 +1709,25 @@ static bool _savefile_lock_meta_read(int fd, _savefile_lock_meta_t *meta)
     buf[len] = '\0';
     _savefile_lock_meta_parse(meta, buf);
     return meta->valid;
+}
+
+static bool _savefile_lock_meta_read_path(cptr path, _savefile_lock_meta_t *meta)
+{
+    bool rc = FALSE;
+    int fd;
+
+    _savefile_lock_meta_init(meta);
+    if (!path || !path[0]) return FALSE;
+
+    safe_setuid_grab();
+    fd = fd_open(path, O_RDONLY);
+    safe_setuid_drop();
+
+    if (fd < 0) return FALSE;
+
+    rc = _savefile_lock_meta_read(fd, meta);
+    (void)fd_close(fd);
+    return rc;
 }
 
 static int _savefile_pid_status(long pid)
@@ -1826,7 +1847,68 @@ static void _savefile_lock_command_desc(char *buf, int size, long pid)
     my_strcpy(buf, "unavailable", size);
 }
 
-static void _savefile_lock_show_details(cptr path, _savefile_lock_meta_t *meta)
+static int _savefile_lock_prt_wrapped(int row, cptr label, cptr value)
+{
+    int wid = 80;
+    int hgt = 24;
+    int label_len = strlen(label);
+    cptr p = value;
+    bool first = TRUE;
+
+    Term_get_size(&wid, &hgt);
+
+    while (*p)
+    {
+        int avail = wid - 1 - (first ? label_len : label_len);
+        int len = strlen(p);
+        int cut = len;
+        char tmp[512];
+
+        while (*p == ' ') p++;
+        if (!*p) break;
+
+        if (avail <= 0) break;
+        if (cut > avail)
+        {
+            int i;
+
+            cut = avail;
+            for (i = avail; i > 0; i--)
+            {
+                if (p[i] == ' ')
+                {
+                    cut = i;
+                    break;
+                }
+            }
+        }
+
+        if (cut >= (int)sizeof(tmp) - label_len - 1)
+            cut = sizeof(tmp) - label_len - 2;
+
+        if (first)
+            strnfmt(tmp, sizeof(tmp), "%s%.*s", label, cut, p);
+        else
+            strnfmt(tmp, sizeof(tmp), "%*s%.*s", label_len, "", cut, p);
+        prt(tmp, row++, 0);
+
+        p += cut;
+        while (*p == ' ') p++;
+        first = FALSE;
+        if (row >= hgt - 2) break;
+    }
+
+    if (first)
+    {
+        char tmp[512];
+        strnfmt(tmp, sizeof(tmp), "%s%s", label, value);
+        prt(tmp, row++, 0);
+    }
+
+    return row;
+}
+
+static char _savefile_lock_show_details(cptr path, _savefile_lock_meta_t *meta)
 {
     char when[80];
     char owner[80];
@@ -1853,10 +1935,9 @@ static void _savefile_lock_show_details(cptr path, _savefile_lock_meta_t *meta)
     prt(tmp, row++, 0);
     strnfmt(tmp, sizeof(tmp), "Owner: %s", owner);
     prt(tmp, row++, 0);
-    strnfmt(tmp, sizeof(tmp), "Command: %s", cmd);
-    prt(tmp, row++, 0);
-    prt("Press any key to return.", row + 2, 0);
-    (void)inkey();
+    row = _savefile_lock_prt_wrapped(row, "Command: ", cmd);
+    prt("Press t to attempt termination, or any other key to return.", row + 2, 0);
+    return inkey();
 }
 
 static bool _savefile_lock_try_terminate(int fd, _savefile_lock_meta_t *meta, cptr *msg1, cptr *msg2)
@@ -1928,8 +2009,14 @@ static bool _savefile_session_lock_conflict(int fd, cptr path)
 
         if (cmd == '?')
         {
-            _savefile_lock_show_details(path, &meta);
-            continue;
+            _savefile_lock_meta_t fresh;
+
+            if (_savefile_lock_meta_read_path(path, &fresh))
+                cmd = _savefile_lock_show_details(path, &fresh);
+            else
+                cmd = _savefile_lock_show_details(path, &meta);
+
+            if (cmd != 't' && cmd != 'T') continue;
         }
 
         if (cmd == 't' || cmd == 'T')

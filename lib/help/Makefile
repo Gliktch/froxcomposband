@@ -9,6 +9,7 @@ birth.txt \
 Classes.txt \
 command_contents.txt \
 command.txt \
+charsheet.txt \
 commdesc_contents.txt \
 commdesc.txt \
 context_home.txt \
@@ -77,4 +78,3 @@ Warlocks.txt \
 Weaponmasters.txt
 
 PACKAGE = help
-

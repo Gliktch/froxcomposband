@@ -1,0 +1,44 @@
+<style:title>Character Sheet Commands</style>
+
+Within the Character Sheet, you can review your current stats, resistances, damage, equipment, inventory, spell repertoire, quest history, and related character details without leaving the main game. You can also save and compare snapshot versions of the sheet directly from this screen.
+
+<style:heading>Movement Commands</style>
+<color:keypress>    Q q     </color>(Leave the character sheet)
+<color:keypress>    ESC     </color>(Return to the previous file)
+
+<color:keypress>    Home    </color>(Go to the top)
+<color:keypress>   PageUp   </color>(Go up 1 page)
+<color:keypress>  Up Arrow  </color>(Go up 1 line)
+<color:keypress> Down Arrow </color>(Go down 1 line)
+<color:keypress>  PageDown  </color>(Go down 1 page)
+<color:keypress>    End     </color>(Go to the bottom)
+
+<color:keypress>     >      </color>(Go to the next section)
+<color:keypress>     <      </color>(Go to the previous section)
+<color:keypress>  letters   </color>(Jump to the next matching section, if the sheet provides lettered sections)
+
+<style:heading>Sheet Commands</style>
+<color:keypress>     |      </color>(Write a character dump to file)
+<color:keypress>     ?      </color>(Show this character-sheet help)
+
+<topic:CharacterCompare><style:heading>Compare Commands</style>
+<color:keypress>     c      </color>(Enter save mode for the currently displayed sheet)
+<color:keypress>     C      </color>(Flip between current character and default saved sheet)
+             Note: You'll need to press C twice the first time.
+
+<style:heading>Within Save Mode</style>
+<color:keypress> c 0 Enter  </color>(Save to the default snapshot slot)
+<color:keypress>   7 8 9    </color>(Save to the extra snapshot slots)
+
+<style:heading>Direct Snapshot Load (Shift+7/8/9/0 on many keyboards)</style>
+<color:keypress>   & or :   </color>(Load snapshot 7 directly, or flip back to live)
+<color:keypress>     *      </color>(Load snapshot 8 directly, or flip back to live)
+<color:keypress>     (      </color>(Load snapshot 9 directly, or flip back to live)
+<color:keypress>   ) or =   </color>(Load the default snapshot directly, or flip back to live)
+
+For convenience on keyboard layouts where the shifted number row differs from US, direct compare accepts the shifted-key aliases <color:keypress>&</color> or <color:keypress>:</color> for slot 7, along with <color:keypress>*</color> for slot 8, <color:keypress>(</color> for slot 9, and <color:keypress>)</color> or <color:keypress>=</color> for the default slot. Pressing one of these while that same snapshot is already being displayed flips back to the current live sheet instead. On some layouts, the physical key that produces <color:keypress>&</color> is <color:keypress>Shift+6</color> rather than <color:keypress>Shift+7</color>; this isn't a problem. It simply means that in some systems, directly loading snapshot 7 requires you to press shift+6 instead of shift+7.
+
+<style:heading>Other Commands</style>
+<color:keypress> / or Ctrl+F</color>(Search forward for a string - case-sensitive)
+<color:keypress>   Enter    </color>(Search again, next match)
+<color:keypress>     \      </color>(Search backward for a string - case-sensitive)

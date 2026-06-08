@@ -1432,7 +1432,7 @@ void possessor_character_dump(doc_ptr doc)
         mon_race_ptr race = &r_info[p_ptr->current_r_idx];
         bool old_use_graphics = use_graphics;
         use_graphics = FALSE;
-        doc_printf(doc, "<topic:CurrentForm>================================ <color:keypress>C</color>urrent Form =================================\n\n");
+        doc_printf(doc, "<topic:Form>=================================== Current <color:keypress>F</color>orm =================================\n\n");
         mon_display_possessor(race, doc);
         doc_newline(doc);
         use_graphics = old_use_graphics;

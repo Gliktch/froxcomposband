@@ -318,6 +318,9 @@ The Fruit bat dies.
   <indent><color:U>Character Sheet (<color:keypress>C</color>)</color>
 Brings up a full description of your character, including your resistances, skill levels, current and potential stats, equipment, inventory, home inventory, average damage in melee and ranged combat, spell repertoire, quest history, and other information. From this screen, you can use the <color:keypress>|</color> command to create a character dump.</indent>
 
+  <indent><color:U>Character Sheet Snapshot Compare</color>
+Within the Character Sheet, you may save and compare full sheet snapshots without leaving the screen. Press <color:keypress>c</color> to save the currently displayed sheet, or <color:keypress>C</color> to compare against the default saved snapshot if one exists. For full command details, including extra snapshot slots and shifted-symbol direct-load aliases, see <link:charsheet.txt#CharacterCompare>.</indent>
+
   <indent><color:U>Knowledge Menu (<color:keypress>~</color>)</color>
 The command opens a menu from which you can select or recall information about your character, artifacts, monsters, identified objects, etc.:
 

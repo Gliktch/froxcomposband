@@ -2884,7 +2884,7 @@ void py_display(void)
     py_display_character_sheet(d);
 
     screen_save();
-    doc_display(d, "Character Sheet", 0);
+    doc_display_character_sheet(d);
     screen_load();
 
     doc_free(d);

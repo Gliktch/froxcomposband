@@ -6,6 +6,9 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdint.h>
+#ifdef WINDOWS
+#include <windows.h>
+#endif
 
 #define _INVALID_COLOR 255
 
@@ -1744,11 +1747,21 @@ static void _doc_write_doc_file(doc_ptr doc, FILE *fp)
     doc_pos_t        pos;
     doc_char_ptr     cell;
     byte             old_a = _INVALID_COLOR;
+    int              bookmark_idx = 0;
+    int              cx;
 
     fputs("<style:wide>", fp);
     for (pos.y = 0; pos.y <= doc->cursor.y; pos.y++)
     {
-        int cx = doc->width;
+        while (bookmark_idx < vec_length(doc->bookmarks))
+        {
+            doc_bookmark_ptr mark = vec_get(doc->bookmarks, bookmark_idx);
+            if (mark->pos.y != pos.y) break;
+            fprintf(fp, "<topic:%s>", string_buffer(mark->name));
+            bookmark_idx++;
+        }
+
+        cx = doc->width;
         pos.x = 0;
         if (pos.y == doc->cursor.y)
             cx = doc->cursor.x;
@@ -1919,6 +1932,960 @@ int doc_display(doc_ptr doc, cptr caption, int top)
     Term_get_size(&display.cx, &display.cy);
     return doc_display_aux(doc, caption, top, display);
 }
+
+typedef struct
+{
+    int     slot;
+    time_t  saved_at;
+    s32b    saved_game_turn;
+    doc_ptr doc;
+} _cs_slot_t;
+
+static string_ptr _doc_write_doc_string(doc_ptr doc)
+{
+    doc_pos_t    pos;
+    doc_char_ptr cell;
+    byte         old_a = _INVALID_COLOR;
+    int          bookmark_idx = 0;
+    string_ptr   result = string_alloc();
+
+    string_append_s(result, "<style:wide>");
+    for (pos.y = 0; pos.y <= doc->cursor.y; pos.y++)
+    {
+        while (bookmark_idx < vec_length(doc->bookmarks))
+        {
+            doc_bookmark_ptr mark = vec_get(doc->bookmarks, bookmark_idx);
+            if (mark->pos.y != pos.y) break;
+            string_printf(result, "<topic:%s>", string_buffer(mark->name));
+            bookmark_idx++;
+        }
+
+        {
+            int cx = doc->width;
+            pos.x = 0;
+            if (pos.y == doc->cursor.y)
+                cx = doc->cursor.x;
+            cell = doc_char(doc, pos);
+
+            for (; pos.x < cx; pos.x++)
+            {
+                char c = cell->c;
+                byte a = cell->a;
+
+                if (!c) break;
+
+                if (a != old_a && c != ' ')
+                {
+                    if (old_a != _INVALID_COLOR)
+                        string_append_s(result, "</color>");
+                    string_printf(result, "<color:%c>", attr_to_attr_char(a));
+                    old_a = a;
+                }
+                string_append_c(result, c);
+                cell++;
+            }
+        }
+        string_append_c(result, '\n');
+    }
+    if (old_a != _INVALID_COLOR)
+        string_append_s(result, "</color>");
+    string_append_s(result, "</style>");
+    return result;
+}
+
+static doc_ptr _doc_dup(doc_ptr doc)
+{
+    doc_ptr     copy = doc_alloc(doc->width);
+    string_ptr  serialized = _doc_write_doc_string(doc);
+
+    doc_insert(copy, string_buffer(serialized));
+    doc_change_name(copy, string_buffer(doc->name));
+    doc_change_html_header(copy, string_buffer(doc->html_header));
+    doc_change_html_footer(copy, string_buffer(doc->html_footer));
+
+    string_free(serialized);
+    return copy;
+}
+
+static void _doc_clear_selection(doc_ptr doc)
+{
+    doc->selection = doc_region_invalid();
+}
+
+static cptr _cs_signature(void)
+{
+    return "FROX-CSNAP 1";
+}
+
+static int _cs_slot_keys[] = {0, 7, 8, 9};
+
+static int _cs_slot_index(int slot)
+{
+    int i;
+
+    for (i = 0; i < 4; i++)
+    {
+        if (_cs_slot_keys[i] == slot)
+            return i;
+    }
+    return -1;
+}
+
+static cptr _cs_slot_name(int slot)
+{
+    switch (slot)
+    {
+    case 0: return "slot0";
+    case 7: return "slot7";
+    case 8: return "slot8";
+    case 9: return "slot9";
+    default: return "slot?";
+    }
+}
+
+static cptr _cs_slot_display_name(int slot)
+{
+    switch (slot)
+    {
+    case 0: return "default";
+    case 7: return "slot 7";
+    case 8: return "slot 8";
+    case 9: return "slot 9";
+    default: return "slot?";
+    }
+}
+
+static int _cs_slot_by_name(cptr name)
+{
+    if (streq(name, "slot0")) return 0;
+    if (streq(name, "slot7")) return 7;
+    if (streq(name, "slot8")) return 8;
+    if (streq(name, "slot9")) return 9;
+    return -1;
+}
+
+static void _cs_build_path(char *buf, int size)
+{
+    char name[64];
+    strnfmt(name, sizeof(name), "%s.snapshots", player_base);
+    path_build(buf, size, ANGBAND_DIR_USER, name);
+}
+
+static bool _replace_file(cptr temp, cptr path)
+{
+    char from[1024];
+    char to[1024];
+
+    if (path_parse(from, sizeof(from), temp)) return FALSE;
+    if (path_parse(to, sizeof(to), path)) return FALSE;
+
+#ifdef WINDOWS
+    return MoveFileExA(from, to, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+#else
+    return rename(from, to) == 0;
+#endif
+}
+
+static void _cs_format_saved_stamp(char *buf, int size, time_t when)
+{
+    time_t now = when;
+    struct tm *tm = localtime(&now);
+
+    if (tm && strftime(buf, size, "@ %H:%M %d/%m/%y", tm)) return;
+    my_strcpy(buf, "@ unknown time", size);
+}
+
+static bool _cs_format_turn_delta(char *buf, int size, s32b saved_turn)
+{
+    long delta;
+
+    if (saved_turn < 0 || game_turn < saved_turn)
+        return FALSE;
+
+    delta = MAX(0, game_turn - saved_turn);
+
+    if (delta < 10000)
+        strnfmt(buf, size, "%ld turns", delta);
+    else
+        strnfmt(buf, size, "%ldk turns", delta / 1000);
+    return TRUE;
+}
+
+static void _cs_format_compact_minutes(char *buf, int size, long minutes)
+{
+    long days;
+    long hours;
+
+    minutes = MAX(1, minutes);
+    if (minutes < 60)
+    {
+        strnfmt(buf, size, "%ldm", minutes);
+        return;
+    }
+
+    if (minutes < 24L * 60L)
+    {
+        hours = minutes / 60L;
+        minutes %= 60L;
+        strnfmt(buf, size, "%ldh%ldm", hours, minutes);
+        return;
+    }
+
+    days = minutes / (24L * 60L);
+    hours = (minutes % (24L * 60L)) / 60L;
+    if (days < 100L)
+        strnfmt(buf, size, "%ldd%ldh", days, hours);
+    else
+        strnfmt(buf, size, "%ldd", days);
+}
+
+static bool _cs_format_saved_delta(char *buf, int size, time_t when)
+{
+    time_t now = time(NULL);
+
+    if (!when || now < when)
+    {
+        _cs_format_saved_stamp(buf, size, when);
+        return FALSE;
+    }
+
+    _cs_format_compact_minutes(buf, size, (long)(difftime(now, when) / 60.0));
+    return TRUE;
+}
+
+static bool _cs_format_game_delta(char *buf, int size, s32b saved_turn)
+{
+    long long minutes;
+    long long turns_per_day = (long long)TURNS_PER_TICK * (long long)TOWN_DAWN;
+
+    if (saved_turn < 0 || game_turn < saved_turn)
+        return FALSE;
+
+    minutes = ((long long)(game_turn - saved_turn) * 1440LL) / turns_per_day;
+    _cs_format_compact_minutes(buf, size, (long)minutes);
+    return TRUE;
+}
+
+static void _cs_slots_init(_cs_slot_t slots[4])
+{
+    int i;
+
+    for (i = 0; i < 4; i++)
+    {
+        slots[i].slot = _cs_slot_keys[i];
+        slots[i].saved_at = 0;
+        slots[i].saved_game_turn = -1;
+        slots[i].doc = NULL;
+    }
+}
+
+static void _cs_slots_free(_cs_slot_t slots[4])
+{
+    int i;
+
+    for (i = 0; i < 4; i++)
+    {
+        if (slots[i].doc)
+            doc_free(slots[i].doc);
+        slots[i].doc = NULL;
+        slots[i].saved_at = 0;
+        slots[i].saved_game_turn = -1;
+    }
+}
+
+static void _cs_slots_apply_doc_meta(_cs_slot_t slots[4], doc_ptr doc)
+{
+    int i;
+
+    for (i = 0; i < 4; i++)
+    {
+        if (!slots[i].doc) continue;
+        doc_change_name(slots[i].doc, string_buffer(doc->name));
+        doc_change_html_header(slots[i].doc, string_buffer(doc->html_header));
+        doc_change_html_footer(slots[i].doc, string_buffer(doc->html_footer));
+    }
+}
+
+static void _cs_slots_load(_cs_slot_t slots[4])
+{
+    char       path[1024];
+    FILE      *fp;
+    string_ptr line = string_alloc();
+
+    _cs_build_path(path, sizeof(path));
+    fp = my_fopen(path, "r");
+    if (!fp)
+    {
+        string_free(line);
+        return;
+    }
+
+    string_read_line(line, fp);
+    if (!streq(string_buffer(line), _cs_signature()))
+        goto cleanup;
+
+    while (!feof(fp))
+    {
+        char          slot_name[16];
+        unsigned long saved_at;
+        long          saved_game_turn;
+        int           doc_size;
+        int           slot;
+        int           idx;
+        char         *serialized;
+        doc_ptr       doc;
+        int           sep;
+
+        string_read_line(line, fp);
+        if (!string_length(line))
+            continue;
+        if (4 != sscanf(string_buffer(line), "slot %15s %lu %ld %d", slot_name, &saved_at, &saved_game_turn, &doc_size))
+            break;
+        if (doc_size < 0)
+            break;
+
+        slot = _cs_slot_by_name(slot_name);
+        idx = _cs_slot_index(slot);
+        if (idx < 0)
+            break;
+
+        serialized = malloc(doc_size + 1);
+        if ((int)fread(serialized, 1, doc_size, fp) != doc_size)
+        {
+            free(serialized);
+            break;
+        }
+        serialized[doc_size] = '\0';
+
+        sep = fgetc(fp);
+        if (sep == '\r')
+            sep = fgetc(fp);
+
+        doc = doc_alloc(80);
+        doc_insert(doc, serialized);
+        free(serialized);
+
+        if (slots[idx].doc)
+            doc_free(slots[idx].doc);
+        slots[idx].doc = doc;
+        slots[idx].saved_at = (time_t)saved_at;
+        slots[idx].saved_game_turn = (s32b)saved_game_turn;
+    }
+
+cleanup:
+    my_fclose(fp);
+    string_free(line);
+}
+
+static bool _cs_slots_save(_cs_slot_t slots[4])
+{
+    char path[1024];
+    char temp[1024];
+    FILE *fp;
+    int   i;
+    bool  has_slots = FALSE;
+
+    _cs_build_path(path, sizeof(path));
+    strnfmt(temp, sizeof(temp), "%s.tmp", path);
+
+    for (i = 0; i < 4; i++)
+    {
+        if (slots[i].doc)
+        {
+            has_slots = TRUE;
+            break;
+        }
+    }
+
+    if (!has_slots)
+    {
+        fd_kill(path);
+        return TRUE;
+    }
+
+    fp = my_fopen(temp, "w");
+    if (!fp)
+        return FALSE;
+
+    fprintf(fp, "%s\n", _cs_signature());
+    for (i = 0; i < 4; i++)
+    {
+        string_ptr serialized;
+
+        if (!slots[i].doc) continue;
+
+        serialized = _doc_write_doc_string(slots[i].doc);
+        fprintf(fp, "slot %s %lu %ld %d\n",
+            _cs_slot_name(slots[i].slot),
+            (unsigned long)slots[i].saved_at,
+            (long)slots[i].saved_game_turn,
+            string_length(serialized));
+        string_write_file(serialized, fp);
+        fputc('\n', fp);
+        string_free(serialized);
+    }
+
+    if (my_fclose(fp))
+    {
+        fd_kill(temp);
+        return FALSE;
+    }
+    if (!_replace_file(temp, path))
+    {
+        fd_kill(temp);
+        return FALSE;
+    }
+    return TRUE;
+}
+
+static int _cs_save_slot_key(int cmd)
+{
+    switch (cmd)
+    {
+    case 'c':
+    case '0':
+    case '\r':
+    case '\n':
+        return 0;
+    case '6':
+    case '7':
+        return 7;
+    case '8':
+        return 8;
+    case '9':
+        return 9;
+    default:
+        return -1;
+    }
+}
+
+static int _cs_load_slot_key(int cmd)
+{
+    switch (cmd)
+    {
+    case '&':
+    case ':':
+        return 7;
+    case '*':
+        return 8;
+    case '(':
+        return 9;
+    case ')':
+    case '=':
+        return 0;
+    default:
+        return -1;
+    }
+}
+
+static int _cs_clamp_top(doc_ptr doc, int top, int page_size)
+{
+    if (top < 0)
+        top = 0;
+    if (top > doc->cursor.y - page_size)
+        top = MAX(0, doc->cursor.y - page_size);
+    return top;
+}
+
+static int _cs_anchor_top(doc_ptr from_doc, int from_top, doc_ptr to_doc, int page_size)
+{
+    int top_limit = MIN(from_doc->cursor.y, from_top + page_size);
+    int i;
+
+    for (i = 0; i < vec_length(from_doc->bookmarks); i++)
+    {
+        doc_bookmark_ptr from_mark = vec_get(from_doc->bookmarks, i);
+        int              offset;
+        doc_pos_t        to_pos;
+
+        if (from_mark->pos.y < from_top) continue;
+        if (from_mark->pos.y >= top_limit) break;
+
+        offset = from_mark->pos.y - from_top;
+        to_pos = doc_find_bookmark(to_doc, string_buffer(from_mark->name));
+        if (doc_pos_is_valid(to_pos))
+            return _cs_clamp_top(to_doc, to_pos.y - offset, page_size);
+    }
+
+    return _cs_clamp_top(to_doc, from_top, page_size);
+}
+
+static void _cs_status_line(char *buf, int size, bool save_mode, bool compare_armed, _doc_search_ptr search)
+{
+    if (save_mode)
+    {
+        my_strcpy(buf, "Save snapshot: c/0/Enter default, 7/8/9 extra, ? help, ESC cancel", size);
+        return;
+    }
+    if (compare_armed)
+    {
+        my_strcpy(buf, "Press C again to compare with the default snapshot. Any other key cancels.", size);
+        return;
+    }
+    _doc_search_status(buf, size, search);
+}
+
+static void _cs_notice(char *buf, int size, byte *color, byte notice_color, cptr fmt, ...)
+{
+    va_list vp;
+
+    va_start(vp, fmt);
+    (void)vstrnfmt(buf, size, fmt, vp);
+    va_end(vp);
+    *color = notice_color;
+}
+
+static void _cs_show_slot_message(char *buf, int size, byte *color, int slot, time_t saved_at, s32b saved_game_turn)
+{
+    char turns[32];
+    char game[32];
+    char saved[32];
+    bool have_turns = _cs_format_turn_delta(turns, sizeof(turns), saved_game_turn);
+    bool have_game = _cs_format_game_delta(game, sizeof(game), saved_game_turn);
+    bool saved_relative = _cs_format_saved_delta(saved, sizeof(saved), saved_at);
+
+    if (have_turns && have_game)
+    {
+        if (saved_relative)
+            _cs_notice(buf, size, color, TERM_L_GREEN, "Loaded %s snapshot: %s, %s ago (game), saved %s ago.", _cs_slot_display_name(slot), turns, game, saved);
+        else
+            _cs_notice(buf, size, color, TERM_L_GREEN, "Loaded %s snapshot: %s, %s ago (game), saved %s.", _cs_slot_display_name(slot), turns, game, saved);
+    }
+    else
+    {
+        if (saved_relative)
+            _cs_notice(buf, size, color, TERM_L_GREEN, "Loaded %s snapshot: saved %s ago.", _cs_slot_display_name(slot), saved);
+        else
+            _cs_notice(buf, size, color, TERM_L_GREEN, "Loaded %s snapshot: saved %s.", _cs_slot_display_name(slot), saved);
+    }
+}
+
+static bool _cs_switch_doc(doc_ptr *active_doc, int *active_slot, int slot, _cs_slot_t slots[4], int *top, int page_size, _doc_search_ptr search, char *notice, int notice_size, byte *notice_color)
+{
+    int idx = _cs_slot_index(slot);
+    doc_ptr next;
+
+    if (idx < 0 || !slots[idx].doc)
+    {
+        _cs_notice(notice, notice_size, notice_color, TERM_YELLOW, "No snapshot is saved in %s.", _cs_slot_display_name(slot));
+        return FALSE;
+    }
+
+    next = slots[idx].doc;
+    _doc_clear_selection(*active_doc);
+    _doc_clear_selection(next);
+    *top = _cs_anchor_top(*active_doc, *top, next, page_size);
+    *active_doc = next;
+    *active_slot = slot;
+    memset(search, 0, sizeof(*search));
+    _cs_show_slot_message(notice, notice_size, notice_color, slot, slots[idx].saved_at, slots[idx].saved_game_turn);
+    return TRUE;
+}
+
+static void _cs_switch_live(doc_ptr live_doc, doc_ptr *active_doc, int *active_slot, int *top, int page_size, _doc_search_ptr search, char *notice, int notice_size, byte *notice_color)
+{
+    _doc_clear_selection(*active_doc);
+    _doc_clear_selection(live_doc);
+    *top = _cs_anchor_top(*active_doc, *top, live_doc, page_size);
+    *active_doc = live_doc;
+    *active_slot = -1;
+    memset(search, 0, sizeof(*search));
+    _cs_notice(notice, notice_size, notice_color, TERM_L_GREEN, "Viewing current character sheet.");
+}
+
+static bool _cs_save_current_slot(_cs_slot_t slots[4], int slot, doc_ptr source_doc, doc_ptr *active_doc, char *notice, int notice_size, byte *notice_color)
+{
+    int      idx = _cs_slot_index(slot);
+    doc_ptr  prior = NULL;
+    doc_ptr  copy;
+    time_t   prior_saved_at;
+    s32b     prior_saved_game_turn;
+    bool     active_was_prior = FALSE;
+
+    if (idx < 0)
+        return FALSE;
+
+    copy = _doc_dup(source_doc);
+    prior = slots[idx].doc;
+    prior_saved_at = slots[idx].saved_at;
+    prior_saved_game_turn = slots[idx].saved_game_turn;
+    active_was_prior = (*active_doc == prior);
+
+    slots[idx].doc = copy;
+    slots[idx].saved_at = time(NULL);
+    slots[idx].saved_game_turn = game_turn;
+
+    if (active_was_prior)
+        *active_doc = copy;
+
+    if (!_cs_slots_save(slots))
+    {
+        slots[idx].doc = prior;
+        slots[idx].saved_at = prior_saved_at;
+        slots[idx].saved_game_turn = prior_saved_game_turn;
+        if (active_was_prior)
+            *active_doc = prior;
+        doc_free(copy);
+        _cs_notice(notice, notice_size, notice_color, TERM_RED, "Failed to save character-sheet snapshots.");
+        return FALSE;
+    }
+
+    if (prior)
+        doc_free(prior);
+
+    _cs_notice(notice, notice_size, notice_color, TERM_L_GREEN, "Saved the displayed sheet to %s.", _cs_slot_display_name(slot));
+    return TRUE;
+}
+
+int doc_display_character_sheet(doc_ptr doc)
+{
+    int              rc = _OK;
+    int              i;
+    char             status[255];
+    rect_t           display = {0};
+    int              page_size;
+    int              top = 0;
+    bool             done = FALSE;
+    bool             compare_armed = FALSE;
+    bool             compare_active = FALSE;
+    bool             save_mode = FALSE;
+    int              active_slot = -1;
+    doc_ptr          active_doc = doc;
+    _doc_search_t    search = {{0}};
+    _cs_slot_t       slots[4];
+    char             notice[255] = "";
+    byte             notice_color = TERM_WHITE;
+
+    Term_get_size(&display.cx, &display.cy);
+    page_size = display.cy - 4;
+    top = _cs_clamp_top(doc, top, page_size);
+    _cs_slots_init(slots);
+    _cs_slots_load(slots);
+    _cs_slots_apply_doc_meta(slots, doc);
+
+    for (i = 0; i < display.cy; i++)
+        Term_erase(display.x, display.y + i, display.cx);
+
+    while (!done)
+    {
+        int cmd;
+        int slot_cmd;
+        bool handled = FALSE;
+
+        Term_erase(display.x, display.y, display.cx);
+        c_put_str(TERM_L_GREEN, format("[Character Sheet, Line %d/%d]", top, active_doc->cursor.y), display.y, display.x);
+        Term_erase(display.x, display.y + 1, display.cx);
+        if (notice[0])
+            c_put_str(notice_color, notice, display.y + 1, display.x);
+        doc_sync_term(active_doc, doc_region_create(0, top, active_doc->width, top + page_size - 1), doc_pos_create(display.x, display.y + 2));
+        Term_erase(display.x, display.y + display.cy - 2, display.cx);
+        _cs_status_line(status, sizeof(status), save_mode, compare_armed, &search);
+        if (status[0])
+            c_put_str(TERM_YELLOW, status, display.y + display.cy - 2, display.x);
+        Term_erase(display.x, display.y + display.cy - 1, display.cx);
+        if (save_mode)
+        {
+            c_put_str(TERM_L_GREEN, "Save to: c/0/Enter = default slot, 7/8/9 = extra slots, ? = help, ESC to cancel.",
+                display.y + display.cy - 1, display.x);
+        }
+        else
+        {
+            c_put_str(TERM_L_GREEN, "Press c to save a snapshot, C to compare, / to search, ? for help, Esc to exit.",
+                display.y + display.cy - 1, display.x);
+        }
+
+        cmd = inkey_special(TRUE);
+
+        if (save_mode)
+        {
+            int save_slot = _cs_save_slot_key(cmd);
+
+            if (cmd == ESCAPE)
+            {
+                save_mode = FALSE;
+                continue;
+            }
+            if (cmd == '?')
+            {
+                rc = doc_display_help_aux("charsheet.txt", "CharacterCompare", display);
+                if (rc == _UNWIND)
+                    done = TRUE;
+                continue;
+            }
+            if (save_slot >= 0)
+            {
+                save_mode = FALSE;
+                (void)_cs_save_current_slot(slots, save_slot, active_doc, &active_doc, notice, sizeof(notice), &notice_color);
+                continue;
+            }
+
+            save_mode = FALSE;
+        }
+
+        if (compare_armed)
+        {
+            if (cmd == ESCAPE)
+            {
+                compare_armed = FALSE;
+                continue;
+            }
+            if (cmd == '?')
+            {
+                rc = doc_display_help_aux("charsheet.txt", "CharacterCompare", display);
+                if (rc == _UNWIND)
+                    done = TRUE;
+                continue;
+            }
+            if (cmd == 'C')
+            {
+                compare_armed = FALSE;
+                compare_active = TRUE;
+                (void)_cs_switch_doc(&active_doc, &active_slot, 0, slots, &top, page_size, &search, notice, sizeof(notice), &notice_color);
+                continue;
+            }
+            compare_armed = FALSE;
+        }
+
+        slot_cmd = _cs_load_slot_key(cmd);
+        if (slot_cmd >= 0)
+        {
+            if (active_slot == slot_cmd)
+            {
+                _cs_switch_live(doc, &active_doc, &active_slot, &top, page_size, &search, notice, sizeof(notice), &notice_color);
+                compare_active = TRUE;
+            }
+            else if (_cs_switch_doc(&active_doc, &active_slot, slot_cmd, slots, &top, page_size, &search, notice, sizeof(notice), &notice_color))
+                compare_active = TRUE;
+            continue;
+        }
+
+        if (cmd == 'c')
+        {
+            save_mode = TRUE;
+            continue;
+        }
+        if (cmd == 'C')
+        {
+            int slot0_idx = _cs_slot_index(0);
+
+            if (slot0_idx < 0 || !slots[slot0_idx].doc)
+            {
+                if (compare_active && active_slot != -1)
+                    _cs_switch_live(doc, &active_doc, &active_slot, &top, page_size, &search, notice, sizeof(notice), &notice_color);
+                continue;
+            }
+
+            if (compare_active)
+            {
+                if (active_slot == 0)
+                    _cs_switch_live(doc, &active_doc, &active_slot, &top, page_size, &search, notice, sizeof(notice), &notice_color);
+                else
+                    (void)_cs_switch_doc(&active_doc, &active_slot, 0, slots, &top, page_size, &search, notice, sizeof(notice), &notice_color);
+            }
+            else
+                compare_armed = TRUE;
+            continue;
+        }
+
+        if (_doc_search_prompt_cmd(cmd, &search))
+        {
+            _doc_search_open(active_doc, display, &search);
+            continue;
+        }
+        if (search.active)
+        {
+            if (cmd == '\r' || cmd == '\n' || cmd == KTRL('F') || _doc_cmd_is_f3(cmd))
+            {
+                _doc_search_next(active_doc, &search, &top, page_size);
+                continue;
+            }
+            if (cmd == '\\' || _doc_cmd_is_shift_f3(cmd))
+            {
+                _doc_search_prev(active_doc, &search, &top, page_size);
+                continue;
+            }
+        }
+
+        if (rogue_like_commands)
+        {
+            if (cmd == 'j')
+            {
+                top++;
+                top = _cs_clamp_top(active_doc, top, page_size);
+                continue;
+            }
+            else if (cmd == 'k')
+            {
+                top--;
+                top = _cs_clamp_top(active_doc, top, page_size);
+                continue;
+            }
+            else if (cmd == KTRL('F'))
+            {
+                top += page_size;
+                top = _cs_clamp_top(active_doc, top, page_size);
+                continue;
+            }
+            else if (cmd == KTRL('B'))
+            {
+                top -= page_size;
+                top = _cs_clamp_top(active_doc, top, page_size);
+                continue;
+            }
+        }
+
+        switch (cmd)
+        {
+        case '?':
+            rc = doc_display_help_aux("charsheet.txt", NULL, display);
+            if (rc == _UNWIND)
+                done = TRUE;
+            handled = TRUE;
+            break;
+        case ESCAPE:
+            done = TRUE;
+            handled = TRUE;
+            break;
+        case 'q':
+        case 'Q':
+            done = TRUE;
+            rc = _UNWIND;
+            handled = TRUE;
+            break;
+        case SKEY_TOP:
+        case '7':
+            top = 0;
+            handled = TRUE;
+            break;
+        case SKEY_BOTTOM:
+        case '1':
+            top = MAX(0, active_doc->cursor.y - page_size);
+            handled = TRUE;
+            break;
+        case SKEY_PGUP:
+        case '9':
+            top -= page_size;
+            top = _cs_clamp_top(active_doc, top, page_size);
+            handled = TRUE;
+            break;
+        case SKEY_PGDOWN:
+        case '3':
+            top += page_size;
+            top = _cs_clamp_top(active_doc, top, page_size);
+            handled = TRUE;
+            break;
+        case SKEY_UP:
+        case '8':
+            top--;
+            top = _cs_clamp_top(active_doc, top, page_size);
+            handled = TRUE;
+            break;
+        case SKEY_DOWN:
+        case '2':
+            top++;
+            top = _cs_clamp_top(active_doc, top, page_size);
+            handled = TRUE;
+            break;
+        case '>':
+        {
+            doc_pos_t pos = doc_next_bookmark(active_doc, doc_pos_create(active_doc->width - 1, top));
+            if (doc_pos_is_valid(pos))
+                top = _cs_clamp_top(active_doc, pos.y, page_size);
+            handled = TRUE;
+            break;
+        }
+        case '<':
+        {
+            doc_pos_t pos = doc_prev_bookmark(active_doc, doc_pos_create(0, top));
+            if (doc_pos_is_valid(pos))
+                top = pos.y;
+            else
+                top = 0;
+            handled = TRUE;
+            break;
+        }
+        case '|':
+        {
+            FILE *fp2;
+            char buf[1024];
+            char name[82];
+            int  cb;
+            int  format = DOC_FORMAT_TEXT;
+
+            strcpy(name, string_buffer(active_doc->name));
+
+            if (!get_string("File name: ", name, 80)) break;
+            path_build(buf, sizeof(buf), ANGBAND_DIR_USER, name);
+
+            cb = strlen(buf);
+            if (cb > 5 && strcmp(buf + cb - 5, ".html") == 0)
+                format = DOC_FORMAT_HTML;
+            else if (cb > 4 && strcmp(buf + cb - 4, ".htm") == 0)
+                format = DOC_FORMAT_HTML;
+
+            if ((format != DOC_FORMAT_HTML) && strlen(buf))
+            {
+                char nuname[1024], prompt[256];
+                int j, paikka = 0;
+                strcpy(nuname, buf);
+                for (j = strlen(buf) - 1; ((j > 0) && (j > (int)strlen(buf) - 7)); j--)
+                {
+                    unsigned char testi = buf[j];
+                    if (testi == '/') break;
+                    if (testi == '.')
+                    {
+                        paikka = j + 1;
+                        break;
+                    }
+                }
+                if (paikka)
+                {
+                    for (j = strlen(buf) - 1; j > paikka - 2; j--)
+                        nuname[j] = '\0';
+                }
+                strcat(nuname, ".html");
+                snprintf(prompt, sizeof(prompt), "Please note that the angband.live ladder only accepts HTML dumps.\n<color:y>Save dump as</color> <color:R>%.50s</color><color:y>? [y/n]</color>", nuname);
+                if (msg_prompt(prompt, "ny", PROMPT_DEFAULT) == 'y')
+                {
+                    strcpy(buf, nuname);
+                    format = DOC_FORMAT_HTML;
+                }
+            }
+
+            fp2 = my_fopen(buf, "w");
+            if (!fp2)
+            {
+                msg_format("Failed to open file: %s", buf);
+                handled = TRUE;
+                break;
+            }
+
+            doc_write_file(active_doc, fp2, format);
+            my_fclose(fp2);
+            msg_format("Created file: %s", buf);
+            msg_print(NULL);
+            handled = TRUE;
+            break;
+        }
+        default:
+            break;
+        }
+        if (handled)
+            continue;
+
+        {
+            doc_pos_t pos = doc_next_bookmark_char(active_doc, doc_pos_create(1, top), cmd);
+            if (!doc_pos_is_valid(pos))
+                pos = doc_next_bookmark_char(active_doc, doc_pos_create(0, 0), cmd);
+            if (doc_pos_is_valid(pos))
+                top = _cs_clamp_top(active_doc, pos.y, page_size);
+        }
+    }
+
+    _cs_slots_free(slots);
+    return rc;
+}
+
 int doc_display_aux(doc_ptr doc, cptr caption, int top, rect_t display)
 {
     int     rc = _OK;

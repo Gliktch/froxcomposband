@@ -110,12 +110,12 @@ static int _choose(menu_ptr menu)
     if (menu->browse_prompt)
     {
         allow_browse = TRUE;
-        sprintf(choose_prompt, "%s (Type '?' to browse)", menu->choose_prompt);
-        sprintf(browse_prompt, "%s (Type '?' to choose)", menu->browse_prompt);
+        sprintf(choose_prompt, "%s%s", menu->choose_prompt, menu->allow_character_sheet ? " (Type '?' to browse, 'C' for character sheet)" : " (Type '?' to browse)");
+        sprintf(browse_prompt, "%s%s", menu->browse_prompt, menu->allow_character_sheet ? " (Type '?' to choose, 'C' for character sheet)" : " (Type '?' to choose)");
     }
     else
     {
-        sprintf(choose_prompt, "%s", menu->choose_prompt);
+        sprintf(choose_prompt, "%s%s", menu->choose_prompt, menu->allow_character_sheet ? " (Type 'C' for character sheet)" : "");
         sprintf(browse_prompt, "%s", "");
     }
     
@@ -128,6 +128,13 @@ static int _choose(menu_ptr menu)
 
         choice = -1;
         if (!get_com(describe ? browse_prompt : choose_prompt, &ch, FALSE)) break;
+
+        if (menu->allow_character_sheet && (ch == 'C'))
+        {
+            py_display();
+            _list(menu, keys);
+            continue;
+        }
 
         if (ch == '?' && allow_browse)
         {

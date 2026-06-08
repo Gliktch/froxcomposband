@@ -585,7 +585,7 @@ int mut_gain_choice(mut_pred pred)
     int i;
     int ct = 0;
     menu_t menu = { "Gain which mutation?", "Browse which mutation?", NULL,
-                    _mut_menu_fn, choices, 0, Term->hgt - 6};
+                    _mut_menu_fn, choices, 0, Term->hgt - 6, TRUE};
 
     for (i = 0; i < MAX_MUTATIONS; i++)
     {

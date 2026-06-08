@@ -5,6 +5,7 @@ extern int calculate_fail_rate(int level, int base_fail, int stat_idx);
 extern int calculate_fail_rate_aux(int caster_lvl, int spell_lvl, int base_fail, int stat_idx);
 extern bool cast_spell(ang_spell spell);
 extern int  choose_spell(power_info* spells, int ct, cptr verb, cptr desc, int max_cost, bool power);
+extern int  choose_spell_ex(power_info* spells, int ct, cptr verb, cptr desc, int max_cost, bool power, bool allow_character_sheet);
 extern void default_spell(int cmd, variant *res);
 extern byte do_cmd_power(void);
 extern void do_cmd_spell(void);
@@ -341,4 +342,3 @@ extern void water_bolt_spell(int cmd, variant *res);
 extern void weigh_magic_spell(int cmd, variant *res);
 extern void wonder_spell(int cmd, variant *res);
 extern void wraithform_spell(int cmd, variant *res);
-

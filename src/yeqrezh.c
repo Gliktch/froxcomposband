@@ -1274,7 +1274,7 @@ static bool _yeqrezh_gain_spell(int slot)
     {
         while ((uusi < 0) && (ct > 0))
         {
-            uusi = choose_spell(spells, ct, "Learn", "spell", 1000, FALSE);
+            uusi = choose_spell_ex(spells, ct, "Learn", "spell", 1000, FALSE, TRUE);
             if (uusi >= 0)
             {
                 cptr name = get_spell_name(spells[uusi].spell.fn);
@@ -1376,7 +1376,7 @@ static int _yeqrezh_gain_talent(int slot)
     int i, ct = 0;
     static bool _lock = FALSE;
     menu_t menu = { "Gain which gift?", "Browse which gift?", NULL,
-                    _yeqrezh_menu_fn, choices, 0, Term->hgt - 6};
+                    _yeqrezh_menu_fn, choices, 0, Term->hgt - 6, TRUE};
 
     if (_lock) return -1;
     if ((slot % 5) != 4) return -1;

@@ -565,7 +565,7 @@ static int _rage_mage_count_spells(power_info *spells)
     return ct;
 }
 
-static int _choose_spell(power_info* spells, int ct, cptr verb, cptr desc, int max_cost, bool power, bool force_browsing)
+static int _choose_spell(power_info* spells, int ct, cptr verb, cptr desc, int max_cost, bool power, bool force_browsing, bool allow_character_sheet)
 {
     int choice = -1;
     int korkeus = 0;
@@ -672,18 +672,18 @@ static int _choose_spell(power_info* spells, int ct, cptr verb, cptr desc, int m
 
     if (force_browsing)
     {
-        strnfmt(prompt2, 78, "Browse which %s?", desc);
+        strnfmt(prompt2, 78, "Browse which %s?%s", desc, allow_character_sheet ? " (Type 'C' for character sheet)" : "");
     }
     else if (power)
     {
-        strnfmt(prompt1, 78, "Use which %s? ('?' to Browse, '!' to Label) ", desc);
-        strnfmt(prompt2, 78, "Browse which %s? ('?' to Use, '!' to Label) ", desc);
+        strnfmt(prompt1, 78, "Use which %s? ('?' to Browse, '!' to Label%s) ", desc, allow_character_sheet ? ", 'C' for character sheet" : "");
+        strnfmt(prompt2, 78, "Browse which %s? ('?' to Use, '!' to Label%s) ", desc, allow_character_sheet ? ", 'C' for character sheet" : "");
         strnfmt(prompt3, 78, "Label which %s? ('!' to Use, '=' to wipe inactive) ", desc);
     }
     else
     {
-        strnfmt(prompt1, 78, "%s which %s? (Type '?' to Browse) ", verb, desc);
-        strnfmt(prompt2, 78, "Browse which %s? (Type '?' to %s) ", desc, verb);
+        strnfmt(prompt1, 78, "%s which %s? (Type '?' to Browse%s) ", verb, desc, allow_character_sheet ? ", 'C' for character sheet" : "");
+        strnfmt(prompt2, 78, "Browse which %s? (Type '?' to %s%s) ", desc, verb, allow_character_sheet ? ", 'C' for character sheet" : "");
     }
 
     if (rage_hack)
@@ -708,6 +708,12 @@ static int _choose_spell(power_info* spells, int ct, cptr verb, cptr desc, int m
         choice = -1;
 
         if (!get_com(describe ? prompt2 : inscribe ? prompt3 : prompt1, &ch, FALSE)) break;
+
+        if (allow_character_sheet && (ch == 'C'))
+        {
+            py_display();
+            continue;
+        }
 
         if ((ch == '?') && (!force_browsing))
         {
@@ -801,6 +807,11 @@ static int _choose_spell(power_info* spells, int ct, cptr verb, cptr desc, int m
 
 int choose_spell(power_info* spells, int ct, cptr verb, cptr desc, int max_cost, bool power)
 {
+    return choose_spell_ex(spells, ct, verb, desc, max_cost, power, FALSE);
+}
+
+int choose_spell_ex(power_info* spells, int ct, cptr verb, cptr desc, int max_cost, bool power, bool allow_character_sheet)
+{
     int choice = -1;
 
     if (REPEAT_PULL(&choice))
@@ -811,7 +822,7 @@ int choose_spell(power_info* spells, int ct, cptr verb, cptr desc, int max_cost,
 
     screen_save();
 
-    choice = _choose_spell(spells, ct, verb, desc, max_cost, power, FALSE);
+    choice = _choose_spell(spells, ct, verb, desc, max_cost, power, FALSE, allow_character_sheet);
     REPEAT_PUSH(choice);
 
     screen_load();
@@ -827,7 +838,7 @@ void browse_spells(power_info* spells, int ct, cptr desc)
     {
         int choice = -1;
 
-        choice = _choose_spell(spells, ct, "Use", desc, 10000, FALSE, TRUE);
+        choice = _choose_spell(spells, ct, "Use", desc, 10000, FALSE, TRUE, FALSE);
         if (choice < 0 || choice >= ct) break;
         if (p_ptr->pclass == CLASS_RAGE_MAGE)
         {

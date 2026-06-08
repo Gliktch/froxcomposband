@@ -20,6 +20,7 @@ typedef struct {
     vptr    cookie;
     int     count;
     int     col_entries;
+    bool    allow_character_sheet;
 } menu_t, *menu_ptr;
 
 extern int menu_choose(menu_ptr menu);

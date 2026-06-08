@@ -179,12 +179,17 @@ void gain_chosen_stat(void)
         put_str(format("        e) Con (cur %6.6s)              ", tmp), 6, 14);
         cnv_stat(p_ptr->stat_max[5], tmp);
         put_str(format("        f) Chr (cur %6.6s)              ", tmp), 7, 14);
-        put_str("                                         ", 8, 14);
+        c_put_str(TERM_YELLOW, "        C) Character Sheet              ", 8, 14);
         c_put_str(TERM_YELLOW, "        Which stat do you want to raise? ", 1, 14);
 
         while(1)
         {
             choice = inkey();
+            if (choice == 'C')
+            {
+                py_display();
+                continue;
+            }
             if ((choice >= 'a') && (choice <= 'f')) break;
         }
         for(n = 0; n < 6; n++)

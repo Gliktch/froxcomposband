@@ -1288,9 +1288,16 @@ void do_cmd_browse(void)
     int     spell = -1;
     int     num = 0;
     rect_t  display = ui_menu_rect();
+    rect_t  list_display = display;
     byte    spells[64];
     bool    _browse_loading_hack = FALSE;
     char    temp[62*5];
+
+    if (list_display.cy > 1)
+    {
+        list_display.y += 1;
+        list_display.cy -= 1;
+    }
 
     if (!(p_ptr->realm1 || p_ptr->realm2) && (p_ptr->pclass != CLASS_SORCERER) && (p_ptr->pclass != CLASS_RED_MAGE))
     {
@@ -1334,7 +1341,7 @@ void do_cmd_browse(void)
             if (spell == -1) break;
 
             /* Display a list of spells */
-            print_spells(0, spells, num, display, use_realm);
+            print_spells(0, spells, num, list_display, use_realm);
 
             /* Notify that there's nothing to see, and wait. */
             if (use_realm == REALM_HISSATSU)
@@ -1353,11 +1360,11 @@ void do_cmd_browse(void)
         {
             screen_load();
             screen_save();
-            print_spells(0, spells, num, display, use_realm);
+            print_spells(0, spells, num, list_display, use_realm);
         }
 
         /* Clear lines, position cursor  (really should use strlen here) */
-        line = display.y + num + 1;
+        line = list_display.y + num + 1;
         Term_erase(display.x, line, display.cx);
         Term_erase(display.x, line + 1, display.cx);
         Term_erase(display.x, line + 2, display.cx);
@@ -1369,7 +1376,7 @@ void do_cmd_browse(void)
 
         for (j = 0; temp[j]; j += 1 + strlen(&temp[j]))
         {
-            if (line > display.y + num + 3)
+            if (line > list_display.y + num + 3)
             {
                 Term_erase(display.x, line + 1, display.cx);
                 _browse_loading_hack = TRUE;
@@ -1377,6 +1384,7 @@ void do_cmd_browse(void)
             put_str(&temp[j], ++line, display.x);
         }
     }
+
     screen_load();
 }
 

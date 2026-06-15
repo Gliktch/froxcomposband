@@ -1,3 +1,12 @@
+Changes in FroxComposband 7.2.6:
+
+Hotfixes
+* Fixed spell-browse layout so spell descriptions are no longer overwritten.
+* Fixed a crash when picking up ammo after quiver carry leaves nothing for the
+  pack.
+* Clarified blocked-rest messages so fully rested is only reported when rest
+  goals are complete.
+
 Changes in FroxComposband 7.2.5:
 
 Character sheet

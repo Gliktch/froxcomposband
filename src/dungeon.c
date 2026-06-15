@@ -1599,6 +1599,10 @@ static void process_world_aux_hp_and_sp(void)
         && (!p_ptr->stun) && (!p_ptr->cut) && (!player_slow()) && (!p_ptr->paralyzed)
         && (!p_ptr->image) && (!p_ptr->word_recall) && (!p_ptr->alter_reality))
     {
+        if (upkeep_factor >= 100)
+            msg_print("You dare not sleep while your followers strain against your control.");
+        else
+            msg_print("You don't feel that would do any good.");
         set_action(ACTION_NONE);
     }
 

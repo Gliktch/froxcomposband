@@ -14,6 +14,24 @@
 
 #include <assert.h>
 
+static bool _rest_is_complete(void)
+{
+    return p_ptr->chp == p_ptr->mhp
+        && p_ptr->csp == p_ptr->msp
+        && !p_ptr->blind
+        && !p_ptr->confused
+        && !p_ptr->poisoned
+        && !p_ptr->afraid
+        && !p_ptr->stun
+        && !p_ptr->cut
+        && !player_slow()
+        && !p_ptr->paralyzed
+        && !p_ptr->image
+        && !p_ptr->word_recall
+        && !p_ptr->alter_reality
+        && !magic_eater_can_regen();
+}
+
 bool free_act_save_p(int ml)
 {
     int i, skill = p_ptr->skills.sav;
@@ -51,7 +69,8 @@ void set_action(int typ)
         case ACTION_REST:
         {
             bool report_rest = resting_start_turn >= 0;
-            bool fully_rested = resting < 0;
+            bool rest_until_done = resting < 0;
+            bool fully_rested = rest_until_done && _rest_is_complete();
             s32b rest_turns = player_turn - resting_start_turn;
             resting = 0;
             resting_start_turn = -1;

@@ -1,6 +1,8 @@
 Changes in FroxComposband 7.2.6:
 
 Hotfixes
+* Fixed mistaken artifact-deletion handling that preserved artifacts in the
+  wrong cases.
 * Fixed spell-browse layout so spell descriptions are no longer overwritten.
 * Fixed a crash when picking up ammo after quiver carry leaves nothing for the
   pack.

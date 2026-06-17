@@ -145,12 +145,22 @@ void excise_object_idx(int o_idx)
 }
 
 
-/*
- * Delete a dungeon object
- *
- * Handle "stacks" of objects correctly.
- */
-void delete_object_idx(int o_idx)
+static void _preserve_unknown_artifact(object_type *o_ptr, bool allow)
+{
+    if (!allow) return;
+
+    if (object_is_fixed_artifact(o_ptr) && !object_is_known(o_ptr))
+    {
+        a_info[o_ptr->name1].generated = FALSE;
+    }
+    if (random_artifacts && o_ptr->name3 && !object_is_known(o_ptr))
+    {
+        a_info[o_ptr->name3].generated = FALSE;
+    }
+}
+
+
+static void _delete_object_idx(int o_idx, bool preserve)
 {
     object_type *j_ptr;
 
@@ -160,21 +170,7 @@ void delete_object_idx(int o_idx)
     /* Object */
     j_ptr = &o_list[o_idx];
 
-    /* Mega-Hack -- preserve artifacts */
-    if (preserve_mode)
-    {
-        /* Hack -- Preserve unknown artifacts */
-        if (object_is_fixed_artifact(j_ptr) && !object_is_known(j_ptr))
-        {
-            /* Mega-Hack -- Preserve the artifact */
-            a_info[j_ptr->name1].generated = FALSE;
-        }
-        if (random_artifacts && j_ptr->name3 && !object_is_known(j_ptr))
-        {
-            /* Mega-Hack -- Preserve the artifact */
-            a_info[j_ptr->name3].generated = FALSE;
-        }
-    }
+    _preserve_unknown_artifact(j_ptr, preserve);
 
     /* Dungeon floor */
     if (!(j_ptr->held_m_idx))
@@ -196,6 +192,26 @@ void delete_object_idx(int o_idx)
     o_cnt--;
 
     p_ptr->window |= PW_OBJECT_LIST;
+}
+
+
+/*
+ * Delete a dungeon object.
+ *
+ * Handle "stacks" of objects correctly.
+ */
+void delete_object_idx(int o_idx)
+{
+    _delete_object_idx(o_idx, FALSE);
+}
+
+
+/*
+ * Delete an object being lost from the map rather than transferred.
+ */
+void delete_object_idx_preserve(int o_idx)
+{
+    _delete_object_idx(o_idx, preserve_mode);
 }
 
 
@@ -230,21 +246,7 @@ void delete_object(int y, int x)
         /* Tell Cornucopia not to track the item anymore */
         if (o_ptr->insured) cornucopia_mark_destroyed(cornucopia_item_policy(o_ptr), o_ptr->number);
 
-        /* Mega-Hack -- preserve artifacts */
-        if (preserve_mode)
-        {
-            /* Hack -- Preserve unknown artifacts */
-            if (object_is_fixed_artifact(o_ptr) && !object_is_known(o_ptr))
-            {
-                /* Mega-Hack -- Preserve the artifact */
-                a_info[o_ptr->name1].generated = FALSE;
-            }
-            if (random_artifacts && o_ptr->name3 && !object_is_known(o_ptr))
-            {
-                /* Mega-Hack -- Preserve the artifact */
-                a_info[o_ptr->name3].generated = FALSE;
-            }
-        }
+        _preserve_unknown_artifact(o_ptr, preserve_mode);
 
         /* Wipe the object */
         object_wipe(o_ptr);
@@ -438,7 +440,7 @@ void compact_objects(int size)
             if (randint0(100) < chance) continue;
 
             /* Delete the object */
-            delete_object_idx(i);
+            delete_object_idx_preserve(i);
 
             /* Count it */
             num++;
@@ -486,21 +488,7 @@ void wipe_o_list(void)
         /* Skip dead objects */
         if (!o_ptr->k_idx) continue;
 
-        /* Mega-Hack -- preserve artifacts */
-        if (!character_dungeon || preserve_mode)
-        {
-            /* Hack -- Preserve unknown artifacts */
-            if (object_is_fixed_artifact(o_ptr) && !object_is_known(o_ptr))
-            {
-                /* Mega-Hack -- Preserve the artifact */
-                a_info[o_ptr->name1].generated = FALSE;
-            }
-            if (random_artifacts && o_ptr->name3 && !object_is_known(o_ptr))
-            {
-                /* Mega-Hack -- Preserve the artifact */
-                a_info[o_ptr->name3].generated = FALSE;
-            }
-        }
+        _preserve_unknown_artifact(o_ptr, !character_dungeon || preserve_mode);
 
         /* Monster */
         if (o_ptr->held_m_idx)

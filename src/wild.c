@@ -207,7 +207,7 @@ static void _scroll_grid(int src_x, int src_y, int dest_x, int dest_y)
         for (this_o_idx = dest->o_idx; this_o_idx; this_o_idx = next_o_idx)
         {
             next_o_idx = o_list[this_o_idx].next_o_idx;
-            delete_object_idx(this_o_idx);
+            delete_object_idx_preserve(this_o_idx);
         }
 
         *dest = *src;
@@ -227,7 +227,7 @@ static void _scroll_grid(int src_x, int src_y, int dest_x, int dest_y)
             o_list[this_o_idx].loc.y = dest_y;
             o_list[this_o_idx].loc.x = dest_x;
             if (_is_boundary(dest_x, dest_y))
-                delete_object_idx(this_o_idx);
+                delete_object_idx_preserve(this_o_idx);
         }
     }
     else
@@ -237,7 +237,7 @@ static void _scroll_grid(int src_x, int src_y, int dest_x, int dest_y)
         for (this_o_idx = src->o_idx; this_o_idx; this_o_idx = next_o_idx)
         {
             next_o_idx = o_list[this_o_idx].next_o_idx;
-            delete_object_idx(this_o_idx);
+            delete_object_idx_preserve(this_o_idx);
         }
         WIPE(src, cave_type);
         src->info |= CAVE_TEMP;  /* Mark for _apply_glow */

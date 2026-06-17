@@ -3769,7 +3769,7 @@ static void process_monster(int m_idx)
 
                         /* Delete the object */
                         if (o_ptr->name2 != EGO_AMMO_ENDURANCE)
-                            delete_object_idx(this_o_idx);
+                            delete_object_idx_preserve(this_o_idx);
                     }
                 }
             }

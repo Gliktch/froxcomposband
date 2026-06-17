@@ -261,7 +261,7 @@ void delete_monster_idx(int i)
          */
 
         /* Delete the object */
-        delete_object_idx(this_o_idx);
+        delete_object_idx_preserve(this_o_idx);
     }
 
 

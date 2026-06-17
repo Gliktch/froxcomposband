@@ -1507,6 +1507,7 @@ extern bool add_esp_strong(object_type *o_ptr);
 extern void add_esp_weak(object_type *o_ptr, bool extra);
 extern void excise_object_idx(int o_idx);
 extern void delete_object_idx(int o_idx);
+extern void delete_object_idx_preserve(int o_idx);
 extern void delete_object(int y, int x);
 extern void compact_objects(int size);
 extern void wipe_o_list(void);

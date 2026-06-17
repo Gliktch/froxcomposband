@@ -1811,7 +1811,7 @@ static bool project_o(int who, int r, int y, int x, int dam, int typ)
 
 
                 /* Delete the object */
-                delete_object_idx(this_o_idx);
+                delete_object_idx_preserve(this_o_idx);
 
                 /* Potions produce effects when 'shattered' */
                 if (is_potion)

@@ -221,6 +221,7 @@ static void _shock_power_spell(int cmd, variant *res)
         if (!get_rep_dir2(&dir))
         { 
             var_set_bool(res, FALSE);
+            project_length = 0;
             return;
         }
 

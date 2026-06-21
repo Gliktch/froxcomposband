@@ -2941,6 +2941,7 @@ bool do_cmd_fire_aux1(obj_ptr bow, obj_ptr arrows)
         else
         {
             energy_use = 0;
+            project_length = 0;
             return FALSE;
         }
     }
@@ -2969,7 +2970,7 @@ bool do_cmd_fire_aux1(obj_ptr bow, obj_ptr arrows)
     if (tx == px && ty == py)
     {
         energy_use = 0;
-        /* project_length is already reset to 0 */
+        project_length = 0;
         return FALSE;
     }
 
@@ -2978,6 +2979,7 @@ bool do_cmd_fire_aux1(obj_ptr bow, obj_ptr arrows)
         msg_print("You are too scared!");
         energy_use = bow_energy(bow->sval)/NUM_SHOTS;
         if (shoot_hack == SP_AWAY) shoot_hack = SP_NONE;
+        project_length = 0;
         return FALSE;
     }
 

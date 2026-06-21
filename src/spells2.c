@@ -4876,6 +4876,7 @@ bool rush_attack(int rng, bool *mdeath)
         if (!los(ty, tx, py, px))
         {
             msg_format("%^s is not in your line of sight.", duelist_current_challenge());
+            project_length = 0;
             return FALSE;
         }
     }

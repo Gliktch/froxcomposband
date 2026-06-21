@@ -1334,7 +1334,11 @@ static void _vengeful_blast(int cmd, variant *res)
         project_length = _blast_range();
         if (p_ptr->chp < 100)
         {
-            if (!get_check("Really cast Vengeful Blast? ")) return;
+            if (!get_check("Really cast Vengeful Blast? "))
+            {
+                project_length = 0;
+                return;
+            }
         }
         if (!get_fire_dir(&dir)) return;
 

@@ -116,8 +116,7 @@ static bool _whip_fetch(int dir, int rng)
 
     /* Get the object */
     msg_format("You skillfully crack your whip and fetch %s.", o_name);
-    pack_carry(o_ptr);
-    obj_release(o_ptr, OBJ_RELEASE_QUIET);
+    pack_get(o_ptr);
 
     return TRUE;
 }

@@ -55,6 +55,25 @@ obj_ptr obj_split(obj_ptr obj, int amt)
     return copy;
 }
 
+void obj_return_split_remainder(obj_ptr src, obj_ptr remainder)
+{
+    assert(src);
+    assert(remainder);
+
+    if (!remainder->number) return;
+
+    if (src->loc.where == INV_FLOOR)
+    {
+        drop_near(remainder, -1, src->loc.y, src->loc.x);
+        remainder->number = 0;
+    }
+    else
+    {
+        pack_carry(remainder);
+        pack_overflow();
+    }
+}
+
 void obj_clear_dun_info(obj_ptr obj)
 {
     obj->next_o_idx = 0;

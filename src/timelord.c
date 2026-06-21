@@ -47,6 +47,8 @@ void mon_change_race(mon_ptr mon, int new_r_idx, cptr verb)
     char m_name[80], new_name[80];
     int old_hp, old_maxhp, old_r_idx;
     byte old_sub_align;
+    bool was_pet;
+    monster_race *old_race;
     monster_race *race;
 
     assert(mon);
@@ -58,8 +60,11 @@ void mon_change_race(mon_ptr mon, int new_r_idx, cptr verb)
     old_maxhp = mon->max_maxhp;
     old_r_idx = mon->r_idx;
     old_sub_align = mon->sub_align;
+    old_race = &r_info[old_r_idx];
+    was_pet = is_pet(mon);
 
     inc_cur_num(mon, -1);
+    if (was_pet) check_pets_num_and_align(mon, FALSE);
 
     monster_desc(m_name, mon, 0);
     mon->r_idx = new_r_idx;
@@ -96,6 +101,13 @@ void mon_change_race(mon_ptr mon, int new_r_idx, cptr verb)
         mon->sub_align = SUB_ALIGN_NEUTRAL;
         if (race->flags3 & RF3_EVIL) mon->sub_align |= SUB_ALIGN_EVIL;
         if (race->flags3 & RF3_GOOD) mon->sub_align |= SUB_ALIGN_GOOD;
+    }
+
+    if (was_pet)
+    {
+        check_pets_num_and_align(mon, TRUE);
+        (void)calculate_upkeep();
+        p_ptr->redraw |= PR_STATUS;
     }
 
     mon->exp = 0;
@@ -136,6 +148,10 @@ void mon_change_race(mon_ptr mon, int new_r_idx, cptr verb)
 
     update_mon(mon->id, FALSE);
     lite_spot(mon->fy, mon->fx);
+
+    if ((old_race->flags7 & (RF7_LITE_MASK | RF7_DARK_MASK)) ||
+        (race->flags7 & (RF7_LITE_MASK | RF7_DARK_MASK)))
+        p_ptr->update |= (PU_MON_LITE);
 
     p_ptr->window |= (PW_MONSTER_LIST);
 }

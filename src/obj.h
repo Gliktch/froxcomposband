@@ -100,6 +100,7 @@ extern void obj_zero(obj_ptr obj);
 
 /* Helpers */
 extern void obj_clear_dun_info(obj_ptr obj);
+extern void obj_return_split_remainder(obj_ptr src, obj_ptr remainder);
 
 /* Savefiles */
 extern void obj_load(obj_ptr obj, savefile_ptr file);

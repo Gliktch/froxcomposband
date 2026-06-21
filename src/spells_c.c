@@ -411,10 +411,7 @@ void crafting_spell(int cmd, variant *res)
             if (!prompt.obj->mitze_type) object_mitze(prompt.obj, MITZE_ID);
             obj_display(prompt.obj);
             if (has_remainder)
-            {
-                pack_carry(&remainder);
-                pack_overflow();
-            }
+                obj_return_split_remainder(prompt.obj, &remainder);
             obj_release(prompt.obj, OBJ_RELEASE_ENCHANT);
         }
         var_set_bool(res, TRUE);

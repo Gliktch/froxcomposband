@@ -2713,10 +2713,7 @@ bool artifact_scroll(void)
         object_origins(prompt.obj, ORIGIN_ART_CREATION);
         virtue_add(VIRTUE_ENCHANTMENT, 1);
         if (has_remainder)
-        {
-            pack_carry(&remainder);
-            pack_overflow();
-        }
+            obj_return_split_remainder(prompt.obj, &remainder);
     }
 
     android_calc_exp();

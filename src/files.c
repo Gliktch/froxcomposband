@@ -2860,9 +2860,21 @@ static bool _frox_root_file(cptr name)
     return _frox_has_suffix(name, ".prf");
 }
 
+static bool _frox_temp_floor_file(cptr name)
+{
+    size_t len = strlen(name);
+
+    return len >= 4
+        && name[len - 4] == '.'
+        && name[len - 3] == 'F'
+        && '0' <= name[len - 2] && name[len - 2] <= '9'
+        && '0' <= name[len - 1] && name[len - 1] <= '9';
+}
+
 static bool _frox_save_file(cptr name)
 {
     if (!name[0] || name[0] == '.') return FALSE;
+    if (_frox_temp_floor_file(name)) return FALSE;
     return !_frox_has_suffix(name, ".lok");
 }
 
@@ -2910,6 +2922,17 @@ static void _frox_import_sentinel_path(char *buf, int max)
 }
 
 #ifdef HAVE_DIRENT_H
+static bool _frox_path_exists(cptr path)
+{
+#ifdef HAVE_STAT
+    struct stat st;
+
+    return stat(path, &st) == 0 ? TRUE : FALSE;
+#else
+    return access(path, 0) == 0;
+#endif
+}
+
 static bool _frox_is_regular_file(cptr path)
 {
 #ifdef HAVE_STAT
@@ -2922,48 +2945,160 @@ static bool _frox_is_regular_file(cptr path)
 #endif
 }
 
-static bool _frox_dir_has_uncopied_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
+typedef struct {
+    int copied;
+    int skipped_existing;
+    int replaced;
+    int renamed;
+    bool cancelled;
+} _frox_import_result_t;
+
+static void _frox_import_result_init(_frox_import_result_t *result)
+{
+    result->copied = 0;
+    result->skipped_existing = 0;
+    result->replaced = 0;
+    result->renamed = 0;
+    result->cancelled = FALSE;
+}
+
+static bool _frox_dir_has_importable_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
 {
     bool found = FALSE;
     DIR *dp = opendir(src_dir);
     struct dirent *ent;
+
+    (void)dst_dir;
 
     if (!dp) return FALSE;
 
     while ((ent = readdir(dp)) != NULL)
     {
         char src[1024];
-        char dst[1024];
 
         if (!pred(ent->d_name)) continue;
 
         path_build(src, sizeof(src), src_dir, ent->d_name);
         if (!_frox_is_regular_file(src)) continue;
 
-        path_build(dst, sizeof(dst), dst_dir, ent->d_name);
-        if (!_frox_is_regular_file(dst))
-        {
-            found = TRUE;
-            break;
-        }
+        found = TRUE;
+        break;
     }
 
     closedir(dp);
     return found;
 }
 
-static int _frox_copy_dir_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
+static void _frox_file_desc(char *buf, int max, cptr path, bool is_save)
 {
-    int copied = 0;
+#ifdef HAVE_STAT
+    struct stat st;
+    char when[80];
+    char version[80] = "";
+    struct tm *tm;
+
+    if (stat(path, &st) != 0)
+    {
+        my_strcpy(buf, "details unavailable", max);
+        return;
+    }
+
+    tm = localtime(&st.st_mtime);
+    if (!tm || !strftime(when, sizeof(when), "%Y-%m-%d %H:%M:%S", tm))
+        my_strcpy(when, "unknown time", sizeof(when));
+
+    if (is_save)
+    {
+        FILE *fp = my_fopen(path, "rb");
+        if (fp)
+        {
+            int major = getc(fp);
+            int minor = getc(fp);
+            int patch = getc(fp);
+            int extra = getc(fp);
+
+            my_fclose(fp);
+            if (major != EOF && minor != EOF && patch != EOF && extra != EOF)
+                strnfmt(version, sizeof(version), ", save v%d.%d.%d.%d", major, minor, patch, extra);
+        }
+    }
+
+    strnfmt(buf, max, "%s, %ld bytes%s", when, (long)st.st_size, version);
+#else
+    (void)path;
+    (void)is_save;
+    my_strcpy(buf, "details unavailable", max);
+#endif
+}
+
+static bool _frox_import_renamed_path(char *buf, int max, cptr dst_dir, cptr name)
+{
+    int i;
+    char root[1024];
+
+    my_strcpy(root, name, sizeof(root));
+    if (_frox_has_suffix(root, ".prf"))
+        root[strlen(root) - 4] = '\0';
+
+    for (i = 1; i < 1000; i++)
+    {
+        char renamed[1024];
+
+        if (_frox_has_suffix(name, ".prf"))
+            strnfmt(renamed, sizeof(renamed), "%s-frog-%d.prf", root, i);
+        else
+            strnfmt(renamed, sizeof(renamed), "%s-frog-%d", root, i);
+
+        path_build(buf, max, dst_dir, renamed);
+        if (!_frox_path_exists(buf)) return TRUE;
+    }
+
+    return FALSE;
+}
+
+static char _frox_import_conflict_prompt(cptr src, cptr dst, cptr dst_dir, cptr name, bool is_save, char *renamed, int renamed_max)
+{
+    char src_desc[160];
+    char dst_desc[160];
+    bool can_rename = _frox_import_renamed_path(renamed, renamed_max, dst_dir, name);
+
+    _frox_file_desc(src_desc, sizeof(src_desc), src, is_save);
+    _frox_file_desc(dst_desc, sizeof(dst_desc), dst, is_save);
+
+    msg_boundary();
+    msg_format("Import conflict for %s.", name);
+    msg_format("Frog source: %s", src);
+    msg_format("  %s", src_desc);
+    msg_format("Frox target: %s", dst);
+    msg_format("  %s", dst_desc);
+    if (can_rename)
+        msg_format("Rename option: %s", renamed);
+
+    if (can_rename)
+        return msg_prompt(
+            "Keep Frox, replace with Frog, import renamed, or cancel import? <color:y>[F/R/n/c]</color>",
+            "FRnc",
+            PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_CASE_SENSITIVE | PROMPT_FORCE_CHOICE);
+
+    return msg_prompt(
+        "Keep Frox, replace with Frog, or cancel import? <color:y>[F/R/c]</color>",
+        "FRc",
+        PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_CASE_SENSITIVE | PROMPT_FORCE_CHOICE);
+}
+
+static void _frox_copy_dir_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name), bool is_save, _frox_import_result_t *result)
+{
     DIR *dp = opendir(src_dir);
     struct dirent *ent;
 
-    if (!dp) return 0;
+    if (!dp) return;
 
-    while ((ent = readdir(dp)) != NULL)
+    while (!result->cancelled && (ent = readdir(dp)) != NULL)
     {
         char src[1024];
         char dst[1024];
+        char renamed[1024];
+        char choice;
 
         if (!pred(ent->d_name)) continue;
 
@@ -2971,23 +3106,72 @@ static int _frox_copy_dir_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr na
         if (!_frox_is_regular_file(src)) continue;
 
         path_build(dst, sizeof(dst), dst_dir, ent->d_name);
+        if (_frox_path_exists(dst))
+        {
+            choice = _frox_import_conflict_prompt(src, dst, dst_dir, ent->d_name, is_save, renamed, sizeof(renamed));
+            if (choice == 'F')
+            {
+                result->skipped_existing++;
+                continue;
+            }
+            if (choice == 'c')
+            {
+                result->cancelled = TRUE;
+                break;
+            }
+            if (choice == 'n')
+            {
+                if (fd_copy(src, renamed) == 0)
+                {
+                    result->copied++;
+                    result->renamed++;
+                }
+                continue;
+            }
+            /* Destructive replacement requires explicit uppercase R. */
+            if (choice != 'R') continue;
+            if (fd_copy(src, dst) == 0)
+            {
+                result->copied++;
+                result->replaced++;
+            }
+            continue;
+        }
+
         if (fd_copy(src, dst) == 0)
-            copied++;
+            result->copied++;
     }
 
     closedir(dp);
-    return copied;
 }
 #else
-static int _frox_copy_dir_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
+typedef struct {
+    int copied;
+    int skipped_existing;
+    int replaced;
+    int renamed;
+    bool cancelled;
+} _frox_import_result_t;
+
+static void _frox_import_result_init(_frox_import_result_t *result)
+{
+    result->copied = 0;
+    result->skipped_existing = 0;
+    result->replaced = 0;
+    result->renamed = 0;
+    result->cancelled = FALSE;
+}
+
+static void _frox_copy_dir_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name), bool is_save, _frox_import_result_t *result)
 {
     (void)src_dir;
     (void)dst_dir;
     (void)pred;
-    return 0;
+    (void)is_save;
+    (void)result;
 }
 
-static bool _frox_dir_has_uncopied_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
+static bool _frox_dir_has_importable_files(cptr src_dir, cptr dst_dir, bool (*pred)(cptr name))
 {
     (void)src_dir;
     (void)dst_dir;
@@ -3000,9 +3184,9 @@ static bool _frox_old_data_pending_aux(cptr old_user)
 {
     char old_save[1024];
 
-    if (_frox_dir_has_uncopied_files(old_user, ANGBAND_DIR_USER, _frox_root_file)) return TRUE;
+    if (_frox_dir_has_importable_files(old_user, ANGBAND_DIR_USER, _frox_root_file)) return TRUE;
     path_build(old_save, sizeof(old_save), old_user, "save");
-    if (_frox_dir_has_uncopied_files(old_save, ANGBAND_DIR_SAVE, _frox_save_file)) return TRUE;
+    if (_frox_dir_has_importable_files(old_save, ANGBAND_DIR_SAVE, _frox_save_file)) return TRUE;
     return FALSE;
 }
 
@@ -3045,34 +3229,56 @@ static void _frox_import_suppress(bool suppress)
         (void)fd_kill(path);
 }
 
-static int _frox_import_copy_all(void)
+static void _frox_import_copy_all(_frox_import_result_t *result)
 {
-    int copied = 0;
     char old_user[1024];
     char legacy_user[1024];
+    bool have_old_user = FALSE;
+
+    _frox_import_result_init(result);
 
     if (_frox_old_user_dir(old_user, sizeof(old_user)))
     {
         char old_save[1024];
 
+        have_old_user = TRUE;
         path_build(old_save, sizeof(old_save), old_user, "save");
-        copied += _frox_copy_dir_files(old_user, ANGBAND_DIR_USER, _frox_root_file);
-        copied += _frox_copy_dir_files(old_save, ANGBAND_DIR_SAVE, _frox_save_file);
+        _frox_copy_dir_files(old_user, ANGBAND_DIR_USER, _frox_root_file, FALSE, result);
+        _frox_copy_dir_files(old_save, ANGBAND_DIR_SAVE, _frox_save_file, TRUE, result);
     }
 
-    if (_frox_legacy_angband_user_dir(legacy_user, sizeof(legacy_user)))
+    if (!result->cancelled
+        && _frox_legacy_angband_user_dir(legacy_user, sizeof(legacy_user))
+        && (!have_old_user || !streq(legacy_user, old_user)))
     {
         char legacy_save[1024];
 
         path_build(legacy_save, sizeof(legacy_save), legacy_user, "save");
-        copied += _frox_copy_dir_files(legacy_user, ANGBAND_DIR_USER, _frox_root_file);
-        copied += _frox_copy_dir_files(legacy_save, ANGBAND_DIR_SAVE, _frox_save_file);
+        _frox_copy_dir_files(legacy_user, ANGBAND_DIR_USER, _frox_root_file, FALSE, result);
+        _frox_copy_dir_files(legacy_save, ANGBAND_DIR_SAVE, _frox_save_file, TRUE, result);
     }
 
-    if (copied)
+    if (result->replaced || result->renamed || result->skipped_existing)
+        _frox_import_suppress(TRUE);
+    else if (result->copied)
         _frox_import_suppress(FALSE);
+}
 
-    return copied;
+static void _frox_import_report_result(_frox_import_result_t *result)
+{
+    if (result->copied)
+        msg_format("Imported %d FrogComposband file%s into FroxComposband.", result->copied, result->copied == 1 ? "" : "s");
+    else
+        msg_print("No FrogComposband save or preference files were imported.");
+
+    if (result->replaced)
+        msg_format("Replaced %d existing FroxComposband file%s.", result->replaced, result->replaced == 1 ? "" : "s");
+    if (result->renamed)
+        msg_format("Imported %d conflicting FrogComposband file%s under new names.", result->renamed, result->renamed == 1 ? "" : "s");
+    if (result->skipped_existing)
+        msg_format("Kept %d existing FroxComposband file%s.", result->skipped_existing, result->skipped_existing == 1 ? "" : "s");
+    if (result->cancelled)
+        msg_print("FrogComposband import cancelled.");
 }
 
 bool frox_import_available(void)
@@ -3088,7 +3294,7 @@ static bool _frox_import_should_prompt(void)
 
 void frox_import_startup_prompt(void)
 {
-    int copied;
+    _frox_import_result_t result;
     int c;
 
     if (!_frox_import_should_prompt()) return;
@@ -3104,16 +3310,13 @@ void frox_import_startup_prompt(void)
         return;
     }
 
-    copied = _frox_import_copy_all();
-    if (copied)
-        msg_format("Imported %d FrogComposband file%s into FroxComposband.", copied, copied == 1 ? "" : "s");
-    else
-        msg_print("No FrogComposband save or preference files were imported.");
+    _frox_import_copy_all(&result);
+    _frox_import_report_result(&result);
 }
 
 bool frox_import_manual(void)
 {
-    int copied;
+    _frox_import_result_t result;
     int c;
 
     if (!frox_import_available())
@@ -3129,15 +3332,14 @@ bool frox_import_manual(void)
 
     if (c == 'n' || c == 'N' || c == ESCAPE) return FALSE;
 
-    copied = _frox_import_copy_all();
-    if (copied)
+    _frox_import_copy_all(&result);
+    _frox_import_report_result(&result);
+    if (result.copied)
     {
-        msg_format("Imported %d FrogComposband file%s into FroxComposband.", copied, copied == 1 ? "" : "s");
         msg_print("Imported savefiles will be available the next time you start FroxComposband.");
         return TRUE;
     }
 
-    msg_print("No FrogComposband save or preference files were imported.");
     return FALSE;
 }
 

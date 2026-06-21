@@ -18,7 +18,7 @@
 #define OLYMPIAN_CHANCE 20 /* Olympians are now a bit easier */
 
 static bool old_target_never_okay = FALSE;
-static s16b _buff_target_who = 0;
+static s16b _buff_target_m_idx = 0;
 static bool _buff_target_override = FALSE;
 static s16b _buff_target_override_row = 0;
 static s16b _buff_target_override_col = 0;
@@ -3918,7 +3918,7 @@ static bool _target_allows_monster_target(int mode, cave_type *c_ptr)
 
 static void _set_buff_target(monster_type *m_ptr)
 {
-    _buff_target_who = m_ptr->id;
+    _buff_target_m_idx = m_ptr->id;
 }
 
 static void _set_buff_target_override(int y, int x)
@@ -3946,7 +3946,7 @@ bool old_target_okay_mode(int mode)
 {
     if (!use_old_target) return FALSE;
     if (p_ptr->confused) return FALSE;
-    if ((mode & TARGET_BUFF) && !_buff_target_who) return FALSE;
+    if ((mode & TARGET_BUFF) && !_buff_target_m_idx) return FALSE;
     if (!(mode & TARGET_BUFF) && old_target_never_okay) return FALSE;
     if (!target_okay_aux(mode)) return FALSE;
     return TRUE;
@@ -3964,10 +3964,11 @@ bool target_okay_aux(int mode)
 {
     if (mode & TARGET_BUFF)
     {
-        if (_buff_target_who > 0 && target_able_aux(_buff_target_who, mode))
+        if (_buff_target_m_idx > 0 && target_able_aux(_buff_target_m_idx, mode))
         {
-            monster_type *m_ptr = &m_list[_buff_target_who];
+            monster_type *m_ptr = &m_list[_buff_target_m_idx];
 
+            if (!_buff_cycle_candidate(m_ptr)) return FALSE;
             _set_buff_target(m_ptr);
             return TRUE;
         }
@@ -5322,7 +5323,11 @@ bool target_set(int mode)
                         target_who = c_ptr->m_idx;
                     else
                         target_who = -1;
-                    if ((mode & TARGET_BUFF) && !target_who)
+                    if ((mode & TARGET_BUFF) && (target_who > 0)
+                     && !_buff_cycle_candidate(&m_list[target_who]))
+                        target_who = 0;
+                    if ((mode & TARGET_BUFF)
+                     && (target_who <= 0))
                         bell();
                     else
                     {
@@ -5653,7 +5658,7 @@ bool get_buff_mon_dir(int *dp)
     {
         if (used_old_target)
         {
-            monster_type *m_ptr = &m_list[_buff_target_who];
+            monster_type *m_ptr = &m_list[_buff_target_m_idx];
             _set_buff_target(m_ptr);
             _set_buff_target_override(m_ptr->fy, m_ptr->fx);
         }

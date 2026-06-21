@@ -2206,6 +2206,8 @@ static void _cs_slots_apply_doc_meta(_cs_slot_t slots[4], doc_ptr doc)
     }
 }
 
+#define _CS_SNAPSHOT_DOC_MAX (256 * 1024)
+
 static void _cs_slots_load(_cs_slot_t slots[4])
 {
     char       path[1024];
@@ -2241,8 +2243,17 @@ static void _cs_slots_load(_cs_slot_t slots[4])
             continue;
         if (4 != sscanf(string_buffer(line), "slot %15s %lu %ld %d", slot_name, &saved_at, &saved_game_turn, &doc_size))
             break;
-        if (doc_size < 0)
+        if (doc_size < 0 || doc_size > _CS_SNAPSHOT_DOC_MAX)
+        {
+            char size_desc[32];
+
+            if (doc_size < 0)
+                strnfmt(size_desc, sizeof(size_desc), "negative");
+            else
+                strnfmt(size_desc, sizeof(size_desc), "%dK", (doc_size + 1023) / 1024);
+            msg_format("Failed to load from snapshot file: %s - slot size (%s) out of range!", path, size_desc);
             break;
+        }
 
         slot = _cs_slot_by_name(slot_name);
         idx = _cs_slot_index(slot);
@@ -2250,6 +2261,8 @@ static void _cs_slots_load(_cs_slot_t slots[4])
             break;
 
         serialized = malloc(doc_size + 1);
+        if (!serialized)
+            break;
         if ((int)fread(serialized, 1, doc_size, fp) != doc_size)
         {
             free(serialized);

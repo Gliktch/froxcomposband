@@ -342,20 +342,20 @@ void crafting_spell(int cmd, variant *res)
             return;
         }
 
-        if (prompt.obj->number > 59)
+        if (object_is_ammo(prompt.obj) && prompt.obj->number > 59)
         {
             msg_print("You cannot use Crafting on more than 59 projectiles at a time.");
             return;
         }
 
-        if (prompt.obj->number > 30)
+        if (object_is_ammo(prompt.obj) && prompt.obj->number > 30)
         {
             int mahis = ((prompt.obj->number * 20) - 597) / 6;
             if (!get_check(format("The enchantment has %s %d%% chance to fail. Proceed anyway? ", ((mahis / 10) == 8) ? "an" : "a", mahis)))
             return;
         }
 
-        if (prompt.obj->number > 1)
+        if (!object_is_ammo(prompt.obj) && prompt.obj->number > 1)
         {
             obj_ptr extra = obj_split(prompt.obj, prompt.obj->number - 1);
             object_copy(&remainder, extra);

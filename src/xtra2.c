@@ -5054,6 +5054,8 @@ bool target_set(int mode)
                     {
                         health_track(c_ptr->m_idx);
                         target_who = c_ptr->m_idx;
+                        if (mode & TARGET_BUFF)
+                            _set_buff_target(&m_list[target_who]);
                         target_grab(y, x);
                         done = TRUE;
                     }
@@ -5331,6 +5333,8 @@ bool target_set(int mode)
                         bell();
                     else
                     {
+                        if ((mode & TARGET_BUFF) && (target_who > 0))
+                            _set_buff_target(&m_list[target_who]);
                         target_grab(y, x);
                         done = TRUE;
                     }
@@ -5562,6 +5566,19 @@ bool target_set_look_under(int y, int x)
     return result;
 }
 
+static bool _auto_target_monster_okay(int m_idx, int target_mode)
+{
+    monster_type *m_ptr;
+
+    if (!(target_mode & TARGET_KILL)) return TRUE;
+    if (target_mode & TARGET_BUFF) return TRUE;
+    if (m_idx <= 0) return TRUE;
+
+    m_ptr = &m_list[m_idx];
+    if (is_pet(m_ptr) || is_friendly(m_ptr)) return FALSE;
+    return TRUE;
+}
+
 static int _auto_target_monster(int target_mode)
 {
     int i;
@@ -5577,6 +5594,7 @@ static int _auto_target_monster(int target_mode)
         if (!m_ptr->r_idx) continue;
         if (!m_ptr->ml) continue;
         if (!projectable(py, px, m_ptr->fy, m_ptr->fx)) continue;
+        if (!_auto_target_monster_okay(i, target_mode)) continue;
 
         if (target_mode & TARGET_BUFF)
         {
@@ -5620,7 +5638,8 @@ bool get_fire_dir_aux(int *dp, int target_mode)
     {
         return get_aim_dir_aux(dp, target_mode);
     }
-	if (old_target_okay_mode(target_mode)) {
+	if (old_target_okay_mode(target_mode)
+     && _auto_target_monster_okay(target_who, target_mode)) {
 		*dp = 5;
 		p_ptr->redraw |= PR_HEALTH_BARS;
 		return TRUE;
@@ -5706,7 +5725,9 @@ bool get_aim_dir_aux(int *dp, int target_mode)
         /* Confusion? */
 
         /* Verify */
-        if (!((*dp == 5) && ((!target_okay_aux(target_mode)) || ((!(target_mode & TARGET_BUFF)) && old_target_never_okay))))
+        if (!((*dp == 5) && ((!target_okay_aux(target_mode)) ||
+                              (!_auto_target_monster_okay(target_who, target_mode)) ||
+                              ((!(target_mode & TARGET_BUFF)) && old_target_never_okay))))
         {
 /*            return (TRUE); */
             dir = *dp;

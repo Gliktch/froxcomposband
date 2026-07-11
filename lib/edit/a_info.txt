@@ -824,7 +824,7 @@ F:SPEED
 E:BALL_POIS:5:6:12
 E:Your dagger throbs deep green...
 D:A large stiletto dagger that glistens with odorless poison, to which the
-D:wearer seems oddly immune.
+D:wearer seems oddly tolerant.
 
 # The Dagger 'Belangil' -> of Fiona
 
@@ -3504,7 +3504,7 @@ P:0:2d4:21:7:0
 E:RESTORING:40:75
 F:SPEED | DEX | REFLECT | FREE_ACT | SUST_DEX | RES_NEXUS
 F:RES_TIME | HOLD_LIFE | REGEN | INSTA_ART | QUESTITEM
-D:You feel agile and impervious to the passage of time as you hold this
+D:You feel agile and able to withstand the ravages of time as you hold this
 D:old club and swing it. Now, if only it had been designed for bashing
 D:your enemies' heads in...
 

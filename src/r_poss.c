@@ -1369,8 +1369,22 @@ void possessor_set_current_r_idx(int r_idx)
             if (p_ptr->current_r_idx != MON_MIMIC)
                 _history_on_possess(r_idx);
         }
-        else if (p_ptr->current_r_idx != MON_POSSESSOR_SOUL)
-            _history_on_possess(r_idx);    
+        else
+        {
+            int upkeep;
+
+            handle_stuff();
+            upkeep = calculate_upkeep();
+            p_ptr->upset_okay = FALSE;
+
+            if (upkeep > 100 && p_ptr->csp == 0 && p_ptr->csp_frac == 0)
+                msg_print("Without mana in this body, you cannot control all of your pets.");
+            else if (upkeep > SAFE_UPKEEP_PCT)
+                msg_print("Your pets strain against your control in this body.");
+
+            if (p_ptr->current_r_idx != MON_POSSESSOR_SOUL)
+                _history_on_possess(r_idx);
+        }
     }
 }
 

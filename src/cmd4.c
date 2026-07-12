@@ -2991,6 +2991,7 @@ typedef struct
     keymap_snapshot_t baseline_keymaps[KEYMAP_MODES];
     macro_snapshot_t original_macros;
     keymap_snapshot_t original_keymaps[KEYMAP_MODES];
+    char notice[120];
 } macro_ui_context_t;
 
 typedef struct
@@ -3245,7 +3246,7 @@ static void _macro_ui_free_context(macro_ui_context_t *ui)
 
 static void _macro_ui_help(void)
 {
-    (void)show_file(TRUE, "pref.txt#CustomKeys", "Custom Keys", 0, 0);
+    doc_display_help("pref.txt", "CustomKeys");
 }
 
 static cptr _macro_ui_scope_name(int scope)
@@ -3322,16 +3323,16 @@ static int _macro_ui_prompt_mode(int op, int scope)
 
         if (op == MACRO_UI_OP_LOAD)
         {
-            strnfmt(buf, sizeof(buf), "(1) Replace all current %s", _macro_ui_scope_name(scope));
+            strnfmt(buf, sizeof(buf), "(1) Add %s to current (replacing matches)", _macro_ui_scope_name(scope));
             prt(buf, 5, 4);
-            strnfmt(buf, sizeof(buf), "(2) Add %s to current (replacing matches)", _macro_ui_scope_name(scope));
+            strnfmt(buf, sizeof(buf), "(2) Replace all current %s", _macro_ui_scope_name(scope));
             prt(buf, 6, 4);
         }
         else
         {
-            strnfmt(buf, sizeof(buf), "(1) Replace all %s in this file", _macro_ui_scope_name(scope));
+            strnfmt(buf, sizeof(buf), "(1) Add %s to this file (replacing matches)", _macro_ui_scope_name(scope));
             prt(buf, 5, 4);
-            strnfmt(buf, sizeof(buf), "(2) Add %s to this file (replacing matches)", _macro_ui_scope_name(scope));
+            strnfmt(buf, sizeof(buf), "(2) Replace all %s in this file", _macro_ui_scope_name(scope));
             prt(buf, 6, 4);
         }
         prt("(3) Browse affected keys", 7, 4);
@@ -3345,9 +3346,9 @@ static int _macro_ui_prompt_mode(int op, int scope)
             _macro_ui_help();
             continue;
         }
-        if (ch == '\r' || ch == '\n') return MACRO_UI_MODE_REPLACE;
-        if (ch == '1') return MACRO_UI_MODE_REPLACE;
-        if (ch == '2') return MACRO_UI_MODE_ADD;
+        if (ch == '\r' || ch == '\n') return MACRO_UI_MODE_ADD;
+        if (ch == '1') return MACRO_UI_MODE_ADD;
+        if (ch == '2') return MACRO_UI_MODE_REPLACE;
         if (ch == '3') return 3;
         bell();
     }
@@ -3568,9 +3569,9 @@ static void _macro_ui_trigger_label(char *buf, int max, cptr trigger)
         my_strcpy(buf, "Enter", max);
     else if (streq(tmp, "\\t") || streq(tmp, "^I"))
         my_strcpy(buf, "Tab", max);
-    else if (streq(tmp, "^H") || streq(tmp, "\\x08"))
+    else if (streq(tmp, "^H") || streq(tmp, "\\x08") || streq(tmp, "\\b"))
         my_strcpy(buf, "Bksp", max);
-    else if (streq(tmp, "^?") || streq(tmp, "\\x7F"))
+    else if (streq(tmp, "^?") || streq(tmp, "\\x7F") || streq(tmp, "\\d"))
         my_strcpy(buf, "Del", max);
     else if (streq(tmp, "\\e"))
         my_strcpy(buf, "Esc", max);
@@ -3591,6 +3592,91 @@ static void _macro_ui_action_desc(char *buf, int max, cptr action)
         my_strcpy(buf, "None", max);
     else
         ascii_to_text(buf, action);
+}
+
+/* Case-insensitive prefix compare for modifier/trigger names. */
+static bool _macro_ui_name_prefix(cptr s, cptr name, int len)
+{
+    int i;
+    for (i = 0; i < len; i++)
+    {
+        if (tolower((unsigned char)s[i]) != tolower((unsigned char)name[i]))
+            return FALSE;
+    }
+    return TRUE;
+}
+
+/*
+ * Validate friendly bare [Name] trigger tokens before the shared parser
+ * sees them.  A bracket section that looks like a token but is not a known
+ * trigger is rejected (returns FALSE) so a typo is visible; anything else
+ * (raw terminal sequences such as [3~, or a literal '[') is fine.
+ */
+static bool _macro_ui_bracket_tokens_valid(cptr input)
+{
+    cptr  p = input;
+
+    while (*p)
+    {
+        int i, len;
+
+        if ((p[0] == '[') && ((p == input) || (p[-1] != '\\')))
+        {
+            cptr q = p + 1;
+            bool more = TRUE;
+
+            /* Skip modifiers (Ctrl-, Alt-, Shift-...) */
+            while (more)
+            {
+                for (i = 0; macro_modifier_chr[i]; i++)
+                {
+                    len = strlen(macro_modifier_name[i]);
+                    if (_macro_ui_name_prefix(q, macro_modifier_name[i], len))
+                        break;
+                }
+                if (!macro_modifier_chr[i]) more = FALSE;
+                else q += len;
+            }
+
+            /* A known trigger name followed by ']'? */
+            for (i = 0; i < max_macrotrigger; i++)
+            {
+                len = strlen(macro_trigger_name[i]);
+                if (_macro_ui_name_prefix(q, macro_trigger_name[i], len) && (q[len] == ']'))
+                    break;
+            }
+
+            if (i < max_macrotrigger)
+            {
+                /* Valid token: skip it. */
+                p += (q + len + 1) - p;
+                continue;
+            }
+
+            /* Token-shaped but unknown: reject so a typo is visible. */
+            {
+                cptr r = q;
+                bool shaped = TRUE;
+
+                while (*r && (*r != ']'))
+                {
+                    unsigned char c = (unsigned char)*r;
+                    if (!(isalnum(c) || (c == '-') || (c == '_') || (c == '+')))
+                    {
+                        shaped = FALSE;
+                        break;
+                    }
+                    r++;
+                }
+                if (shaped && (*r == ']'))
+                    return FALSE;
+            }
+        }
+
+        p++;
+    }
+
+    return TRUE;
 }
 
 static bool _macro_ui_same(cptr a, cptr b)
@@ -3659,7 +3745,7 @@ static errr _macro_ui_parse_pref_path(cptr path, macro_snapshot_t *macros, keyma
 
         if (buf[0] == 'A')
         {
-            text_to_ascii(action, buf + 2);
+            if (!text_to_ascii(action, buf + 2)) continue;
             have_action = TRUE;
             continue;
         }
@@ -3668,7 +3754,7 @@ static errr _macro_ui_parse_pref_path(cptr path, macro_snapshot_t *macros, keyma
 
         if (buf[0] == 'P')
         {
-            text_to_ascii(tmp, buf + 2);
+            if (!text_to_ascii(tmp, buf + 2)) continue;
             _macro_snapshot_set(macros, tmp, action);
             continue;
         }
@@ -3685,7 +3771,7 @@ static errr _macro_ui_parse_pref_path(cptr path, macro_snapshot_t *macros, keyma
             key_mode = strtol(zz[0], NULL, 0);
             if (key_mode != mode) continue;
 
-            text_to_ascii(tmp, zz[1]);
+            if (!text_to_ascii(tmp, zz[1])) continue;
             if (!tmp[0] || tmp[1]) continue;
             _keymap_snapshot_set(keymaps, (byte)tmp[0], action);
         }
@@ -3945,20 +4031,26 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
     while (1)
     {
         int ch;
-        int x = 0;
-        int y = 3;
+        int indent = 2;
+        int list_row = preview ? 6 : 5;
+        int max_detail_row = Term->hgt - (preview ? 5 : 4);
+        int detail_row = MIN(preview ? 11 : 9, max_detail_row);
+        int x = indent;
+        int y = list_row;
         int i;
-        int detail_row = Term->hgt - 5;
         int visible_end = top;
         char buf[1024];
+
+        if (detail_row < list_row + 1)
+            detail_row = list_row + 1;
 
         if (cur >= count) cur = MAX(0, count - 1);
         if (cur < top) top = cur;
 
         while (1)
         {
-            x = 0;
-            y = 3;
+            x = indent;
+            y = list_row;
             visible_end = top;
 
             while (visible_end < count)
@@ -3966,7 +4058,7 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
                 int len = strlen(entries[visible_end].label) + 2;
                 if (x + len >= Term->wid)
                 {
-                    x = 0;
+                    x = indent;
                     y++;
                 }
                 if (y >= detail_row) break;
@@ -3979,29 +4071,29 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
         }
 
         Term_clear();
-        prt(title, 0, 0);
+        prt(title, 1, indent);
         if (preview)
         {
-            prt(*replace_view ? "Previewing Replace results." : "Previewing Add results.", 1, 0);
-            prt(*show_all ? "Showing all affected keys. Enter toggles to differences only." : "Showing differences only. Enter toggles to all affected keys.", 2, 0);
+            prt(*replace_view ? "Previewing Replace results." : "Previewing Add results.", 3, indent);
+            prt(*show_all ? "Showing all affected keys. Enter toggles to differences only." : "Showing differences only. Enter toggles to all affected keys.", 4, indent);
         }
         else
             prt("Browse custom keys. Press a listed key to jump to it. ? opens help.", 1, 0);
 
         if (count == 0)
         {
-            prt("No keys to display.", 4, 0);
+            prt("No keys to display.", list_row, indent);
         }
         else
         {
-            x = 0;
-            y = 3;
+            x = indent;
+            y = list_row;
             for (i = top; i < visible_end; i++)
             {
                 int len = strlen(entries[i].label) + 2;
                 if (x + len >= Term->wid)
                 {
-                    x = 0;
+                    x = indent;
                     y++;
                 }
                 _macro_ui_put_label(x, y, entries[i].label, i == cur, preview ? _macro_ui_entry_color(entries + i) : TERM_SLATE);
@@ -4009,22 +4101,27 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
             }
 
             strnfmt(buf, sizeof(buf), "Trigger: %s", entries[cur].label);
-            prt(buf, detail_row, 0);
-            _macro_ui_action_desc(buf, sizeof(buf), entries[cur].new_keymap);
-            prt(format("Keymap: %s", buf), detail_row + 1, 0);
+            prt(buf, detail_row, indent);
+            if (entries[cur].trigger[1])
+                c_prt(TERM_L_DARK, "Keymap: N/A", detail_row + 1, indent);
+            else
+            {
+                _macro_ui_action_desc(buf, sizeof(buf), entries[cur].new_keymap);
+                prt(format("Keymap: %s", buf), detail_row + 1, indent);
+            }
             _macro_ui_action_desc(buf, sizeof(buf), entries[cur].new_macro);
-            prt(format("Macro : %s", buf), detail_row + 2, 0);
+            prt(format("Macro : %s", buf), detail_row + 2, indent);
 
             if (preview)
             {
-                Term_putstr(0, detail_row + 3, -1, TERM_L_GREEN, "New");
-                Term_putstr(6, detail_row + 3, -1, TERM_YELLOW, "Changed");
-                Term_putstr(16, detail_row + 3, -1, TERM_L_RED, "Removed");
-                Term_putstr(26, detail_row + 3, -1, TERM_SLATE, "ESC returns");
-                prt("Tab switches preview between Replace or Add view.", detail_row + 4, 0);
+                Term_putstr(indent, detail_row + 3, -1, TERM_L_GREEN, "New");
+                Term_putstr(indent + 6, detail_row + 3, -1, TERM_YELLOW, "Changed");
+                Term_putstr(indent + 16, detail_row + 3, -1, TERM_L_RED, "Removed");
+                Term_putstr(indent + 26, detail_row + 3, -1, TERM_SLATE, "ESC returns");
+                prt("Tab switches preview between Replace or Add view.", detail_row + 4, indent);
             }
             else
-                prt("Left/Right or 4/6 browse. ESC returns.", detail_row + 3, 0);
+                prt("Left/Right or 4/6 browse. ESC returns.", detail_row + 3, indent);
         }
 
         ch = _macro_ui_inkey_special(TRUE);
@@ -4419,13 +4516,21 @@ static void _macro_ui_customize_key(macro_ui_context_t *ui)
         Term_clear();
         prt("Customize a Key", 2, 0);
         prt(format("Trigger: [%s]", label), 4, 0);
-        _macro_ui_action_desc(buf, sizeof(buf), live_keymap);
-        prt(format("Keymap: %s", buf), 6, 0);
+        if (trigger[0] && !trigger[1])
+        {
+            _macro_ui_action_desc(buf, sizeof(buf), live_keymap);
+            prt(format("Keymap: %s", buf), 6, 0);
+            prt("(k) Edit keymap", 11, 4);
+        }
+        else
+        {
+            c_prt(TERM_L_DARK, "Keymap: N/A", 6, 0);
+            c_prt(TERM_L_DARK, "(k) Edit keymap (single-byte only)", 11, 4);
+        }
         _macro_ui_action_desc(buf, sizeof(buf), live_macro);
         prt(format("Macro : %s", buf), 7, 0);
         if (has_both)
             c_prt(TERM_YELLOW, "Warning: this trigger has both a keymap and a macro.", 9, 0);
-        prt("(k) Edit keymap", 11, 4);
         prt("(m) Edit macro", 12, 4);
         prt("(r) Reset this key to defaults", 13, 4);
         prt("ESC returns. ? opens help.", 15, 0);
@@ -4476,16 +4581,26 @@ static void _macro_ui_customize_key(macro_ui_context_t *ui)
                 continue;
             }
 
-            z_string_free(keymap_act[ui->mode][(byte)trigger[0]]);
-            keymap_act[ui->mode][(byte)trigger[0]] = NULL;
             if (action[0])
             {
-                text_to_ascii(macro__buf, action);
+                if (!_macro_ui_bracket_tokens_valid(action)
+                    || !text_to_ascii(macro__buf, action))
+                {
+                    msg_print("Invalid escape sequence or key token; keymap unchanged.");
+                    _macro_snapshot_free(&current_macros);
+                    _keymap_snapshot_free(&current_keymaps);
+                    continue;
+                }
+                z_string_free(keymap_act[ui->mode][(byte)trigger[0]]);
                 keymap_act[ui->mode][(byte)trigger[0]] = z_string_make(macro__buf);
                 msg_print("Updated keymap.");
             }
             else
+            {
+                z_string_free(keymap_act[ui->mode][(byte)trigger[0]]);
+                keymap_act[ui->mode][(byte)trigger[0]] = NULL;
                 msg_print("Cleared keymap.");
+            }
             _macro_snapshot_free(&current_macros);
             _keymap_snapshot_free(&current_keymaps);
             continue;
@@ -4505,15 +4620,25 @@ static void _macro_ui_customize_key(macro_ui_context_t *ui)
                 continue;
             }
 
-            macro_remove(trigger);
             if (action[0])
             {
-                text_to_ascii(macro__buf, action);
+                if (!_macro_ui_bracket_tokens_valid(action)
+                    || !text_to_ascii(macro__buf, action))
+                {
+                    msg_print("Invalid escape sequence or key token; macro unchanged.");
+                    _macro_snapshot_free(&current_macros);
+                    _keymap_snapshot_free(&current_keymaps);
+                    continue;
+                }
+                macro_remove(trigger);
                 macro_add(trigger, macro__buf);
                 msg_print("Updated macro.");
             }
             else
+            {
+                macro_remove(trigger);
                 msg_print("Cleared macro.");
+            }
             _macro_snapshot_free(&current_macros);
             _keymap_snapshot_free(&current_keymaps);
             continue;
@@ -4586,6 +4711,11 @@ static void _macro_ui_restore_original(macro_ui_context_t *ui)
         _keymap_snapshot_apply(&ui->original_keymaps[i]);
 }
 
+static void _macro_ui_notice(macro_ui_context_t *ui, cptr msg)
+{
+    my_strcpy(ui->notice, msg, sizeof(ui->notice));
+}
+
 static void _macro_ui_reset_defaults(macro_ui_context_t *ui)
 {
     while (1)
@@ -4609,31 +4739,31 @@ static void _macro_ui_reset_defaults(macro_ui_context_t *ui)
             _macro_snapshot_apply(&ui->baseline_macros);
             _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ORIG]);
             _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ROGUE]);
-            msg_print("Reset everything to defaults.");
+            _macro_ui_notice(ui, "Reset everything to defaults.");
             return;
         }
         if (ch == 'm')
         {
             _macro_snapshot_apply(&ui->baseline_macros);
-            msg_print("Reset macros to defaults.");
+            _macro_ui_notice(ui, "Reset macros to defaults.");
             return;
         }
         if (ch == 'k')
         {
             _keymap_snapshot_apply(&ui->baseline_keymaps[ui->mode]);
-            msg_print("Reset the current keyset to defaults.");
+            _macro_ui_notice(ui, "Reset the current keyset to defaults.");
             return;
         }
         if (ch == 'K')
         {
             _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ORIG]);
             _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ROGUE]);
-            msg_print("Reset both keysets to defaults.");
+            _macro_ui_notice(ui, "Reset both keysets to defaults.");
             return;
         }
         if (ch == ESCAPE || ch == 'n')
         {
-            msg_print("Reset cancelled.");
+            _macro_ui_notice(ui, "Reset cancelled.");
             return;
         }
         bell();
@@ -4911,6 +5041,7 @@ void do_cmd_macros(void)
     int i;
 
     ui.mode = rogue_like_commands ? KEYMAP_MODE_ROGUE : KEYMAP_MODE_ORIG;
+    ui.notice[0] = '\0';
     _macro_snapshot_init(&ui.baseline_macros);
     _macro_snapshot_init(&ui.original_macros);
     for (i = 0; i < KEYMAP_MODES; i++)
@@ -4970,13 +5101,12 @@ void do_cmd_macros(void)
         if (ch == 'd')
         {
             _macro_ui_restore_original(&ui);
-            msg_print("Discarded unsaved changes.");
+            _macro_ui_notice(&ui, "Discarded unsaved changes.");
             continue;
         }
         if (ch == 'r')
         {
             _macro_ui_reset_defaults(&ui);
-            msg_print("Reset all to defaults.");
             continue;
         }
         bell();

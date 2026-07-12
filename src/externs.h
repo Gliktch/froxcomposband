@@ -1874,7 +1874,7 @@ extern void flush(void);
 extern void bell(void);
 extern void sound(int num);
 extern void move_cursor(int row, int col);
-extern void text_to_ascii(char *buf, cptr str);
+extern bool text_to_ascii(char *buf, cptr str);
 extern void ascii_to_text(char *buf, cptr str);
 extern errr macro_add(cptr pat, cptr act);
 extern errr macro_remove(cptr pat);

@@ -528,7 +528,7 @@ errr process_pref_file_command(char *buf)
 
     /* Process "A:<str>" -- save an "action" for later */
     case 'A':
-        text_to_ascii(macro__buf, buf+2);
+        if (!text_to_ascii(macro__buf, buf+2)) return 1;
         return 0;
 
     /* Process "P:<str>" -- normal macro */
@@ -536,7 +536,7 @@ errr process_pref_file_command(char *buf)
     {
         char tmp[1024];
 
-        text_to_ascii(tmp, buf+2);
+        if (!text_to_ascii(tmp, buf+2)) return 1;
         macro_add(tmp, macro__buf);
         return 0;
     }
@@ -552,7 +552,7 @@ errr process_pref_file_command(char *buf)
         mode = strtol(zz[0], NULL, 0);
         if ((mode < 0) || (mode >= KEYMAP_MODES)) return 1;
 
-        text_to_ascii(tmp, zz[1]);
+        if (!text_to_ascii(tmp, zz[1])) return 1;
         if (!tmp[0] || tmp[1]) return 1;
         i = (byte)(tmp[0]);
 

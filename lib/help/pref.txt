@@ -114,9 +114,25 @@ The updated key customization screen lets you load or save sets of custom keys, 
 
 <topic:Macros><color:U>Macros</color>
 
-Since macros represent keypress sequences, and not all keypresses have a printable representation, macro triggers and actions must often be "encoded" into a human readable form. This is done using several types of encoding, including "\xHH" for character number HH in hexadecimal, "\e" for the "escape" code, "\n" for the "newline" code, "\r" for the "return" code, "\s" for the "space" code, "\\" for backslash, "\^" for caret, and "^X" for the code for any "control" key "ctrl-X".
+Since macros represent keypress sequences, and not all keypresses have a printable representation, macro triggers and actions must often be "encoded" into a human readable form:
 
-In FroxComposband, a special key used as a macro-trigger will be displayed using its real name, for example the Del or Delete key is displayed as "\[Del]", and the Alt key used with the g key is displayed as "\[Alt+g]". In some other variants these special keys are displayed using key-codes.
+<style:table>
+<color:U>  Escape    Meaning</color>
+  \xHH      Character number HH in hexadecimal (e.g. \x1B is Escape)
+  \0oo-\3oo Character number oo in octal
+  \e        Escape (shown as [Esc])
+  \b        Backspace (shown as [Bksp])
+  \t        Tab (shown as [Tab])
+  \n        Newline
+  \r        Return / Enter (shown as [Enter])
+  \s        Space (shown as [Space])
+  \d        Delete / DEL (shown as [Del])
+  \\        A literal backslash
+  \^        A literal caret
+  ^X        The control code for "control-X" (e.g. ^G is Ctrl-G)
+</style>
+
+Special keys without a simple byte form - function keys, arrow keys, Home/End/Page Up/Page Down, and so on - are written using their real names in square brackets, for example [F1], [Left] or [Alt+g]. A literal "[" can be written as \[. Invalid escape sequences and unknown [tokens] are rejected rather than silently ignored.
 
 Note that the "action" of a macro will not be checked against other macro triggers, so you cannot make infinite loops. You may specify extremely long macros, but you are limited in length by the underlying input mechanisms, which in general limit you to about 1024 keys in both triggers and actions.
 

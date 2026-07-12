@@ -1181,7 +1181,7 @@ static int my_strnicmp(cptr a, cptr b, int n)
 }
 
 
-static void trigger_text_to_ascii(char **bufptr, cptr *strptr)
+static bool trigger_text_to_ascii(char **bufptr, cptr *strptr)
 {
     char *s = *bufptr;
     cptr str = *strptr;
@@ -1192,8 +1192,8 @@ static void trigger_text_to_ascii(char **bufptr, cptr *strptr)
     cptr key_code;
 
     if (macro_template == NULL)
-        return;
-    
+        return FALSE;
+
     for (i = 0; macro_modifier_chr[i]; i++)
         mod_status[i] = FALSE;
     str++;
@@ -1226,17 +1226,8 @@ static void trigger_text_to_ascii(char **bufptr, cptr *strptr)
 
     /* Invalid trigger name? */
     if (i == max_macrotrigger)
-    {
-        str = my_strchr(str, ']');
-        if (str)
-        {
-            *s++ = (char)31;
-            *s++ = '\r';
-            *bufptr = s;
-            *strptr = str; /* where **strptr == ']' */
-        }
-        return;
-    }
+        return FALSE;
+
     key_code = macro_trigger_keycode[shiftstatus][i];
     str += len;
 
@@ -1266,19 +1257,24 @@ static void trigger_text_to_ascii(char **bufptr, cptr *strptr)
     *s++ = '\r';
 
     *bufptr = s;
-    *strptr = str; /* where **strptr == ']' */
-    return;
+    *strptr = str + 1; /* skip the closing ']' */
+    return TRUE;
 }
 
 
 /*
- * Hack -- convert a printable string into real ascii
+ * Convert a printable string into real ascii.
  *
- * I have no clue if this function correctly handles, for example,
- * parsing "\xFF" into a (signed) char. Whoever thought of making
- * the "sign" of a "char" undefined is a complete moron. Oh well.
+ * Recognized forms: \xHH hex, \0oo-\3oo octal, \d Delete, \e Escape,
+ * \b backspace, \t tab, \n newline, \r return, \s space, \\ backslash,
+ * \^ caret, ^X control codes, [Name] friendly trigger tokens (also the
+ * legacy \[Name] form, where \\[ not matching a trigger is a literal '[').
+ *
+ * Returns FALSE on an invalid escape or unknown trigger token; the buffer
+ * then holds whatever was decoded before the error, and callers should
+ * reject the input rather than use the partial result.
  */
-void text_to_ascii(char *buf, cptr str)
+bool text_to_ascii(char *buf, cptr str)
 {
     char *s = buf;
 
@@ -1288,111 +1284,131 @@ void text_to_ascii(char *buf, cptr str)
         /* Backslash codes */
         if (*str == '\\')
         {
+            cptr save = str;
+
             /* Skip the backslash */
             str++;
 
-            /* Paranoia */
-            if (!(*str)) break;
+            /* A trailing backslash is an invalid escape */
+            if (!(*str)) return FALSE;
 
-            /* Macro Trigger */
+            /* Macro Trigger (legacy form; \\[ not matching a trigger is
+             * a literal '[') */
             if (*str == '[')
             {
-                trigger_text_to_ascii(&s, &str);
+                if (trigger_text_to_ascii(&s, &str))
+                    continue;
+                *s++ = '[';
+                str = save + 2;
+                continue;
             }
-            else
 
-            /* Hex-mode XXX */
-            if (*str == 'x')
+            /* Delete */
+            if (*str == 'd')
             {
-                *s = 16 * dehex(*++str);
-                *s++ += dehex(*++str);
+                *s++ = 0x7f;
+                str++;
+            }
+
+            /* Hex-mode */
+            else if (*str == 'x')
+            {
+                if (!isxdigit((unsigned char)str[1]) || !isxdigit((unsigned char)str[2]))
+                    return FALSE;
+                *s = 16 * dehex(str[1]);
+                *s++ += dehex(str[2]);
+                str += 3;
             }
 
             /* Hack -- simple way to specify "backslash" */
             else if (*str == '\\')
             {
                 *s++ = '\\';
+                str++;
             }
 
             /* Hack -- simple way to specify "caret" */
             else if (*str == '^')
             {
                 *s++ = '^';
+                str++;
             }
 
             /* Hack -- simple way to specify "space" */
             else if (*str == 's')
             {
                 *s++ = ' ';
+                str++;
             }
 
             /* Hack -- simple way to specify Escape */
             else if (*str == 'e')
             {
                 *s++ = ESCAPE;
+                str++;
             }
 
             /* Backspace */
             else if (*str == 'b')
             {
                 *s++ = '\b';
+                str++;
             }
 
             /* Newline */
             else if (*str == 'n')
             {
                 *s++ = '\n';
+                str++;
             }
 
             /* Return */
             else if (*str == 'r')
             {
                 *s++ = '\r';
+                str++;
             }
 
             /* Tab */
             else if (*str == 't')
             {
                 *s++ = '\t';
+                str++;
             }
 
             /* Octal-mode */
-            else if (*str == '0')
+            else if ((*str >= '0') && (*str <= '3'))
             {
-                *s = 8 * deoct(*++str);
-                *s++ += deoct(*++str);
+                if ((str[1] < '0') || (str[1] > '7') || (str[2] < '0') || (str[2] > '7'))
+                    return FALSE;
+                *s = 64 * (*str - '0') + 8 * deoct(str[1]);
+                *s++ += deoct(str[2]);
+                str += 3;
             }
 
-            /* Octal-mode */
-            else if (*str == '1')
-            {
-                *s = 64 + 8 * deoct(*++str);
-                *s++ += deoct(*++str);
-            }
-
-            /* Octal-mode */
-            else if (*str == '2')
-            {
-                *s = 64 * 2 + 8 * deoct(*++str);
-                *s++ += deoct(*++str);
-            }
-
-            /* Octal-mode */
-            else if (*str == '3')
-            {
-                *s = 64 * 3 + 8 * deoct(*++str);
-                *s++ += deoct(*++str);
-            }
-
-            /* Skip the final char */
-            str++;
+            /* Unknown escape: reject rather than silently dropping it */
+            else
+                return FALSE;
         }
 
         /* Normal Control codes */
         else if (*str == '^')
         {
             str++;
+            if (!*str) return FALSE;
             *s++ = (*str++ & 037);
+        }
+
+        /* Friendly bare trigger token: [Name], the standard form.  A bare
+         * '[' that is not a known trigger stays literal, so raw terminal
+         * sequences such as \e[3~ in shipped prefs still work. */
+        else if (*str == '[')
+        {
+            if (!trigger_text_to_ascii(&s, &str))
+            {
+                *s++ = '[';
+                str++;
+            }
         }
 
         /* Normal chars */
@@ -1404,6 +1420,8 @@ void text_to_ascii(char *buf, cptr str)
 
     /* Terminate */
     *s = '\0';
+
+    return TRUE;
 }
 
 
@@ -1531,6 +1549,11 @@ void ascii_to_text(char *buf, cptr str)
         {
             *s++ = '\\';
             *s++ = '\\';
+        }
+        else if (i == 0x7f)
+        {
+            *s++ = '\\';
+            *s++ = 'd';
         }
         else if (i < 32)
         {

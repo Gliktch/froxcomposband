@@ -506,39 +506,19 @@ bool package_test_parse_arg(cptr arg)
 {
     if (!arg) return FALSE;
 
-    if (streq(arg, "--test"))
-    {
-        arg_test = TRUE;
-        return TRUE;
-    }
+    if ((arg[0] != '-') || ((arg[1] != 't') && (arg[1] != 'T')))
+        return FALSE;
 
-    if (streq(arg, "--test=headless"))
-    {
-        arg_test = TRUE;
-        arg_test_headless = TRUE;
-        return TRUE;
-    }
+    if (arg[2] && (arg[2] != '='))
+        quit_fmt("Bad smoke-test option '%s'", arg);
 
-    if (prefix(arg, "--test-log="))
-    {
-        arg_test = TRUE;
-        my_strcpy(arg_test_log, arg + strlen("--test-log="), sizeof(arg_test_log));
-        return TRUE;
-    }
+    if ((arg[2] == '=') && !arg[3])
+        quit_fmt("Bad smoke-test log path '%s'", arg);
 
-    if (prefix(arg, "--test="))
-    {
-        cptr value = arg + strlen("--test=");
-
-        arg_test = TRUE;
-        if (streq(value, "headless"))
-            arg_test_headless = TRUE;
-        else
-            my_strcpy(arg_test_log, value, sizeof(arg_test_log));
-        return TRUE;
-    }
-
-    return FALSE;
+    arg_test = TRUE;
+    if (arg[1] == 'T') arg_test_headless = TRUE;
+    if (arg[2] == '=') my_strcpy(arg_test_log, arg + 3, sizeof(arg_test_log));
+    return TRUE;
 }
 
 void package_test_parse_cmdline(cptr cmdline)

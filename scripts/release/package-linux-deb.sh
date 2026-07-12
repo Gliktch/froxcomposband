@@ -66,7 +66,7 @@ status=0
 mkdir -p "$log_dir"
 
 if HOME="$tmp_home" XDG_DATA_HOME="$tmp_home/.local/share" \
-    /usr/games/froxcomposband --test=headless --test-log="$log_file" >/dev/null 2>&1; then
+    /usr/games/froxcomposband -T="$log_file" >/dev/null 2>&1; then
     status=0
 else
     status=$?

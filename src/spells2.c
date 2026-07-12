@@ -1891,7 +1891,7 @@ bool detect_all(int range)
 {
     bool detect = FALSE;
     bool old_detect_quiet = _detect_quiet;
-    bool traps, doors, stairs, buried_treasure, invisible_creatures, monsters;
+    bool traps, doors, stairs, invisible_creatures, monsters;
     bool moving_treasure, animate_objects;
     int treasure, objects;
     char parts[512] = "";
@@ -1901,7 +1901,8 @@ bool detect_all(int range)
     traps = detect_traps(range, TRUE);
     doors = detect_doors(range);
     stairs = detect_stairs(range);
-    buried_treasure = detect_treasure(range);
+    /* There are too many hidden treasure. So... */
+    /* buried_treasure = detect_treasure(range); */
     treasure = detect_objects_gold(range);
     moving_treasure = detect_monsters_string(range, "$");
     objects = detect_objects_normal(range);
@@ -1925,12 +1926,6 @@ bool detect_all(int range)
     {
         detect = TRUE;
         _detect_add(parts, "stairs");
-    }
-    if (buried_treasure)
-    {
-        detect = TRUE;
-        p_ptr->window |= PW_OBJECT_LIST;
-        _detect_add(parts, "buried treasure");
     }
     if (treasure & DETECT_FOUND_REAL)
     {

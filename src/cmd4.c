@@ -2968,6 +2968,7 @@ typedef struct
     keymap_snapshot_t baseline_keymaps[KEYMAP_MODES];
     macro_snapshot_t original_macros;
     keymap_snapshot_t original_keymaps[KEYMAP_MODES];
+    char notice[120];
 } macro_ui_context_t;
 
 typedef struct
@@ -3222,7 +3223,7 @@ static void _macro_ui_free_context(macro_ui_context_t *ui)
 
 static void _macro_ui_help(void)
 {
-    (void)show_file(TRUE, "pref.txt#CustomKeys", "Custom Keys", 0, 0);
+    doc_display_help("pref.txt", "CustomKeys");
 }
 
 static cptr _macro_ui_scope_name(int scope)
@@ -3270,7 +3271,7 @@ static int _macro_ui_prompt_scope(int op)
         prt("(2) Keymaps only", 6, 4);
         prt("(3) Macros only", 7, 4);
         prt("ESC returns to the previous menu. ? opens help.", 10, 0);
-        prt("Scope: ", 12, 0);
+        prt("Scope (Enter for All): ", 12, 0);
 
         ch = _macro_ui_inkey();
         if (ch == ESCAPE) return -1;
@@ -3299,21 +3300,21 @@ static int _macro_ui_prompt_mode(int op, int scope)
 
         if (op == MACRO_UI_OP_LOAD)
         {
-            strnfmt(buf, sizeof(buf), "(1) Replace all current %s", _macro_ui_scope_name(scope));
+            strnfmt(buf, sizeof(buf), "(1) Add %s to current (replacing matches)", _macro_ui_scope_name(scope));
             prt(buf, 5, 4);
-            strnfmt(buf, sizeof(buf), "(2) Add %s to current (replacing matches)", _macro_ui_scope_name(scope));
+            strnfmt(buf, sizeof(buf), "(2) Replace all current %s", _macro_ui_scope_name(scope));
             prt(buf, 6, 4);
         }
         else
         {
-            strnfmt(buf, sizeof(buf), "(1) Replace all %s in this file", _macro_ui_scope_name(scope));
+            strnfmt(buf, sizeof(buf), "(1) Add %s to this file (replacing matches)", _macro_ui_scope_name(scope));
             prt(buf, 5, 4);
-            strnfmt(buf, sizeof(buf), "(2) Add %s to this file (replacing matches)", _macro_ui_scope_name(scope));
+            strnfmt(buf, sizeof(buf), "(2) Replace all %s in this file", _macro_ui_scope_name(scope));
             prt(buf, 6, 4);
         }
         prt("(3) Browse affected keys", 7, 4);
         prt("ESC returns to the previous menu. ? opens help.", 10, 0);
-        prt("Mode: ", 12, 0);
+        prt("Mode (Enter for Add): ", 12, 0);
 
         ch = _macro_ui_inkey();
         if (ch == ESCAPE) return -1;
@@ -3322,9 +3323,9 @@ static int _macro_ui_prompt_mode(int op, int scope)
             _macro_ui_help();
             continue;
         }
-        if (ch == '\r' || ch == '\n') return MACRO_UI_MODE_REPLACE;
-        if (ch == '1') return MACRO_UI_MODE_REPLACE;
-        if (ch == '2') return MACRO_UI_MODE_ADD;
+        if (ch == '\r' || ch == '\n') return MACRO_UI_MODE_ADD;
+        if (ch == '1') return MACRO_UI_MODE_ADD;
+        if (ch == '2') return MACRO_UI_MODE_REPLACE;
         if (ch == '3') return 3;
         bell();
     }
@@ -3922,20 +3923,26 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
     while (1)
     {
         int ch;
-        int x = 0;
-        int y = 3;
+        int indent = 2;
+        int list_row = preview ? 6 : 5;
+        int max_detail_row = Term->hgt - (preview ? 5 : 4);
+        int detail_row = MIN(preview ? 11 : 9, max_detail_row);
+        int x = indent;
+        int y = list_row;
         int i;
-        int detail_row = Term->hgt - 5;
         int visible_end = top;
         char buf[1024];
+
+        if (detail_row < list_row + 1)
+            detail_row = list_row + 1;
 
         if (cur >= count) cur = MAX(0, count - 1);
         if (cur < top) top = cur;
 
         while (1)
         {
-            x = 0;
-            y = 3;
+            x = indent;
+            y = list_row;
             visible_end = top;
 
             while (visible_end < count)
@@ -3943,7 +3950,7 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
                 int len = strlen(entries[visible_end].label) + 2;
                 if (x + len >= Term->wid)
                 {
-                    x = 0;
+                    x = indent;
                     y++;
                 }
                 if (y >= detail_row) break;
@@ -3956,29 +3963,29 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
         }
 
         Term_clear();
-        prt(title, 0, 0);
+        prt(title, 1, indent);
         if (preview)
         {
-            prt(*replace_view ? "Previewing Replace results." : "Previewing Add results.", 1, 0);
-            prt(*show_all ? "Showing all affected keys. Enter toggles to differences only." : "Showing differences only. Enter toggles to all affected keys.", 2, 0);
+            prt(*replace_view ? "Previewing Replace results." : "Previewing Add results.", 3, indent);
+            prt(*show_all ? "Showing all affected keys. Enter toggles to differences only." : "Showing differences only. Enter toggles to all affected keys.", 4, indent);
         }
         else
-            prt("Browse custom keys. Press a listed key to jump to it. ? opens help.", 1, 0);
+            prt("Press a listed key to jump to it. ? opens help.", 3, indent);
 
         if (count == 0)
         {
-            prt("No keys to display.", 4, 0);
+            prt("No keys to display.", list_row, indent);
         }
         else
         {
-            x = 0;
-            y = 3;
+            x = indent;
+            y = list_row;
             for (i = top; i < visible_end; i++)
             {
                 int len = strlen(entries[i].label) + 2;
                 if (x + len >= Term->wid)
                 {
-                    x = 0;
+                    x = indent;
                     y++;
                 }
                 _macro_ui_put_label(x, y, entries[i].label, i == cur, preview ? _macro_ui_entry_color(entries + i) : TERM_SLATE);
@@ -3986,22 +3993,22 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
             }
 
             strnfmt(buf, sizeof(buf), "Trigger: %s", entries[cur].label);
-            prt(buf, detail_row, 0);
+            prt(buf, detail_row, indent);
             _macro_ui_action_desc(buf, sizeof(buf), entries[cur].new_keymap);
-            prt(format("Keymap: %s", buf), detail_row + 1, 0);
+            prt(format("Keymap: %s", buf), detail_row + 1, indent);
             _macro_ui_action_desc(buf, sizeof(buf), entries[cur].new_macro);
-            prt(format("Macro : %s", buf), detail_row + 2, 0);
+            prt(format("Macro : %s", buf), detail_row + 2, indent);
 
             if (preview)
             {
-                Term_putstr(0, detail_row + 3, -1, TERM_L_GREEN, "New");
-                Term_putstr(6, detail_row + 3, -1, TERM_YELLOW, "Changed");
-                Term_putstr(16, detail_row + 3, -1, TERM_L_RED, "Removed");
-                Term_putstr(26, detail_row + 3, -1, TERM_SLATE, "ESC returns");
-                prt("Tab switches preview between Replace or Add view.", detail_row + 4, 0);
+                Term_putstr(indent, detail_row + 3, -1, TERM_L_GREEN, "New");
+                Term_putstr(indent + 6, detail_row + 3, -1, TERM_YELLOW, "Changed");
+                Term_putstr(indent + 16, detail_row + 3, -1, TERM_L_RED, "Removed");
+                Term_putstr(indent + 26, detail_row + 3, -1, TERM_SLATE, "ESC returns");
+                prt("Tab switches preview between Replace or Add view.", detail_row + 4, indent);
             }
             else
-                prt("Left/Right or 4/6 browse. ESC returns.", detail_row + 3, 0);
+                prt("Left/Right or 4/6 browse. ESC returns.", detail_row + 3, indent);
         }
 
         ch = _macro_ui_inkey_special(TRUE);
@@ -4563,6 +4570,11 @@ static void _macro_ui_restore_original(macro_ui_context_t *ui)
         _keymap_snapshot_apply(&ui->original_keymaps[i]);
 }
 
+static void _macro_ui_notice(macro_ui_context_t *ui, cptr msg)
+{
+    my_strcpy(ui->notice, msg, sizeof(ui->notice));
+}
+
 static void _macro_ui_reset_defaults(macro_ui_context_t *ui)
 {
     while (1)
@@ -4586,31 +4598,31 @@ static void _macro_ui_reset_defaults(macro_ui_context_t *ui)
             _macro_snapshot_apply(&ui->baseline_macros);
             _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ORIG]);
             _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ROGUE]);
-            msg_print("Reset everything to defaults.");
+            _macro_ui_notice(ui, "Reset everything to defaults.");
             return;
         }
         if (ch == 'm')
         {
             _macro_snapshot_apply(&ui->baseline_macros);
-            msg_print("Reset macros to defaults.");
+            _macro_ui_notice(ui, "Reset macros to defaults.");
             return;
         }
         if (ch == 'k')
         {
             _keymap_snapshot_apply(&ui->baseline_keymaps[ui->mode]);
-            msg_print("Reset the current keyset to defaults.");
+            _macro_ui_notice(ui, "Reset the current keyset to defaults.");
             return;
         }
         if (ch == 'K')
         {
             _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ORIG]);
             _keymap_snapshot_apply(&ui->baseline_keymaps[KEYMAP_MODE_ROGUE]);
-            msg_print("Reset both keysets to defaults.");
+            _macro_ui_notice(ui, "Reset both keysets to defaults.");
             return;
         }
         if (ch == ESCAPE || ch == 'n')
         {
-            msg_print("Reset cancelled.");
+            _macro_ui_notice(ui, "Reset cancelled.");
             return;
         }
         bell();
@@ -4888,6 +4900,7 @@ void do_cmd_macros(void)
     int i;
 
     ui.mode = rogue_like_commands ? KEYMAP_MODE_ROGUE : KEYMAP_MODE_ORIG;
+    ui.notice[0] = '\0';
     _macro_snapshot_init(&ui.baseline_macros);
     _macro_snapshot_init(&ui.original_macros);
     for (i = 0; i < KEYMAP_MODES; i++)
@@ -4915,7 +4928,9 @@ void do_cmd_macros(void)
         prt("(r) Reset to defaults...", 12, 4);
         prt("Keymaps suit most custom actions. Macros are mainly for special keys or triggers that must work inside menus.", 14, 0);
         prt("ESC exits. ? opens help.", 16, 0);
-        prt("Command: ", 18, 0);
+        if (ui.notice[0])
+            c_prt(TERM_L_BLUE, ui.notice, 18, 0);
+        prt("Command: ", 20, 0);
 
         ch = _macro_ui_inkey();
         if (ch == ESCAPE) break;
@@ -4947,13 +4962,12 @@ void do_cmd_macros(void)
         if (ch == 'd')
         {
             _macro_ui_restore_original(&ui);
-            msg_print("Discarded unsaved changes.");
+            _macro_ui_notice(&ui, "Discarded unsaved changes.");
             continue;
         }
         if (ch == 'r')
         {
             _macro_ui_reset_defaults(&ui);
-            msg_print("Reset all to defaults.");
             continue;
         }
         bell();

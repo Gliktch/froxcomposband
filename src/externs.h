@@ -131,6 +131,7 @@ extern bool arg_force_original;
 extern bool arg_force_roguelike;
 extern bool arg_bigtile;
 extern bool arg_protected_session;
+extern bool arg_webclient;
 extern bool arg_test;
 extern bool arg_test_headless;
 extern char arg_test_log[1024];

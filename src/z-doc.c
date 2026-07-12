@@ -1021,6 +1021,7 @@ static void _doc_process_var(doc_ptr doc, cptr name)
             else string_append_s(s, "<color:B> (Development)</color>");
         }
         if ((VER_MINOR == 0) && (VER_MAJOR != 7)) string_append_s(s, "<color:r> (Beta)</color>");
+        if (arg_webclient) string_append_s(s, " for angband.live");
         doc_insert(doc, string_buffer(s));
         string_free(s);
     }

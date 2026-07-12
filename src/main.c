@@ -490,6 +490,13 @@ int main(int argc, char *argv[])
 				break;
 			}
 
+			case 'H':
+			case 'h':
+			{
+				arg_webclient = TRUE;
+				break;
+			}
+
 			case 'm':
 			{
 				if (!argv[i][2]) goto usage;
@@ -539,7 +546,8 @@ int main(int argc, char *argv[])
 			usage:
 			{
 				/* Dump usage information */
-				puts("Usage: angband [options] [-- subopts]");
+				puts("Usage: froxcomposband [options] [-- subopts]");
+				puts("");
 				puts("  -n       Start a new character");
 				puts("  -f       Request fiddle mode");
 				puts("  -w       Request wizard mode");
@@ -548,14 +556,16 @@ int main(int argc, char *argv[])
 				puts("  -o       Request original keyset");
 				puts("  -r       Request rogue-like keyset");
 				puts("  -M       Request monochrome mode");
-				puts("  -p       Enable protected session mode");
-				puts("  -t[=<path>]");
-				puts("           Run a release smoke test, optionally logging to <path>");
-				puts("  -T[=<path>]");
-				puts("           Run a headless release smoke test, optionally logging to <path>");
+				puts("  -p       Request protected session mode");
+				puts("  -h       Request web-hosted mode");
+				puts("            (for angband.live, implies -p)");
+				puts("");
 				puts("  -u<who>  Use your <who> savefile");
 				puts("  -m<sys>  Force 'main-<sys>.c' usage");
 				puts("  -d<def>  Define a 'lib' dir sub-path");
+				puts("");
+				puts("  -t[=<logpath>] Run a release smoke test");
+				puts("  -T[=<logpath>] Run a headless release smoke test");
 				puts("");
 
 #ifdef USE_SDL
@@ -618,6 +628,8 @@ int main(int argc, char *argv[])
 		argc = 1;
 		argv[1] = NULL;
 	}
+
+	if (arg_webclient) arg_protected_session = TRUE;
 
 	if (arg_test) package_test_install_hooks();
 

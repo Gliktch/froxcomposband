@@ -2335,15 +2335,22 @@ static void process_monster(int m_idx)
                     msg_format("<color:G>%^s</color> feels neglected.", m_name);
                     cmsg_format(TERM_L_RED, "%^s disappears!", m_name);
                 }
+                else
+                    msg_print("You feel sad for a moment.");
                 delete_monster_idx(m_idx);
                 return;
             }
             else /* Turn hostile */
             {
                 char m_name[80];
-                monster_desc(m_name, m_ptr, 0);
-                msg_format("<color:G>%^s</color> feels neglected.", m_name);
-                cmsg_format(TERM_L_RED, "%^s gets angry!", m_name);
+                if (see_m)
+                {
+                    monster_desc(m_name, m_ptr, 0);
+                    msg_format("<color:G>%^s</color> feels neglected.", m_name);
+                    cmsg_format(TERM_L_RED, "%^s gets angry!", m_name);
+                }
+                else
+                    msg_print("You feel your control wane.");
                 set_hostile(m_ptr);
             }
         }

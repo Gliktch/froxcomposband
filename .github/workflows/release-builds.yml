@@ -87,7 +87,7 @@ jobs:
           rm -rf dist/linux-smoke
           mkdir -p dist/linux-smoke
           tar -xzf "dist/froxcomposband-${RELEASE_TAG}-linux-x86_64.tar.gz" -C dist/linux-smoke --strip-components=1
-          TERM=xterm-256color script -q -e -c "cd dist/linux-smoke && ./froxcomposband -mgcu --test --test-log=smoke-test.log" /tmp/frox-linux-smoke.typescript
+          TERM=xterm-256color script -q -e -c "cd dist/linux-smoke && ./froxcomposband -mgcu -t=smoke-test.log" /tmp/frox-linux-smoke.typescript
           cat dist/linux-smoke/smoke-test.log
 
       - name: Build Debian package
@@ -157,7 +157,7 @@ jobs:
           $smokeDir = Join-Path $PWD "dist/windows-smoke"
           $exe = Join-Path $smokeDir "froxcomposband.exe"
           $log = Join-Path $smokeDir "smoke-test.log"
-          $process = Start-Process -FilePath $exe -ArgumentList @("--test", "--test-log=$log") -WorkingDirectory $smokeDir -PassThru
+          $process = Start-Process -FilePath $exe -ArgumentList @("-t=$log") -WorkingDirectory $smokeDir -PassThru
           if (-not $process.WaitForExit(45000)) {
             Write-Error "Windows smoke process did not exit within 45 seconds"
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
@@ -224,7 +224,7 @@ jobs:
           hdiutil attach "$dmg" -mountpoint "$mount_dir" -nobrowse -quiet
           trap 'hdiutil detach "$mount_dir" -quiet || true; rmdir "$mount_dir" || true' EXIT
           set +e
-          "$mount_dir/FroxComposband.app/Contents/MacOS/FroxComposband" --test --test-log="$log" >"$stdout" 2>"$stderr"
+          "$mount_dir/FroxComposband.app/Contents/MacOS/FroxComposband" -t="$log" >"$stdout" 2>"$stderr"
           status=$?
           set -e
           echo "macOS smoke exit status: $status"

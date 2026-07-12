@@ -513,10 +513,25 @@ int main(int argc, char *argv[])
 
 			case '-':
 			{
-				argv[i] = argv[0];
-				argc = argc - i;
-				argv = argv + i;
-				args = FALSE;
+				if (streq(argv[i], "--"))
+				{
+					argv[i] = argv[0];
+					argc = argc - i;
+					argv = argv + i;
+					args = FALSE;
+				}
+				else if (prefix(argv[i], "---"))
+				{
+					argv[i - 1] = argv[0];
+					argv[i] = argv[i] + 2;
+					argc = argc - i + 1;
+					argv = argv + i - 1;
+					args = FALSE;
+				}
+				else
+				{
+					goto usage;
+				}
 				break;
 			}
 
@@ -534,10 +549,10 @@ int main(int argc, char *argv[])
 				puts("  -r       Request rogue-like keyset");
 				puts("  -M       Request monochrome mode");
 				puts("  -p       Enable protected session mode");
-				puts("  --test[=headless]");
-				puts("           Run a release smoke test");
-				puts("  --test-log=<path>");
-				puts("           Write release smoke test details to <path>");
+				puts("  -t[=<path>]");
+				puts("           Run a release smoke test, optionally logging to <path>");
+				puts("  -T[=<path>]");
+				puts("           Run a headless release smoke test, optionally logging to <path>");
 				puts("  -u<who>  Use your <who> savefile");
 				puts("  -m<sys>  Force 'main-<sys>.c' usage");
 				puts("  -d<def>  Define a 'lib' dir sub-path");

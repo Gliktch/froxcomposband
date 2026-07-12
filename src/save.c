@@ -2073,7 +2073,7 @@ static void _savefile_session_lock_release(void)
 static void _protected_session_mode_unsupported(void)
 {
     Term_clear();
-    prt("Protected session mode was requested via the -p launch parameter,", 2, 0);
+    prt("Protected session mode was requested by the launch configuration,", 2, 0);
     prt("but this build/platform does not support session locking.", 3, 0);
     prt("Press any key to exit.", 5, 0);
     (void)inkey();

@@ -5244,10 +5244,58 @@ static int _cmp_spells(mon_spell_ptr left, mon_spell_ptr right)
     if (left->id.effect > right->id.effect) return 1;
     return 0;
 }
-static vec_ptr _spells_plr(mon_race_ptr race, _spell_p filter, int page)
+static void _adjust_spell_power(mon_spell_ptr spell)
+{
+    if (!_is_attack_spell(spell)) return;
+
+    if (spell->parm.tag == MSP_DICE)
+    {
+        if (spell->parm.v.dice.ds > spell->parm.v.dice.dd)
+            spell->parm.v.dice.ds = spell_power(spell->parm.v.dice.ds);
+        else
+            spell->parm.v.dice.dd = spell_power(spell->parm.v.dice.dd);
+        spell->parm.v.dice.base = spell_power(spell->parm.v.dice.base + p_ptr->to_d_spell);
+    }
+    else if (spell->parm.tag == MSP_HP_PCT)
+    {
+        spell->parm.v.hp_pct.pct = spell_power(spell->parm.v.hp_pct.pct);
+        spell->parm.v.hp_pct.max = spell_power(spell->parm.v.hp_pct.max);
+    }
+}
+
+static mon_spell_ptr _copy_spell_plr(mon_spell_ptr spell, bool adjust_power)
+{
+    mon_spell_ptr copy;
+
+    if (!adjust_power) return spell;
+
+    copy = malloc(sizeof(mon_spell_t));
+    assert(copy);
+
+    *copy = *spell;
+    _adjust_spell_power(copy);
+    return copy;
+}
+
+static void _spells_plr_free(vec_ptr spells, bool adjust_power)
+{
+    if (!spells) return;
+    if (adjust_power)
+    {
+        int i;
+        for (i = 0; i < vec_length(spells); i++)
+        {
+            mon_spell_ptr spell = vec_get(spells, i);
+            if (spell) free(spell);
+        }
+    }
+    vec_free(spells);
+}
+
+static vec_ptr _spells_plr(mon_race_ptr race, _spell_p filter, int page, bool adjust_power)
 {
     vec_ptr v = vec_alloc(NULL);
-    int     i, j, l = 0;
+    int     i, j;
     bool    no_magic = _no_magic();
 
     for (i = 0; i < MST_COUNT; i++)
@@ -5264,10 +5312,7 @@ static vec_ptr _spells_plr(mon_race_ptr race, _spell_p filter, int page)
               && p_ptr->prace == RACE_MON_MIMIC
               && p_ptr->lev < 45 ) continue;
 
-/*            l++;
-            if ((page >= 0) && (((l - 1) / 26) != page)) continue;*/
-
-            vec_add(v, spell);
+            vec_add(v, _copy_spell_plr(spell, adjust_power));
         }
     }
 
@@ -5278,10 +5323,17 @@ static vec_ptr _spells_plr(mon_race_ptr race, _spell_p filter, int page)
         for (i = 0; i < vec_length(v); i++)
         {
             mon_spell_ptr spell;
-            l++;
-            if ((page >= 0) && (((l - 1) / 26) != page)) continue;
+            if ((page >= 0) && ((i / 26) != page)) continue;
             spell = vec_get(v, i);
             vec_add(v2, spell);
+        }
+        if (adjust_power)
+        {
+            for (i = 0; i < vec_length(v); i++)
+            {
+                mon_spell_ptr spell = vec_get(v, i);
+                if (spell && ((i / 26) != page)) free(spell);
+            }
         }
         vec_free(v);
         return v2;
@@ -5292,6 +5344,20 @@ static bool _hp_casting_okay(mon_spell_ptr spell)
 {
     return ((p_ptr->pclass != CLASS_BLUE_MAGE) &&
             ((spell->flags & MSF_INNATE) || ((!p_ptr->msp) && (get_race()->pseudo_class_idx == CLASS_WARRIOR))));
+}
+
+static mon_spell_ptr _spell_cost_base(mon_race_ptr race, mon_spell_ptr spell)
+{
+    mon_spell_ptr base = NULL;
+
+    if (race && race->spells)
+        base = mon_spells_find(race->spells, spell->id);
+    return base ? base : spell;
+}
+
+static int _spell_cost_plr(mon_race_ptr race, mon_spell_ptr spell)
+{
+    return mon_spell_cost(_spell_cost_base(race, spell), race);
 }
 
 static void _list_spells(doc_ptr doc, vec_ptr spells, mon_spell_cast_ptr cast)
@@ -5311,7 +5377,7 @@ static void _list_spells(doc_ptr doc, vec_ptr spells, mon_spell_cast_ptr cast)
 
         if (cast->flags & MSC_SRC_PLAYER)
         {
-            cost = mon_spell_cost(spell, cast->race);
+            cost = _spell_cost_plr(cast->race, spell);
             avail = p_ptr->csp;
             if (_hp_casting_okay(spell))
                 avail += p_ptr->chp;
@@ -5352,7 +5418,7 @@ static void _prompt_plr_aux(mon_spell_cast_ptr cast, vec_ptr spells)
         if (0 <= i && i < vec_length(spells))
         {
             mon_spell_ptr spell = vec_get(spells, i);
-            int           cost = mon_spell_cost(spell, cast->race);
+            int           cost = _spell_cost_plr(cast->race, spell);
             int           avail = p_ptr->csp;
             if (_hp_casting_okay(spell))
                 avail += p_ptr->chp;
@@ -5380,7 +5446,7 @@ static void _prompt_plr_aux(mon_spell_cast_ptr cast, vec_ptr spells)
             if (0 <= i && i < vec_length(spells))
             {
                 mon_spell_ptr spell = vec_get(spells, i);
-                int           cost = mon_spell_cost(spell, cast->race);
+                int           cost = _spell_cost_plr(cast->race, spell);
                 int           avail = p_ptr->csp;
                 if (_hp_casting_okay(spell))
                     avail += p_ptr->chp;
@@ -5429,7 +5495,7 @@ static _group_t _poss_groups[] =
     { "Summon", _spell_is_summon, TRUE },
     { 0 }
 };
-static vec_ptr _spell_groups(mon_race_ptr race)
+static vec_ptr _spell_groups(mon_race_ptr race, bool adjust_power)
 {
     int i;
     vec_ptr groups = vec_alloc(NULL);
@@ -5438,11 +5504,11 @@ static vec_ptr _spell_groups(mon_race_ptr race)
         _group_ptr g = ((p_ptr->pclass == CLASS_BLUE_MAGE) ? &_mage_groups[i] : &_poss_groups[i]);
         vec_ptr    v;
         if (!g->name) break;
-        v = _spells_plr(race, g->filter, -1);
+        v = _spells_plr(race, g->filter, -1, adjust_power);
         if (p_ptr->pclass == CLASS_BLUE_MAGE) g->exists = (vec_length(v) > 0);
         if ((vec_length(v)) || (p_ptr->pclass == CLASS_BLUE_MAGE))
             vec_add(groups, g);
-        vec_free(v);
+        _spells_plr_free(v, adjust_power);
     }
     return groups;
 }
@@ -5459,11 +5525,11 @@ static void _list_groups(doc_ptr doc, vec_ptr groups)
         doc_printf(doc, " <color:y>%c</color>) %s\n", I2A(i), group->name);
     }
 }
-static vec_ptr _prompt_spell_group(mon_race_ptr race)
+static vec_ptr _prompt_spell_group(mon_race_ptr race, bool adjust_power)
 {
     doc_ptr doc;
     int     cmd, i, j;
-    vec_ptr groups = _spell_groups(race);
+    vec_ptr groups = _spell_groups(race, adjust_power);
     vec_ptr spells = NULL;
 
     if (REPEAT_PULL(&cmd))
@@ -5473,7 +5539,7 @@ static vec_ptr _prompt_spell_group(mon_race_ptr race)
         if (0 <= i && i < vec_length(groups))
         {
             _group_ptr g = vec_get(groups, i);
-            spells = _spells_plr(race, g->filter, -1);
+            spells = _spells_plr(race, g->filter, -1, adjust_power);
             if (vec_length(spells) > 26)
             {
                 okei = FALSE;
@@ -5482,19 +5548,27 @@ static vec_ptr _prompt_spell_group(mon_race_ptr race)
                     i = A2I(cmd);
                     if ((0 <= i) && (i < ((vec_length(spells) + 25) / 26)))
                     {
-                        vec_free(spells);
-                        spells = _spells_plr(race, g->filter, i);
+                        _spells_plr_free(spells, adjust_power);
+                        spells = _spells_plr(race, g->filter, i, adjust_power);
                         okei = TRUE;
                     }
-                    else vec_free(spells);
+                    else
+                    {
+                        _spells_plr_free(spells, adjust_power);
+                        spells = NULL;
+                    }
                 }
-                else vec_free(spells);
+                else
+                {
+                    _spells_plr_free(spells, adjust_power);
+                    spells = NULL;
+                }
             }
             vec_free(groups);
             if (okei) return spells;
             else if (spells)
             {
-                vec_free(spells);
+                _spells_plr_free(spells, adjust_power);
                 spells = NULL;
             }
         }
@@ -5516,7 +5590,7 @@ static vec_ptr _prompt_spell_group(mon_race_ptr race)
             if (0 <= i && i < vec_length(groups))
             {
                 _group_ptr g = vec_get(groups, i);
-                spells = _spells_plr(race, g->filter, -1);
+                spells = _spells_plr(race, g->filter, -1, adjust_power);
                 REPEAT_PUSH(cmd);
                 break;
             }
@@ -5537,7 +5611,7 @@ static vec_ptr _prompt_spell_group(mon_race_ptr race)
             cmd = _inkey();
             if (cmd == ESCAPE)
             {
-                vec_free(spells);
+                _spells_plr_free(spells, adjust_power);
                 spells = NULL;
                 break;
             }
@@ -5547,8 +5621,8 @@ static vec_ptr _prompt_spell_group(mon_race_ptr race)
                 if ((0 <= j) && (j < (vec_length(spells) + 25) / 26))
                 {
                     _group_ptr g = vec_get(groups, i);
-                    vec_free(spells);
-                    spells = _spells_plr(race, g->filter, j);
+                    _spells_plr_free(spells, adjust_power);
+                    spells = _spells_plr(race, g->filter, j, adjust_power);
                     REPEAT_PUSH(cmd);
                     break;
                 }
@@ -5560,19 +5634,25 @@ static vec_ptr _prompt_spell_group(mon_race_ptr race)
     vec_free(groups);
     return spells;
 }
-static bool _prompt_plr(mon_spell_cast_ptr cast)
+static bool _prompt_plr(mon_spell_cast_ptr cast, mon_spell_ptr spell_copy)
 {
-    vec_ptr spells = (p_ptr->pclass == CLASS_BLUE_MAGE) ? _prompt_spell_group(cast->race) : _spells_plr(cast->race, NULL, -1);
+    bool adjust_power = (p_ptr->pclass != CLASS_BLUE_MAGE) && BOOL(cast->flags & MSC_SRC_PLAYER);
+    vec_ptr spells = (p_ptr->pclass == CLASS_BLUE_MAGE) ? _prompt_spell_group(cast->race, FALSE) : _spells_plr(cast->race, NULL, -1, adjust_power);
     if (!spells) return FALSE;
     if ((p_ptr->pclass != CLASS_BLUE_MAGE) && (vec_length(spells) > 26))
     {
-        vec_free(spells);
-        spells = _prompt_spell_group(cast->race);
+        _spells_plr_free(spells, adjust_power);
+        spells = _prompt_spell_group(cast->race, adjust_power);
         if (!spells) return FALSE;
     }
     if (vec_length(spells))
         _prompt_plr_aux(cast, spells);
-    vec_free(spells);
+    if (cast->spell && spell_copy && adjust_power)
+    {
+        *spell_copy = *cast->spell;
+        cast->spell = spell_copy;
+    }
+    _spells_plr_free(spells, adjust_power);
 
     if ( cast->spell != NULL
       && (cast->flags & MSC_SRC_PLAYER)
@@ -5617,11 +5697,12 @@ static bool _prompt_plr(mon_spell_cast_ptr cast)
 bool mon_spell_cast_possessor(mon_race_ptr race)
 {
     mon_spell_cast_t cast = {0};
+    mon_spell_t spell_copy = {{0}};
     _spell_cast_init_plr(&cast, race);
     assert(cast.race->spells);
-    if (_prompt_plr(&cast))
+    if (_prompt_plr(&cast, &spell_copy))
     {
-        int cost = mon_spell_cost(cast.spell, cast.race);
+        int cost = _spell_cost_plr(cast.race, cast.spell);
         if ((_hp_casting_okay(cast.spell)) && (p_ptr->csp < cost))
         {
             int hp = cost - p_ptr->csp;
@@ -5646,7 +5727,7 @@ bool mon_spell_ai_wizard(mon_spell_cast_ptr cast)
     if (!cast->race->spells) return FALSE;
     if ((cast->flags & MSC_DEST_MONSTER) && !_choose_target(cast)) return FALSE;
     if ((cast->flags & MSC_DEST_PLAYER) && !_default_ai(cast)) return FALSE;
-    return _prompt_plr(cast);
+    return _prompt_plr(cast, NULL);
 }
 
 static int _tutki_taso(mon_spell_id_t id)

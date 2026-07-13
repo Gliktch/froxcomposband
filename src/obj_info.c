@@ -1503,7 +1503,7 @@ void obj_display_inspect(object_type *o_ptr)
     }
     else
     {
-        doc_display_aux(doc, "Object Info", 0, display);
+        doc_display_aux_ex(doc, "Object Info", 0, display, DOC_DISPLAY_NO_SEARCH);
     }
     screen_load();
 
@@ -1531,7 +1531,7 @@ void obj_display_rect(object_type *o_ptr, rect_t display)
     }
     else
     {
-        doc_display_aux(doc, "Object Info", 0, display);
+        doc_display_aux_ex(doc, "Object Info", 0, display, DOC_DISPLAY_NO_SEARCH);
     }
     screen_load();
 
@@ -1946,7 +1946,7 @@ void ego_display_rect(ego_type *e_ptr, rect_t display)
     }
     else
     {
-        doc_display_aux(doc, "Ego Info", 0, display);
+        doc_display_aux_ex(doc, "Ego Info", 0, display, DOC_DISPLAY_NO_SEARCH);
     }
     screen_load();
 

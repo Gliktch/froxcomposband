@@ -973,7 +973,7 @@ void mon_display_instance(monster_type *mon)
     _mon_display_flags = old_flags;
     _mon_display_instance = old_instance;
 }
-void mon_display_rect(monster_race *r_ptr, rect_t display)
+static void _mon_display_rect(monster_race *r_ptr, rect_t display, u32b options)
 {
     doc_ptr doc = doc_alloc(MIN(display.cx, 72));
 
@@ -991,11 +991,98 @@ void mon_display_rect(monster_race *r_ptr, rect_t display)
     }
     else
     {
-        doc_display_aux(doc, "Monster Info", 0, display);
+        doc_display_aux_ex(doc, "Monster Info", 0, display, options);
     }
     screen_load();
 
     doc_free(doc);
+}
+void mon_display_rect(monster_race *r_ptr, rect_t display)
+{
+    _mon_display_rect(r_ptr, display, DOC_DISPLAY_NO_SEARCH);
+}
+static bool _mon_target_scroll(int cmd, int *top, int page_size, int max_top)
+{
+    switch (cmd)
+    {
+    case SKEY_TOP:
+        *top = 0;
+        return TRUE;
+    case SKEY_BOTTOM:
+        *top = max_top;
+        return TRUE;
+    case SKEY_PGUP:
+        *top -= page_size;
+        if (*top < 0) *top = 0;
+        return TRUE;
+    case SKEY_PGDOWN:
+        *top += page_size;
+        if (*top > max_top) *top = max_top;
+        return TRUE;
+    case SKEY_UP:
+    case '8':
+        (*top)--;
+        if (*top < 0) *top = 0;
+        return TRUE;
+    case SKEY_DOWN:
+    case '2':
+        (*top)++;
+        if (*top > max_top) *top = max_top;
+        return TRUE;
+    }
+    return FALSE;
+}
+static int _mon_display_target_doc(doc_ptr doc, rect_t display)
+{
+    int top = 0;
+    int page_size = MAX(1, display.cy - 1);
+    int max_top = MAX(0, doc_cursor(doc).y - page_size);
+
+    if (display.cx > 80)
+        display.cx = 80;
+
+    for (;;)
+    {
+        int cmd;
+
+        doc_sync_term(doc, doc_region_create(0, top, doc->width, top + page_size - 1), doc_pos_create(display.x, display.y));
+        Term_erase(display.x, display.y + display.cy - 1, display.cx);
+        if (max_top)
+            c_put_str(TERM_L_GREEN, "[2/8 or arrows scroll. r or / close. Other target keys return.]",
+                display.y + display.cy - 1, display.x);
+        else
+            c_put_str(TERM_L_GREEN, "[r or / close. Target keys return.]",
+                display.y + display.cy - 1, display.x);
+
+        cmd = inkey_special(TRUE);
+
+        if (cmd == 'r' || cmd == '/')
+            return 0;
+        if (max_top && _mon_target_scroll(cmd, &top, page_size, max_top))
+            continue;
+        return cmd;
+    }
+}
+int mon_display_instance_target(monster_type *mon)
+{
+    byte old_flags = _mon_display_flags;
+    monster_type *old_instance = _mon_display_instance;
+    rect_t display = ui_menu_rect();
+    doc_ptr doc = doc_alloc(MIN(display.cx, 72));
+    int result;
+
+    assert(mon);
+    if (is_pet(mon))
+        _mon_display_flags |= _MON_DISPLAY_RAW_SPELL_DAMAGE;
+    _mon_display_instance = mon;
+    mon_display_doc(mon_apparent_race(mon), doc);
+    screen_save();
+    result = _mon_display_target_doc(doc, display);
+    screen_load();
+    doc_free(doc);
+    _mon_display_flags = old_flags;
+    _mon_display_instance = old_instance;
+    return result;
 }
 void mon_display_doc_instance(monster_type *mon, doc_ptr doc)
 {

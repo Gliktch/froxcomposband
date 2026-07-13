@@ -63,7 +63,7 @@ The action cost of archery depends on how many shots you get per round; if you h
 
 Some spells and class powers have special action costs, costing less (or more commonly more!) than the standard 100 energy. Changing shape as a Beorning, for example, costs 200 energy; and Hounds can activate the Stalk toggle without any energy cost at all.
 
-Even the cost of common actions like walking and book spellcasting is not completely fixed. The <color:G>Fleet of Foot</color> demigod talent (<link:Demigods.txt#Powers>) reduces the energy cost of walking by 40% (from 100 to 60); <color:G>Quick Walk</color> on Ninjas (and Ninja-Lawyers) is even more effective. Yellow-Mages can cast spells extremely rapidly, consuming far less than 100 energy per spell; Yeqrezh Disciples with the Quick Spelling gift can also cast spells rapidly, though not as fast as Yellow-Mages. Devicemasters can use their speciality devices in less than a full turn.
+Even the cost of common actions like walking and book spellcasting is not completely fixed. The <color:G>Fleet of Foot</color> demigod talent (<link:Demigods.txt#Powers>) reduces the energy cost of walking by 40% (from 100 to 60); the <color:G>Mystic Fast</color> toggle gives Mystics the same walking reduction, and stacks with Fleet of Foot. <color:G>Quick Walk</color> on Ninjas (and Ninja-Lawyers) is even more effective. Yellow-Mages can cast spells extremely rapidly, consuming far less than 100 energy per spell; Yeqrezh Disciples with the Quick Spelling gift can also cast spells rapidly, though not as fast as Yellow-Mages. Devicemasters can use their speciality devices in less than a full turn.
 
 <topic:StatusEffects><style:heading>Temporary Haste and Slowness</style>
 

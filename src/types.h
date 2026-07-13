@@ -1196,6 +1196,7 @@ struct player_type
     bool entrenched;
     bool inven_prot;
     bool quick_walk;
+    bool mystic_fast_walk;
     bool filibuster;
 
     s16b tim_no_spells;     /* Blocking spell usage is a side effect of Empowered Blast, but will become an evil monster ability */

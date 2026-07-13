@@ -477,7 +477,7 @@ static void _calc_bonuses(void)
             p_ptr->skills.stl += 2 + 3 * p_ptr->lev/50;
             break;
         case MYSTIC_TOGGLE_FAST:
-            p_ptr->quick_walk = TRUE;
+            p_ptr->mystic_fast_walk = TRUE;
             break;
         case MYSTIC_TOGGLE_DEFENSE:
         {

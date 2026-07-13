@@ -4543,6 +4543,7 @@ void calc_bonuses(void)
     p_ptr->open_terrain_ct = 0;
 
     p_ptr->quick_walk = FALSE;
+    p_ptr->mystic_fast_walk = FALSE;
     p_ptr->monk_lvl = 0;
 
     p_ptr->align = friend_align;

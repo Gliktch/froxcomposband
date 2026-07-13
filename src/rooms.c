@@ -3405,10 +3405,13 @@ static bool generate_fracave(int y0, int x0, int xsize, int ysize, int cutoff, b
                     cave[my][mx].info |= (CAVE_ROOM);
                     if (atlantis_hack)
                     {
-                        if ((cave[my][mx].mimic) && (have_flag(f_info[cave[my][mx].mimic].flags, FF_WALL)))
+                        int mimic = cave[my][mx].mimic;
+                        int feat = mimic % max_f_idx;
+
+                        if ((mimic) && (have_flag(f_info[feat].flags, FF_WALL)))
                         {
-                            add_cave_info(my, mx, (cave[my][mx].mimic >= max_f_idx) ? CAVE_OUTER : CAVE_EXTRA);
-                            cave[my][mx].feat = (cave[my][mx].mimic % max_f_idx);
+                            add_cave_info(my, mx, (mimic >= max_f_idx) ? CAVE_OUTER : CAVE_EXTRA);
+                            cave[my][mx].feat = feat;
                         }
                         cave[my][mx].mimic = 0;
                     }
@@ -3686,10 +3689,13 @@ static bool generate_lake(int y0, int x0, int xsize, int ysize, int c1, int c2, 
                 place_extra_bold_aux(my, mx);
             else if (atlantis_hack)
             {
-                if ((cave[my][mx].mimic) && (have_flag(f_info[cave[my][mx].mimic].flags, FF_WALL)))
+                int mimic = cave[my][mx].mimic;
+                int feat = mimic % max_f_idx;
+
+                if ((mimic) && (have_flag(f_info[feat].flags, FF_WALL)))
                 {
-                    add_cave_info(my, mx, (cave[my][mx].mimic >= max_f_idx) ? CAVE_OUTER : CAVE_EXTRA);
-                    cave[my][mx].feat = cave[my][mx].mimic % max_f_idx;
+                    add_cave_info(my, mx, (mimic >= max_f_idx) ? CAVE_OUTER : CAVE_EXTRA);
+                    cave[my][mx].feat = feat;
                 }
                 cave[my][mx].mimic = 0;
             }
@@ -4609,4 +4615,3 @@ bool generate_rooms(void)
 
     return TRUE;
 }
-

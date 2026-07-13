@@ -711,7 +711,9 @@ static int _choose_spell(power_info* spells, int ct, cptr verb, cptr desc, int m
 
         if (allow_character_sheet && (ch == 'C'))
         {
+            screen_load();
             py_display();
+            screen_save();
             continue;
         }
 

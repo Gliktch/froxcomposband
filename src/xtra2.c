@@ -187,11 +187,14 @@ void gain_chosen_stat(void)
             choice = inkey();
             if (choice == 'C')
             {
+                screen_load();
                 py_display();
-                continue;
+                screen_save();
+                break;
             }
             if ((choice >= 'a') && (choice <= 'f')) break;
         }
+        if ((choice < 'a') || (choice > 'f')) continue;
         for(n = 0; n < 6; n++)
         {
             if (n != choice - 'a')

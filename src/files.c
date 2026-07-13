@@ -3258,10 +3258,8 @@ static void _frox_import_copy_all(_frox_import_result_t *result)
         _frox_copy_dir_files(legacy_save, ANGBAND_DIR_SAVE, _frox_save_file, TRUE, result);
     }
 
-    if (result->replaced || result->renamed || result->skipped_existing)
+    if (result->copied || result->replaced || result->renamed || result->skipped_existing)
         _frox_import_suppress(TRUE);
-    else if (result->copied)
-        _frox_import_suppress(FALSE);
 }
 
 static void _frox_import_report_result(_frox_import_result_t *result)

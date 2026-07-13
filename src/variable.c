@@ -799,6 +799,8 @@ u32b saved_floor_file_sign;
  * The array of dungeon items [max_o_idx]
  */
 object_type *o_list;
+object_type object_track_obj;
+bool object_track_valid;
 
 /*
  * The array of dungeon monsters [max_m_idx]

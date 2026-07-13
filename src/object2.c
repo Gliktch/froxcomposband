@@ -4742,10 +4742,11 @@ void display_koff(int k_idx)
     int y;
 
     object_type forge;
-    object_type *q_ptr;
+    object_type *q_ptr = NULL;
     int         sval;
     int         use_realm;
     rect_t      display = {0};
+    bool        is_spellbook = FALSE;
 
     char o_name[MAX_NLEN];
 
@@ -4765,11 +4766,16 @@ void display_koff(int k_idx)
     /* No info */
     if (!k_idx) return;
 
-    /* Get local object */
-    q_ptr = &forge;
-
-    /* Prepare the object */
-    object_prep(q_ptr, k_idx);
+    if (object_track_valid && object_track_obj.k_idx == k_idx)
+    {
+        q_ptr = &object_track_obj;
+    }
+    else
+    {
+        q_ptr = &forge;
+        object_prep(q_ptr, k_idx);
+        q_ptr->ident |= IDENT_KNOWN;
+    }
 
     /* Describe */
     object_desc(o_name, q_ptr, (OD_OMIT_PREFIX | OD_NAME_ONLY | OD_STORE));
@@ -4779,6 +4785,17 @@ void display_koff(int k_idx)
 
     /* Access the item's sval */
     sval = q_ptr->sval;
+    is_spellbook = obj_is_book(q_ptr);
+    if (!is_spellbook)
+    {
+        doc_ptr doc = doc_alloc(MIN(72, Term->wid));
+
+        obj_display_doc(q_ptr, doc);
+        doc_sync_term(doc, doc_range_top_lines(doc, Term->hgt), doc_pos_create(0, 0));
+        doc_free(doc);
+        return;
+    }
+
     use_realm = tval2realm(q_ptr->tval);
 
     /* Warriors are illiterate */

@@ -1093,7 +1093,7 @@ static void _kata_menu_fn(int cmd, int which, vptr cookie, variant *res)
         var_set_string(res, which ? format("Form of %s", kata_shurui[which - 1].desc) : "No Form");
         break;
     case MENU_COLOR:
-        var_set_int(res, (kata_shurui[which - 1].min_level > p_ptr->lev) ? TERM_L_DARK : TERM_WHITE);
+        var_set_int(res, (which && (kata_shurui[which - 1].min_level > p_ptr->lev)) ? TERM_L_DARK : TERM_WHITE);
         break;
     case MENU_HELP:
         var_set_string(res, which ? kata_shurui[which - 1].info : "");

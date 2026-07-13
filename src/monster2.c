@@ -2680,6 +2680,20 @@ void update_mon(int m_idx, bool full)
     {
         /* Extract the distance */
         d = m_ptr->cdis;
+
+        /* Newly placed or restored monsters can reach visibility-only
+         * updates before a full distance pass. Treat unknown distance as
+         * unknown, not adjacent. */
+        if (!d)
+        {
+            int dy = (py > fy) ? (py - fy) : (fy - py);
+            int dx = (px > fx) ? (px - fx) : (fx - px);
+
+            d = (dy > dx) ? (dy + (dx>>1)) : (dx + (dy>>1));
+            if (d > 255) d = 255;
+            if (!d) d = 1;
+            m_ptr->cdis = d;
+        }
     }
 
 

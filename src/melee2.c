@@ -3220,7 +3220,7 @@ static void process_monster(int m_idx)
                     if (disturb_minor)
                     {
                         if (have_flag(f_ptr->flags, FF_GLASS))
-                            msg_print("You hear a glass was crashed!");
+                            msg_print("You hear the crash of breaking glass!");
                         else
                             msg_print("You hear a door burst open!");
 

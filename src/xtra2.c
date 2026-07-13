@@ -4333,6 +4333,8 @@ enum {
     _TARGET_RECALL_FLOOR
 };
 
+#define _TARGET_RECALL_CONTINUE 0x10000
+
 static bool _target_is_recall_cmd(int query)
 {
     return query == 'r' || query == '/';
@@ -4357,7 +4359,7 @@ static cptr _target_symbol_desc(monster_type *m_ptr)
     return buf;
 }
 
-static void _target_do_recall(byte type, s16b ref)
+static int _target_do_recall(byte type, s16b ref, bool target_passthrough)
 {
     switch (type)
     {
@@ -4368,7 +4370,13 @@ static void _target_do_recall(byte type, s16b ref)
         mon_track(m_ptr);
         health_track(ref);
         handle_stuff();
-        mon_display_instance(m_ptr);
+        if (target_passthrough)
+        {
+            int result = mon_display_instance_target(m_ptr);
+            if (result) return result;
+        }
+        else
+            mon_display_instance(m_ptr);
         break;
     }
     case _TARGET_RECALL_SYMBOL:
@@ -4382,6 +4390,7 @@ static void _target_do_recall(byte type, s16b ref)
         obj_display_inspect(&o_list[ref]);
         break;
     }
+    return _TARGET_RECALL_CONTINUE;
 }
 
 static int _target_find_recall_start(byte *types, s16b *refs, int ct, int current_type, s16b current_ref, int recall_idx)
@@ -4400,18 +4409,17 @@ static int _target_find_recall_start(byte *types, s16b *refs, int ct, int curren
     return 0;
 }
 
-static bool _target_handle_recall_query(int query, byte *types, s16b *refs, int ct, int *recall_idx, int current_type, s16b current_ref)
+static int _target_handle_recall_query(int query, byte *types, s16b *refs, int ct, int *recall_idx, int current_type, s16b current_ref, bool target_passthrough)
 {
     int start;
 
-    if (!_target_is_recall_cmd(query)) return FALSE;
+    if (!_target_is_recall_cmd(query)) return 0;
 
     start = _target_find_recall_start(types, refs, ct, current_type, current_ref, *recall_idx);
-    if (start < 0) return FALSE;
+    if (start < 0) return 0;
 
     *recall_idx = start;
-    _target_do_recall(types[start], refs[start]);
-    return TRUE;
+    return _target_do_recall(types[start], refs[start], target_passthrough && types[start] == _TARGET_RECALL_MONSTER);
 }
 
 
@@ -4591,8 +4599,17 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             /* Command */
             query = inkey();
 
-            if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
-                fuzzy ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER, c_ptr->m_idx))
+            {
+                int recall_query = _target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                    fuzzy ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER, c_ptr->m_idx,
+                    !(mode & TARGET_LOOK) && _target_allows_monster_target(mode, c_ptr));
+                if (recall_query)
+                {
+                    if (recall_query == _TARGET_RECALL_CONTINUE) continue;
+                    query = recall_query;
+                }
+            }
+            if (query == _TARGET_RECALL_CONTINUE)
             {
                 continue;
             }
@@ -4651,8 +4668,16 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             move_cursor_relative(y, x);
             query = inkey();
 
-            if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
-                _TARGET_RECALL_CARRIED, this_o_idx))
+            {
+                int recall_query = _target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                    _TARGET_RECALL_CARRIED, this_o_idx, FALSE);
+                if (recall_query)
+                {
+                    if (recall_query == _TARGET_RECALL_CONTINUE) continue;
+                    query = recall_query;
+                }
+            }
+            if (query == _TARGET_RECALL_CONTINUE)
             {
                 continue;
             }
@@ -4705,8 +4730,16 @@ static int target_set_aux(int y, int x, int mode, cptr info)
 
             query = inkey();
 
-            if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
-                recall_type, recall_ref))
+            {
+                int recall_query = _target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                    recall_type, recall_ref, FALSE);
+                if (recall_query)
+                {
+                    if (recall_query == _TARGET_RECALL_CONTINUE) continue;
+                    query = recall_query;
+                }
+            }
+            if (query == _TARGET_RECALL_CONTINUE)
             {
                 continue;
             }
@@ -4732,13 +4765,22 @@ static int target_set_aux(int y, int x, int mode, cptr info)
 
                 query = inkey();
 
-                if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
-                    (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
-                        ? ((m_list[c_ptr->m_idx].mflag2 & MFLAG2_FUZZY) ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER)
-                        : _TARGET_RECALL_FLOOR,
-                    (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
-                        ? c_ptr->m_idx
-                        : inv_obj(inv, 1)->loc.slot))
+                {
+                    int recall_query = _target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                        (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+                            ? ((m_list[c_ptr->m_idx].mflag2 & MFLAG2_FUZZY) ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER)
+                            : _TARGET_RECALL_FLOOR,
+                        (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+                            ? c_ptr->m_idx
+                            : inv_obj(inv, 1)->loc.slot,
+                        FALSE);
+                    if (recall_query)
+                    {
+                        if (recall_query == _TARGET_RECALL_CONTINUE) continue;
+                        query = recall_query;
+                    }
+                }
+                if (query == _TARGET_RECALL_CONTINUE)
                 {
                     continue;
                 }
@@ -4766,13 +4808,22 @@ static int target_set_aux(int y, int x, int mode, cptr info)
             query = inkey();
             screen_load();
 
-            if (_target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
-                (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
-                    ? ((m_list[c_ptr->m_idx].mflag2 & MFLAG2_FUZZY) ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER)
-                    : _TARGET_RECALL_FLOOR,
-                (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
-                    ? c_ptr->m_idx
-                    : inv_obj(inv, 1)->loc.slot))
+            {
+                int recall_query = _target_handle_recall_query(query, recall_types, recall_refs, recall_ct, &recall_idx,
+                    (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+                        ? ((m_list[c_ptr->m_idx].mflag2 & MFLAG2_FUZZY) ? _TARGET_RECALL_SYMBOL : _TARGET_RECALL_MONSTER)
+                        : _TARGET_RECALL_FLOOR,
+                    (hide_monsters && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
+                        ? c_ptr->m_idx
+                        : inv_obj(inv, 1)->loc.slot,
+                    FALSE);
+                if (recall_query)
+                {
+                    if (recall_query == _TARGET_RECALL_CONTINUE) continue;
+                    query = recall_query;
+                }
+            }
+            if (query == _TARGET_RECALL_CONTINUE)
             {
                 continue;
             }
@@ -4958,7 +5009,7 @@ bool target_set(int mode)
     bool       done = FALSE;
     bool       flag = TRUE;
     bool       travel_tgt = FALSE;
-    char       query;
+    int        query;
     char       info[80];
 
     cave_type *c_ptr;
@@ -5007,11 +5058,11 @@ bool target_set(int mode)
             /* Allow target */
             if (_target_allows_monster_target(mode, c_ptr))
             {
-                strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,+,-,/,?,<dir>" : "q,t,p,o,x,j,+,-,/,?,<dir>");
+                strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,+,-,?,<dir>" : "q,t,p,o,x,j,+,-,?,<dir>");
             }
             else
             {
-                strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,/,?,<dir>" : "q,p,o,x,j,+,-,/,?,<dir>");
+                strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,?,<dir>" : "q,p,o,x,j,+,-,?,<dir>");
             }
 
             /* Describe and Prompt */
@@ -5270,14 +5321,14 @@ bool target_set(int mode)
                 if (_target_mode_hides_monsters(mode))
                     strcpy(info, rogue_like_commands ? "q,p,o,x,(,?,<dir>" : "q,p,o,x,j,(,?,<dir>");
                 else
-                    strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,/,?,<dir>" : "q,p,o,x,j,+,-,/,?,<dir>");
+                    strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,?,<dir>" : "q,p,o,x,j,+,-,?,<dir>");
             }
             else
             {
                 if (_target_mode_hides_monsters(mode))
                     strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,?,<dir>" : "q,t,p,o,x,j,(,?,<dir>");
                 else
-                    strcpy(info, rogue_like_commands ? "q,t,p,m,x,(,+,-,/,?,<dir>" : "q,t,p,m,x,j,+,-,/,?,<dir>");
+                    strcpy(info, rogue_like_commands ? "q,t,p,m,x,(,+,-,?,<dir>" : "q,t,p,m,x,j,+,-,?,<dir>");
             }
 
 

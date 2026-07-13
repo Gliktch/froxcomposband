@@ -2902,6 +2902,11 @@ int doc_display_character_sheet(doc_ptr doc)
 
 int doc_display_aux(doc_ptr doc, cptr caption, int top, rect_t display)
 {
+    return doc_display_aux_ex(doc, caption, top, display, 0);
+}
+
+int doc_display_aux_ex(doc_ptr doc, cptr caption, int top, rect_t display, u32b options)
+{
     int     rc = _OK;
     int     i;
     char    search_status[255];
@@ -2909,6 +2914,7 @@ int doc_display_aux(doc_ptr doc, cptr caption, int top, rect_t display)
     bool    done = FALSE;
     bool    verify_format_hack = (strpos("Character Sheet", caption) == 1);
     _doc_search_t search = {{0}};
+    bool    allow_search = !(options & DOC_DISPLAY_NO_SEARCH);
 
     page_size = display.cy - 4;
 
@@ -2928,21 +2934,35 @@ int doc_display_aux(doc_ptr doc, cptr caption, int top, rect_t display)
         c_put_str(TERM_L_GREEN, format("[%s, Line %d/%d]", caption, top, doc->cursor.y), display.y, display.x);
         doc_sync_term(doc, doc_region_create(0, top, doc->width, top + page_size - 1), doc_pos_create(display.x, display.y + 2));
         Term_erase(display.x, display.y + display.cy - 2, display.cx);
-        _doc_search_status(search_status, sizeof(search_status), &search);
+        if (allow_search) _doc_search_status(search_status, sizeof(search_status), &search);
+        else search_status[0] = '\0';
         if (search_status[0])
             c_put_str(TERM_YELLOW, search_status, display.y + display.cy - 2, display.x);
         Term_erase(display.x, display.y + display.cy - 1, display.cx);
-        c_put_str(TERM_L_GREEN, "[ESC exit. / or Ctrl+F find. Enter/F3 next. Shift+F3 prev. ? help]",
-            display.y + display.cy - 1, display.x);
+        if (allow_search)
+        {
+            c_put_str(TERM_L_GREEN, "[Press / or Ctrl+F to find, Enter/F3 for next, ? for help or ESC to exit]",
+                display.y + display.cy - 1, display.x);
+        }
+        else if (screen_dump)
+        {
+            c_put_str(TERM_L_GREEN, "[Press Arrows/PgUp/PgDn to scroll, | to save to file or ESC to exit]",
+                display.y + display.cy - 1, display.x);
+        }
+        else
+        {
+            c_put_str(TERM_L_GREEN, "[Press Arrows/PgUp/PgDn to scroll, ? for help or ESC to exit]",
+                display.y + display.cy - 1, display.x);
+        }
 
         cmd = inkey_special(TRUE);
 
-        if (_doc_search_prompt_cmd(cmd, &search))
+        if (allow_search && _doc_search_prompt_cmd(cmd, &search))
         {
             _doc_search_open(doc, display, &search);
             continue;
         }
-        if (search.active)
+        if (allow_search && search.active)
         {
             if (cmd == '\r' || cmd == '\n' || cmd == KTRL('F') || _doc_cmd_is_f3(cmd))
             {
@@ -3191,7 +3211,7 @@ int weapon_exp_display(doc_ptr doc, cptr caption, int *top)
         c_put_str(TERM_L_GREEN, format("[%s, Line %d/%d]", caption, *top, doc->cursor.y), display.y, display.x);
         doc_sync_term(doc, doc_region_create(0, *top, doc->width, *top + page_size - 1), doc_pos_create(display.x, display.y + 2));
         Term_erase(display.x, display.y + display.cy - 1, display.cx);
-        c_put_str(TERM_L_GREEN, "[Press ESC to exit. Press M to toggle mode. Press ? for help]", display.y + display.cy - 1, display.x);
+        c_put_str(TERM_L_GREEN, "[Press m to toggle display mode, ? for help or ESC to exit]", display.y + display.cy - 1, display.x);
 
         cmd = inkey_special(TRUE);
 

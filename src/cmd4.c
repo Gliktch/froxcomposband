@@ -1247,7 +1247,7 @@ void do_cmd_notes(void)
 
         clear_from(0);
         prt("Dungeon Notes", 2, 0);
-        prt("Press Enter for the default choice. ESC exits.", 4, 0);
+        prt("Press Enter for the default choice, or ESC to exit.", 4, 0);
         prt(format("(s) This save%s", default_cmd == 's' ? " [default]" : ""), 6, 4);
         if (can_dungeon)
             prt(format("(d) This dungeon%s", default_cmd == 'd' ? " [default]" : ""), 7, 4);
@@ -3293,7 +3293,7 @@ static int _macro_ui_prompt_scope(int op)
         prt("(1) All customizations", 5, 4);
         prt("(2) Keymaps only", 6, 4);
         prt("(3) Macros only", 7, 4);
-        prt("ESC returns to the previous menu. ? opens help.", 10, 0);
+        prt("Press ? for help or ESC to return.", 10, 0);
         prt("Scope (Enter for All): ", 12, 0);
 
         ch = _macro_ui_inkey();
@@ -3336,7 +3336,7 @@ static int _macro_ui_prompt_mode(int op, int scope)
             prt(buf, 6, 4);
         }
         prt("(3) Browse affected keys", 7, 4);
-        prt("ESC returns to the previous menu. ? opens help.", 10, 0);
+        prt("Press ? for help or ESC to return.", 10, 0);
         prt("Mode (Enter for Add): ", 12, 0);
 
         ch = _macro_ui_inkey();
@@ -3993,7 +3993,7 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
             prt(*show_all ? "Showing all affected keys. Enter toggles to differences only." : "Showing differences only. Enter toggles to all affected keys.", 4, indent);
         }
         else
-            prt("Press a listed key to jump to it. ? opens help.", 3, indent);
+            prt("Press a listed key to jump to it. ? for help or ESC to return.", 3, indent);
 
         if (count == 0)
         {
@@ -4056,6 +4056,9 @@ static bool _macro_ui_browse_entries(cptr title, macro_ui_entry_t *entries, int 
 
         switch (ch)
         {
+        case '.':
+        case ';':
+            break;
         case '4':
         case SKEY_LEFT:
             if (cur > 0) cur--;
@@ -4394,12 +4397,21 @@ static void _macro_ui_customize_key(macro_ui_context_t *ui)
     char action[1024];
     int ch;
 
-    Term_clear();
-    prt("Customize a Key", 2, 0);
-    prt("Press the key or trigger to customize. ESC cancels. ? opens help.", 4, 0);
-    prt("Trigger: ", 6, 0);
+    while (1)
+    {
+        Term_clear();
+        prt("Customize a Key", 2, 0);
+        prt("Press the key or trigger to customize, ? for help or ESC to cancel.", 4, 0);
+        prt("Trigger: ", 6, 0);
 
-    if (!_macro_ui_capture_trigger(trigger)) return;
+        if (!_macro_ui_capture_trigger(trigger)) return;
+        if (trigger[0] == '?' && !trigger[1])
+        {
+            _macro_ui_help();
+            continue;
+        }
+        break;
+    }
 
     _macro_ui_trigger_label(label, sizeof(label), trigger);
 
@@ -4435,7 +4447,7 @@ static void _macro_ui_customize_key(macro_ui_context_t *ui)
         prt("(k) Edit keymap", 11, 4);
         prt("(m) Edit macro", 12, 4);
         prt("(r) Reset this key to defaults", 13, 4);
-        prt("ESC returns. ? opens help.", 15, 0);
+        prt("Press ? for help or ESC to return.", 15, 0);
         prt("Command: ", 17, 0);
 
         ch = _macro_ui_inkey();
@@ -4607,7 +4619,7 @@ static void _macro_ui_reset_defaults(macro_ui_context_t *ui)
         Term_clear();
         prt("Reset to Defaults", 2, 0);
         prt("Reset (m)acros, current (k)eyset, both (K)eysets, (y)everything, or (n)othing?", 5, 0);
-        prt("Enter resets everything. ? opens help.", 7, 0);
+        prt("Enter resets everything. Press ? for help or ESC to cancel.", 7, 0);
         prt("Choice: ", 9, 0);
 
         ch = _macro_ui_inkey();
@@ -4949,11 +4961,12 @@ void do_cmd_macros(void)
         prt("(c) Customize a key", 9, 4);
         prt("(d) Discard unsaved changes", 11, 4);
         prt("(r) Reset to defaults...", 12, 4);
-        prt("Keymaps suit most custom actions. Macros are mainly for special keys or triggers that must work inside menus.", 14, 0);
-        prt("ESC exits. ? opens help.", 16, 0);
+        prt("Keymaps suit most custom actions.", 14, 0);
+        prt("Macros are mainly for special keys or triggers that must work inside menus.", 15, 0);
+        prt("Press ? for help or ESC to exit.", 17, 0);
         if (ui.notice[0])
-            c_prt(TERM_L_BLUE, ui.notice, 18, 0);
-        prt("Command: ", 20, 0);
+            c_prt(TERM_L_BLUE, ui.notice, 19, 0);
+        prt("Command: ", 21, 0);
 
         ch = _macro_ui_inkey();
         if (ch == ESCAPE) break;

@@ -2419,7 +2419,7 @@ option_type option_info[] =
     { &alert_item_minor,            FALSE, OPT_PAGE_DISTURBANCE, 3, 0,
     "alert_item_minor",             "Alert: Equipped item damaged or cursed" },
 
-    { &alert_item_major,            FALSE, OPT_PAGE_DISTURBANCE, 3, 1,
+    { &alert_item_major,            TRUE,  OPT_PAGE_DISTURBANCE, 3, 1,
     "alert_item_major",             "Alert: Item permanently damaged/lost" },
 
     { &alert_insc_gone,             TRUE,  OPT_PAGE_DISTURBANCE, 0, 2,
@@ -2431,7 +2431,7 @@ option_type option_info[] =
     { &alert_trap_detect,           FALSE, OPT_PAGE_DISTURBANCE, 0, 25,
     "alert_trap_detect",            "Alert: Left a trap-detected area" },
 
-    { &alert_wanted_kill,           FALSE,  OPT_PAGE_DISTURBANCE, 0, 30,
+    { &alert_wanted_kill,           TRUE,   OPT_PAGE_DISTURBANCE, 0, 30,
     "alert_wanted_kill",            "Alert: Wanted unique monster killed" },
 
     { &alert_poison,                TRUE,  OPT_PAGE_DISTURBANCE, 2, 2,
@@ -2637,7 +2637,7 @@ option_type option_info[] =
     { &black_curses,                TRUE,  OPT_PAGE_LIST, 4, 23,
     "black_curses",                 "Show cursed items as black in unwield menu" },
 
-    { &monlist_range,               FALSE,  OPT_PAGE_LIST, 1, 4,
+    { &monlist_range,               TRUE,   OPT_PAGE_LIST, 1, 4,
     "monlist_range",                "Show range, not coords, for line-of-sight mobs" },
 
     { &monlist_range_all,           FALSE,  OPT_PAGE_LIST, 7, 17,

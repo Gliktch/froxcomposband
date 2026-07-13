@@ -61,7 +61,7 @@ X:abbrev_extra
 Y:abbrev_all
 Y:exp_need
 Y:ignore_unview
-X:monlist_range
+Y:monlist_range
 X:monlist_range_all
 Y:monlist_los
 X:monlist_awake
@@ -97,7 +97,9 @@ Y:disturb_minor
 X:town_no_disturb
 X:ring_bell
 Y:disturb_trap_detect
+Y:alert_item_major
 Y:alert_trap_detect
+Y:alert_wanted_kill
 
 ##### Birth Options #####
 

@@ -6,7 +6,6 @@ CONFIG = a_info.txt \
 	d_info.txt \
 	e_info.txt \
 	f_info.txt \
-	help_upd.txt \
 	k_info.txt \
 	m_info.txt \
 	misc.txt \

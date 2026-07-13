@@ -2359,6 +2359,32 @@ static void _sense_object_floor(object_type *o_ptr)
     if (!(o_ptr->ident & IDENT_KNOWN)) o_ptr->ident |= IDENT_SENSE;
 }
 
+static void _sense_or_identify_floor_obj(obj_ptr obj)
+{
+    if ((!obj) || (!obj->k_idx) || obj->tval == TV_GOLD) return;
+
+    if (p_ptr->auto_id)
+    {
+        identify_item(obj);
+        equip_learn_flag(OF_LORE2);
+    }
+    else if ((p_ptr->pclass == CLASS_ALCHEMIST) && (obj->tval == TV_POTION))
+    {
+        identify_item(obj);
+    }
+    else if ((p_ptr->auto_pseudo_id) || (p_ptr->munchkin_pseudo_id))
+    {
+        _sense_object_floor(obj);
+    }
+}
+
+void autopick_sense_floor(point_t loc)
+{
+    inv_ptr floor = inv_filter_floor(loc, NULL);
+    inv_for_each(floor, _sense_or_identify_floor_obj);
+    inv_free(floor);
+}
+
 /* Automatically identify objects, consuming requisite resources.
    We support scrolls and devices as the source for this convenience.
    We ignore fail rates and don't even charge the player energy for
@@ -2431,20 +2457,7 @@ static void _get_obj(obj_ptr obj)
         return;
     }
 
-    /* Player Sensing */
-    if (p_ptr->auto_id)
-    {
-        identify_item(obj);
-        equip_learn_flag(OF_LORE2);
-    }
-    else if ((p_ptr->pclass == CLASS_ALCHEMIST) && (obj->tval == TV_POTION))
-    {
-        identify_item(obj);
-    }
-    else if ((p_ptr->auto_pseudo_id) || (p_ptr->munchkin_pseudo_id))
-    {
-        _sense_object_floor(obj);
-    }
+    _sense_or_identify_floor_obj(obj);
 
     if ((!obj) || (!obj->k_idx)) return;
 

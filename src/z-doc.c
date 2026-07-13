@@ -3211,7 +3211,7 @@ int weapon_exp_display(doc_ptr doc, cptr caption, int *top)
         c_put_str(TERM_L_GREEN, format("[%s, Line %d/%d]", caption, *top, doc->cursor.y), display.y, display.x);
         doc_sync_term(doc, doc_region_create(0, *top, doc->width, *top + page_size - 1), doc_pos_create(display.x, display.y + 2));
         Term_erase(display.x, display.y + display.cy - 1, display.cx);
-        c_put_str(TERM_L_GREEN, "[Press ESC to exit. Press M to toggle mode. Press ? for help]", display.y + display.cy - 1, display.x);
+        c_put_str(TERM_L_GREEN, "[Press m to toggle display mode, ? for help or ESC to exit]", display.y + display.cy - 1, display.x);
 
         cmd = inkey_special(TRUE);
 

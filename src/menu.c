@@ -131,7 +131,9 @@ static int _choose(menu_ptr menu)
 
         if (menu->allow_character_sheet && (ch == 'C'))
         {
+            screen_load();
             py_display();
+            screen_save();
             _list(menu, keys);
             continue;
         }

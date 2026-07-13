@@ -262,6 +262,7 @@ static void _context_make(obj_prompt_context_ptr context)
         switch (context->prompt->where[i])
         {
         case INV_FLOOR:
+            autopick_sense_floor(point(px, py));
             inv = inv_filter_floor(point(px, py), filter);
             inv_sort(inv);
             break;

@@ -5317,6 +5317,22 @@ void object_kind_track(int k_idx)
 {
     /* Save this monster ID */
     p_ptr->object_kind_idx = k_idx;
+    object_track_valid = FALSE;
+
+    /* Window stuff */
+    p_ptr->window |= (PW_OBJECT);
+}
+
+/*
+ * Hack -- track the given object
+ */
+void object_track(object_type *o_ptr)
+{
+    if ((!o_ptr) || (!o_ptr->k_idx)) return;
+
+    p_ptr->object_kind_idx = o_ptr->k_idx;
+    object_track_obj = *o_ptr;
+    object_track_valid = TRUE;
 
     /* Window stuff */
     p_ptr->window |= (PW_OBJECT);

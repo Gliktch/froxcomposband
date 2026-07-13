@@ -2070,7 +2070,7 @@ cptr window_flag_desc[32] =
 
     "Display monster recall",
 
-    "Display spell recall",
+    "Display object recall",
 
     "Display dungeon view",
 

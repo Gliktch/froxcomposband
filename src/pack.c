@@ -38,6 +38,32 @@ void pack_display(doc_ptr doc, obj_p p, int flags)
 
 /* Adding and removing */
 static void pack_push_overflow(obj_ptr obj);
+static bool _pickup_updates_object_recall(obj_ptr obj)
+{
+    int j;
+
+    if ((!obj) || (!obj->k_idx)) return FALSE;
+    if (obj->tval == TV_GOLD) return FALSE;
+    if (obj_is_ammo(obj)) return FALSE;
+
+    switch (obj->tval)
+    {
+    case TV_FOOD:
+    case TV_POTION:
+    case TV_SCROLL:
+    case TV_FLASK:
+        for (j = 1; j <= pack_max(); j++)
+        {
+            obj_ptr pack_obj_ptr = pack_obj(j);
+            if (pack_obj_ptr && obj_can_combine(pack_obj_ptr, obj, INV_PACK))
+                return FALSE;
+        }
+        break;
+    }
+
+    return TRUE;
+}
+
 void pack_carry(obj_ptr obj)
 {
     /* Carrying an object is rather complex, and the pile,
@@ -51,6 +77,8 @@ void pack_carry(obj_ptr obj)
     object_mitze(obj, MITZE_PICKUP);
     if ((!obj) || (!obj->k_idx)) return;
     stats_on_pickup(obj);
+    if (_pickup_updates_object_recall(obj))
+        object_track(obj);
     if (quiver_likes(obj))
         quiver_carry(obj);
     if (obj->number)

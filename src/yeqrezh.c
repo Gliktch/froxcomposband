@@ -1154,7 +1154,7 @@ static int _my_calculate_fail_rate(int level, int base_fail, int stat_idx)
     return MAX(0, fail - (4 * _talent_count(_YQ_EASY)));
 }
 
-static spell_info *_yeqrezh_get_spells_learned(void)
+static spell_info *_yeqrezh_get_spells_learned_aux(bool allow_gain)
 {
     int ct = 0, i;
     static spell_info spells[MAX_SPELLS];
@@ -1174,6 +1174,7 @@ static spell_info *_yeqrezh_get_spells_learned(void)
 
         if (_yq_pick[i] < 0)
         {
+            if (!allow_gain) continue;
             if (!_yeqrezh_gain_spell(i)) continue;
         }
 
@@ -1189,6 +1190,16 @@ static spell_info *_yeqrezh_get_spells_learned(void)
     }
     spells[ct].fn = NULL;
     return spells;
+}
+
+static spell_info *_yeqrezh_get_spells_learned(void)
+{
+    return _yeqrezh_get_spells_learned_aux(TRUE);
+}
+
+spell_info *yeqrezh_get_spells_known(void)
+{
+    return _yeqrezh_get_spells_learned_aux(FALSE);
 }
 
 static int _yeqrezh_get_spells_unlearned(power_info* spells, int max_level, bool check_lv)
@@ -1231,8 +1242,10 @@ static bool _yeqrezh_gain_spell(int slot)
     bool valitse = ((slot % 8) == 7) ? TRUE : FALSE;
     int i, ct, uusi = _INVALID_SPELL, tosipaikka = _INVALID_SPELL;
     int taso = (slot + 1) * 2;
+    static bool _lock = FALSE;
 
     /* Massive paranoia follows */
+    if (_lock) return FALSE;
     if ((slot % 5) == 4) return FALSE;
     if ((slot < 0) || (slot >= _YEQREZH_PICKS)) return FALSE;
     if (!character_dungeon) return FALSE;
@@ -1242,6 +1255,7 @@ static bool _yeqrezh_gain_spell(int slot)
     if (!ct) return FALSE;
     if (valitse && p_ptr->leaving) return FALSE;
 
+    _lock = TRUE;
     if (!valitse)
     {
         while (uusi < 0)
@@ -1253,7 +1267,11 @@ static bool _yeqrezh_gain_spell(int slot)
                 int mahis = 1;
                 if ((!spell) || (!spell->level) || (spell->level < 0))
                 {
-                    if (uusi == _INVALID_SPELL) return FALSE;
+                    if (uusi == _INVALID_SPELL)
+                    {
+                        _lock = FALSE;
+                        return FALSE;
+                    }
                     break; /* paranoia */
                 }
                 if (spell->cost > taso * 4) continue;
@@ -1283,7 +1301,11 @@ static bool _yeqrezh_gain_spell(int slot)
             }
         }
     }
-    if ((uusi < 0) || (uusi >= ct)) return FALSE;
+    if ((uusi < 0) || (uusi >= ct))
+    {
+        _lock = FALSE;
+        return FALSE;
+    }
 
     for (i = 0; _yeqrezh_spells[i].level > 0; i++)
     {
@@ -1293,9 +1315,14 @@ static bool _yeqrezh_gain_spell(int slot)
             break;
         }
     }
-    if (tosipaikka == _INVALID_SPELL) return FALSE;
+    if (tosipaikka == _INVALID_SPELL)
+    {
+        _lock = FALSE;
+        return FALSE;
+    }
     msg_format("Yeqrezh teaches you the spell of <color:v>%s</color>.", get_spell_name(_yeqrezh_spells[tosipaikka].fn));
     _yq_pick[slot] = tosipaikka;
+    _lock = FALSE;
     return TRUE;
 }
 

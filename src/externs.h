@@ -560,6 +560,8 @@ extern u32b saved_floor_file_sign;
 extern object_type *o_list;
 extern object_type object_track_obj;
 extern bool object_track_valid;
+extern object_type spellbook_track_obj;
+extern bool spellbook_track_valid;
 extern monster_type *m_list;
 
 extern pack_info_t *pack_info_list;
@@ -852,6 +854,7 @@ extern void monster_race_track(int r_idx);
 extern void mon_track(mon_ptr mon);
 extern void object_kind_track(int k_idx);
 extern void object_track(object_type *o_ptr);
+extern void spellbook_track(object_type *o_ptr);
 extern void disturb(int stop_search, int flush_output);
 extern void glow_deep_lava_and_bldg(void);
 extern void py_get_display_char_attr(char *c, byte *a);

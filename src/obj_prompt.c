@@ -186,6 +186,7 @@ int obj_prompt(obj_prompt_ptr prompt)
             {
                 obj_ptr obj = inv_obj(tab->inv, slot);
                 object_track(obj);
+                spellbook_track(obj);
                 doc_clear(context.doc);
                 if (object_is_flavor(obj) && !object_is_known(obj))
                 {

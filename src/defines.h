@@ -2437,8 +2437,8 @@ enum {
  */
 #define PW_INVEN        0x00000001     /* Display inven/equip */
 #define PW_EQUIP        0x00000002     /* Display equip/inven */
-#define PW_SPELL        0x00000004     /* Display spell list */
-#define PW_XXX          0x00000008
+#define PW_XXX          0x00000004
+#define PW_SPELL        0x00000008     /* Display spell list */
 #define PW_OBJECT_LIST  0x00000010     /* Display object list */
 #define PW_MONSTER_LIST 0x00000020     /* Display monster list */
 #define PW_MESSAGE      0x00000040     /* Display messages */

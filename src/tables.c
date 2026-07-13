@@ -2054,25 +2054,25 @@ cptr empty_lv_description[EMPTY_MAX] =
  */
 cptr window_flag_desc[32] =
 {
-    "Display inven/equip",
+    "Inventory/Equips",
 
-    "Display equip/inven",
-
-    NULL,
+    "Equips/Inventory",
 
     NULL,
 
-    "Display object list",
-    "Display monster list",
-    "Display messages",
+    "Spell List",
 
-    "Display overhead view",
+    "Object List",
+    "Monster List",
+    "Messages Log",
 
-    "Display monster recall",
+    "Overhead View",
 
-    "Display object recall",
+    "Monster Recall",
 
-    "Display dungeon view",
+    "Object Recall",
+
+    "Dungeon View",
 
     NULL,
 

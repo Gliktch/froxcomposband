@@ -2747,8 +2747,342 @@ static void fix_equip(void)
 
 
 /*
- * Hack -- display equipment in sub-windows
+ * Hack -- display spells in sub-windows
  */
+static int _spell_doc_width(void)
+{
+    int w, h;
+
+    Term_get_size(&w, &h);
+    return MAX(1, w);
+}
+
+static void _variant_string(ang_spell spell, int cmd, char *buf, int max)
+{
+    variant v;
+
+    var_init(&v);
+    spell(cmd, &v);
+    my_strcpy(buf, var_get_string(&v), max);
+    var_clear(&v);
+}
+
+static int _variant_int(ang_spell spell, int cmd)
+{
+    int result;
+    variant v;
+
+    var_init(&v);
+    spell(cmd, &v);
+    result = var_get_int(&v);
+    var_clear(&v);
+
+    return result;
+}
+
+static cptr _nonbook_spell_header(caster_info *caster)
+{
+    switch (p_ptr->pclass)
+    {
+    case CLASS_FORCETRAINER:
+        return "Force Spells";
+    case CLASS_NINJA_LAWYER:
+        return "Ninjutsu Spells";
+    case CLASS_POLITICIAN:
+        if (politician_is_magic) return "Politics Spells";
+        return "Political Skills";
+    case CLASS_DISCIPLE:
+        return "Disciple Spells";
+    case CLASS_BLUE_MAGE:
+        return "Blue Magic (Recently Learned)";
+    default:
+        if (caster && caster->magic_desc) return format("%^s Spells", caster->magic_desc);
+    }
+    return "Spells";
+}
+
+static bool _has_nonbook_spell_source(void)
+{
+    race_t  *race_ptr = get_race();
+    class_t *class_ptr = get_class();
+
+    if (p_ptr->pclass == CLASS_BLUE_MAGE) return TRUE;
+    if (p_ptr->pclass == CLASS_WILD_TALENT) return TRUE;
+    if (race_ptr && (race_ptr->get_spells || race_ptr->get_spells_fn)) return TRUE;
+    if (class_ptr && (class_ptr->get_spells || class_ptr->get_spells_fn)) return TRUE;
+    return FALSE;
+}
+
+enum { _SPELL_SUBWINDOW_NAME_WIDTH = 12 };
+
+static void _display_spell_subwindow_header(doc_ptr doc)
+{
+    doc_printf(doc, "<color:G>   %-*.*s Lvl SP Fail Info</color>\n",
+        _SPELL_SUBWINDOW_NAME_WIDTH, _SPELL_SUBWINDOW_NAME_WIDTH, "Name");
+}
+
+static void _display_power_spell_rows(doc_ptr doc, cptr header, power_info *spells, int ct)
+{
+    int i;
+
+    doc_printf(doc, "<color:G>%s</color>\n", header);
+    if (ct <= 0) return;
+
+    _display_spell_subwindow_header(doc);
+    for (i = 0; i < ct; i++)
+    {
+        spell_info *spell = &spells[i].spell;
+        char name[80];
+        char info[80];
+        char cost[12];
+        int fail = MAX(spell->fail, _variant_int(spell->fn, SPELL_FAIL_MIN));
+        int color = 'w';
+
+        _variant_string(spell->fn, SPELL_NAME, name, sizeof(name));
+        _variant_string(spell->fn, SPELL_INFO, info, sizeof(info));
+
+        if (p_ptr->pclass == CLASS_POLITICIAN)
+            big_num_display(politician_get_cost(spell), cost);
+        else
+            sprintf(cost, "%d", spell->cost);
+
+        if ((spell->level > p_ptr->lev) || (fail >= 100))
+            color = 'D';
+
+        doc_printf(doc, "<color:%c>%c) %-*.*s %2d %3.3s %3d%% %.24s</color>\n",
+            color, (i < (int)strlen(multicase)) ? multicase[i] : '?',
+            _SPELL_SUBWINDOW_NAME_WIDTH, _SPELL_SUBWINDOW_NAME_WIDTH,
+            name, spell->level, cost, fail, info);
+    }
+}
+
+static void _adjust_spell_subwindow_costs(power_info *spells, int ct)
+{
+    int i;
+
+    for (i = 0; i < ct; i++)
+    {
+        spell_info *spell = &spells[i].spell;
+
+        spell->cost += get_spell_cost_extra(spell->fn);
+        spell->fail = MAX(spell->fail, get_spell_fail_min(spell->fn));
+        spell->cost = calculate_cost(spell->cost);
+    }
+}
+
+static magic_type *_book_spell_info(int realm, int spell)
+{
+    if (!is_magic(realm))
+        return &technic_info[realm - MIN_TECHNIC][spell];
+    return &mp_ptr->info[realm - 1][spell];
+}
+
+static bool _book_spell_learned(int realm, int spell)
+{
+    if (p_ptr->pclass == CLASS_SORCERER || p_ptr->pclass == CLASS_RED_MAGE)
+        return TRUE;
+    if (realm == p_ptr->realm2)
+        return BOOL(p_ptr->spell_learned2 & (1L << spell));
+    return BOOL(p_ptr->spell_learned1 & (1L << spell));
+}
+
+static bool _book_spell_forgotten(int realm, int spell)
+{
+    if (realm == p_ptr->realm2)
+        return BOOL(p_ptr->spell_forgotten2 & (1L << spell));
+    return BOOL(p_ptr->spell_forgotten1 & (1L << spell));
+}
+
+static bool _book_spell_worked(int realm, int spell)
+{
+    if (realm == p_ptr->realm2)
+        return BOOL(p_ptr->spell_worked2 & (1L << spell));
+    return BOOL(p_ptr->spell_worked1 & (1L << spell));
+}
+
+static bool _book_spell_visible(int realm, int spell)
+{
+    magic_type *s_ptr = _book_spell_info(realm, spell);
+    int level = lawyer_hack(s_ptr, LAWYER_HACK_LEVEL);
+
+    if (level >= 99) return TRUE;
+    if (_book_spell_learned(realm, spell)) return TRUE;
+    if (_book_spell_forgotten(realm, spell)) return TRUE;
+    if (show_future_spells) return TRUE;
+    return level <= p_ptr->lev;
+}
+
+static void _display_spellbook(doc_ptr doc)
+{
+    object_type *book = &spellbook_track_obj;
+    int realm, spell, ct = 0;
+    char name[MAX_NLEN];
+
+    if (!spellbook_track_valid || !obj_is_readable_book(book)) return;
+
+    realm = tval2realm(book->tval);
+    object_desc(name, book, (OD_OMIT_PREFIX | OD_NAME_ONLY | OD_STORE));
+    doc_printf(doc, "<color:G>Book: %s</color>\n", name);
+    _display_spell_subwindow_header(doc);
+
+    for (spell = 0; spell < 32; spell++)
+    {
+        magic_type *s_ptr;
+        int level, cost, fail, color = 'w';
+        cptr comment;
+        char cost_buf[12];
+
+        if (!(fake_spell_flags[book->sval] & (1L << spell))) continue;
+        if (!_book_spell_visible(realm, spell)) continue;
+
+        s_ptr = _book_spell_info(realm, spell);
+        level = lawyer_hack(s_ptr, LAWYER_HACK_LEVEL);
+        cost = (realm == REALM_HISSATSU) ? s_ptr->smana : mod_need_mana(lawyer_hack(s_ptr, LAWYER_HACK_MANA), spell, realm);
+        fail = spell_chance(spell, realm);
+        sprintf(cost_buf, "%d", cost);
+
+        if (level >= 99)
+        {
+            color = 'D';
+            comment = "illegible";
+        }
+        else if (level > p_ptr->lev)
+        {
+            color = 'D';
+            comment = "future";
+        }
+        else if (_book_spell_forgotten(realm, spell))
+        {
+            color = 'y';
+            comment = "forgotten";
+        }
+        else if (!_book_spell_learned(realm, spell))
+        {
+            color = 'B';
+            comment = "unknown";
+        }
+        else if (!_book_spell_worked(realm, spell))
+        {
+            color = 'G';
+            comment = "untried";
+        }
+        else
+            comment = do_spell(realm, spell, SPELL_INFO);
+
+        doc_printf(doc, "<color:%c>%c) %-*.*s %2d %4.4s %3d%% %.24s</color>\n",
+            color, multicase[ct++],
+            _SPELL_SUBWINDOW_NAME_WIDTH, _SPELL_SUBWINDOW_NAME_WIDTH,
+            level >= 99 ? "(illegible)" : do_spell(realm, spell, SPELL_NAME),
+            level, cost_buf, fail, comment);
+    }
+}
+
+static int _blue_mage_cmp_recent(mon_spell_ptr left, mon_spell_ptr right)
+{
+    int left_order = blue_mage_spell_order(left->id.type, left->id.effect);
+    int right_order = blue_mage_spell_order(right->id.type, right->id.effect);
+
+    if (left_order > right_order) return -1;
+    if (left_order < right_order) return 1;
+    return 0;
+}
+
+static void _display_mon_spell_name(char *buf, int max, mon_spell_ptr spell)
+{
+    doc_ptr name_doc = doc_alloc(255);
+    int i;
+
+    buf[0] = '\0';
+    mon_spell_doc(spell, name_doc);
+    for (i = 0; i < max - 1 && i < _SPELL_SUBWINDOW_NAME_WIDTH; i++)
+    {
+        doc_char_ptr cell = doc_char(name_doc, doc_pos_create(i, 0));
+
+        if (!cell || !cell->c) break;
+        buf[i] = cell->c;
+    }
+    buf[i] = '\0';
+    doc_free(name_doc);
+}
+
+static void _display_blue_mage_spells(doc_ptr doc)
+{
+    mon_race_ptr race = &r_info[MON_SEXY_SWIMSUIT];
+    vec_ptr spells;
+    int i;
+
+    doc_insert(doc, "<color:G>Blue Magic (Recently Learned)</color>\n");
+    if (!race->spells) return;
+
+    spells = mon_spells_all(race->spells);
+    blue_mage_update_parms(spells);
+    vec_sort(spells, (vec_cmp_f)_blue_mage_cmp_recent);
+
+    if (vec_length(spells) > 0)
+        _display_spell_subwindow_header(doc);
+
+    for (i = 0; i < vec_length(spells); i++)
+    {
+        mon_spell_ptr spell = vec_get(spells, i);
+        int color = (spell->prob > p_ptr->lev) ? 'D' : 'w';
+        int cost = mon_spell_cost(spell, race);
+        char name[80];
+
+        _display_mon_spell_name(name, sizeof(name), spell);
+        doc_printf(doc, "<color:%c>%c) %-*.*s %2d %3d %3d%%",
+            color, (i < (int)strlen(multicase)) ? multicase[i] : '?',
+            _SPELL_SUBWINDOW_NAME_WIDTH, _SPELL_SUBWINDOW_NAME_WIDTH,
+            name, spell->prob, cost, blue_mage_spell_fail_rate(spell));
+        list_spell_info(doc, spell, race);
+        doc_insert(doc, "</color>\n");
+    }
+
+    vec_free(spells);
+}
+
+static void _display_spell_subwindow(doc_ptr doc)
+{
+    power_info spells[MAX_SPELLS];
+    caster_info *caster = get_caster_info();
+    bool has_nonbook = _has_nonbook_spell_source();
+    bool has_book_spellcasting = BOOL(p_ptr->realm1 || p_ptr->realm2 || p_ptr->pclass == CLASS_SORCERER || p_ptr->pclass == CLASS_RED_MAGE);
+    int ct = 0;
+
+    if (p_ptr->pclass == CLASS_SKILLMASTER)
+    {
+        doc_insert(doc, "Sorry, the Spells subwindow isn't\n");
+        doc_insert(doc, "supported for Skillmaster, because\n");
+        doc_insert(doc, "y'all are bloody weird with regards\n");
+        doc_insert(doc, "to how the spell lists are built...\n");
+        return;
+    }
+
+    if (p_ptr->pclass == CLASS_BLUE_MAGE)
+    {
+        _display_blue_mage_spells(doc);
+        return;
+    }
+
+    if (has_nonbook && caster)
+    {
+        bool old_inkey_xtra = inkey_xtra;
+        if (disciple_is_(DISCIPLE_YEQREZH))
+        {
+            ct = get_spells_aux(spells, MAX_SPELLS, yeqrezh_get_spells_known(), TRUE);
+            _adjust_spell_subwindow_costs(spells, ct);
+        }
+        else
+            ct = get_spell_table(spells, MAX_SPELLS, TRUE);
+        inkey_xtra = old_inkey_xtra;
+        _display_power_spell_rows(doc, _nonbook_spell_header(caster), spells, ct);
+    }
+
+    if (has_book_spellcasting && spellbook_track_valid && obj_is_readable_book(&spellbook_track_obj))
+        _display_spellbook(doc);
+    else if (has_book_spellcasting && !has_nonbook)
+        doc_insert(doc, "No spellbook selected.\n");
+}
+
 static void fix_spell(void)
 {
     int j;
@@ -2768,7 +3102,16 @@ static void fix_spell(void)
         Term_activate(angband_term[j]);
 
         /* Display spell list */
-        /* display_spell_list();*/
+        {
+            doc_ptr doc = doc_alloc(_spell_doc_width());
+
+            Term_clear();
+            doc_insert(doc, "<style:table>");
+            _display_spell_subwindow(doc);
+            doc_insert(doc, "</style>");
+            doc_sync_term(doc, doc_range_top_lines(doc, Term->hgt), doc_pos_create(0, 0));
+            doc_free(doc);
+        }
 
         /* Fresh */
         Term_fresh();

@@ -612,13 +612,16 @@ If this option is set, the program will attempt to save your character every <co
 
 Some platforms support <color:keyword>subwindows</color>, which are additional, automatically updating terminals used to keep useful information on permanent display (see <link:subwin.txt> for more information). These window flags can be used to specify what information each subwindow displays; the possible choices should be fairly obvious.
   <indent>
-<color:U>Display inven/equip</color>
+<color:U>Inventory/Equips</color>
 Displays the player inventory (and sometimes the equipment). Note that you can toggle between Inventory and Equipment by pressing <color:keypress>^I</color>.
 
-<color:U>Display equip/inven</color>
+<color:U>Equips/Inventory</color>
 Displays the player equipment (and sometimes the inventory). Note that you can toggle between Inventory and Equipment by pressing <color:keypress>^I</color>.
 
-<color:U>Display Object List</color>
+<color:U>Spell List</color>
+Displays the player's available spells, including class spells, recently learned Blue Magic, and the most recently selected spellbook where applicable.
+
+<color:U>Object List</color>
 This option displays the results of the <color:keyword>Object List</color> command (<color:keypress>O</color>/<color:keypress>]</color>); for example:
 <style:screenshot>
   There is 1 wanted object:
@@ -630,7 +633,7 @@ This option displays the results of the <color:keyword>Object List</color> comma
    <color:s>]</color> <color:U>a Pair of Metal Shod Boots          </color> S 18 E 29
    <color:s>/</color> an Awl-Pike                          S 19 E 29
 </style>
-<color:U>Display Monster List</color>
+<color:U>Monster List</color>
 This option displays the results of the <color:keyword>Monster List</color> command (<color:keypress>Y</color>/<color:keypress>[</color>); for example:
 <style:screenshot>
   You are aware of 4 monsters, 4 are awake:
@@ -638,19 +641,19 @@ This option displays the results of the <color:keyword>Monster List</color> comm
    <color:D>t</color> Agent of black market                N  9 W 54
    <color:y>t</color> Singing, happy drunk                 S 22 E 72
 </style>
-<color:U>Display messages</color>
+<color:U>Messages Log</color>
 Displays the most recent messages (compare the <color:keypress>^P</color> command).
 
-<color:U>Display overhead view</color>
+<color:U>Overhead View</color>
 Displays an overhead view of the entire dungeon; this can be somewhat slow on older machines, and gives the same results as the <color:keypress>M</color> command.
 
-<color:U>Display monster recall</color>
+<color:U>Monster Recall</color>
 Displays a description of the monster most recently attacked, targeted, or examined in some way.
 
-<color:U>Display spell recall</color>
-Displays the contents of the spellbook most recently used or browsed. This window flag may be usefully combined with others, such as monster recall.
+<color:U>Object Recall</color>
+Displays a description of the object most recently picked up or examined in some way.
 
-<color:U>Display dungeon view</color>
+<color:U>Dungeon View</color>
 Displays a copy of the map.
 
 <topic:Cheating><style:heading>Cheating Options</style>

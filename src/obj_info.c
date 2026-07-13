@@ -1474,6 +1474,7 @@ static void _lite_display_doc(object_type *o_ptr, doc_ptr doc)
 void obj_display(object_type *o_ptr)
 {
     object_track(o_ptr);
+    spellbook_track(o_ptr);
     obj_display_rect(o_ptr, ui_menu_rect());
 }
 
@@ -1483,6 +1484,7 @@ void obj_display_inspect(object_type *o_ptr)
     doc_ptr doc = doc_alloc(MIN(display.cx, 72));
 
     object_track(o_ptr);
+    spellbook_track(o_ptr);
 
     if (display.cx > 80)
         display.cx = 80;
@@ -1513,6 +1515,7 @@ void obj_display_rect(object_type *o_ptr, rect_t display)
     doc_ptr doc = doc_alloc(MIN(display.cx, 72));
 
     object_track(o_ptr);
+    spellbook_track(o_ptr);
 
     if (display.cx > 80)
         display.cx = 80;

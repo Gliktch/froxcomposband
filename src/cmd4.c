@@ -2370,6 +2370,9 @@ static void do_cmd_options_win(void)
 
     int y = 0;
     int x = 0;
+    int flag_rows = 11;
+    int flag_col = 20;
+    int flag_step = 4;
 
     char ch;
 
@@ -2397,21 +2400,24 @@ static void do_cmd_options_win(void)
 
 
         /* Display the windows */
+        Term_putstr(0, 2, -1, TERM_WHITE, "Show on Terminal: ");
         for (j = 0; j < 8; j++)
         {
             byte a = TERM_WHITE;
+            char label[2];
+            cptr s = (j == 0) ? "Main" : label;
 
-            cptr s = angband_term_name[j];
+            if (j) strnfmt(label, sizeof(label), "%d", j);
 
             /* Use color */
             if (j == x) a = TERM_L_BLUE;
 
-            /* Window name, staggered, centered */
-            Term_putstr(35 + j * 5 - strlen(s) / 2, 2 + j % 2, -1, a, s);
+            /* Window name, centered */
+            Term_putstr(flag_col + j * flag_step - strlen(s) / 2, 2, -1, a, s);
         }
 
         /* Display the options */
-        for (i = 0; i < 16; i++)
+        for (i = 0; i < flag_rows; i++)
         {
             byte a = TERM_WHITE;
 
@@ -2420,33 +2426,33 @@ static void do_cmd_options_win(void)
             /* Use color */
             if (i == y) a = TERM_L_BLUE;
 
-            /* Unused option */
-            if (!str) str = "(Unused option)";
+            /* Intentional spacer */
+            if (!str) str = "---";
 
 
             /* Flag name */
-            Term_putstr(0, i + 5, -1, a, str);
+            Term_putstr(0, i + 4, -1, a, str);
 
             /* Display the windows */
             for (j = 0; j < 8; j++)
             {
                 byte a = TERM_WHITE;
 
-                char c = '.';
+                char c = window_flag_desc[i] ? '.' : ' ';
 
                 /* Use color */
                 if ((i == y) && (j == x)) a = TERM_L_BLUE;
 
                 /* Active flag */
-                if (window_flag[j] & (1L << i)) c = 'X';
+                if (window_flag_desc[i] && (window_flag[j] & (1L << i))) c = 'X';
 
                 /* Flag value */
-                Term_putch(35 + j * 5, i + 5, a, c);
+                Term_putch(flag_col + j * flag_step, i + 4, a, c);
             }
         }
 
         /* Place Cursor */
-        Term_gotoxy(35 + x * 5, y + 5);
+        Term_gotoxy(flag_col + x * flag_step, y + 4);
 
         /* Get key */
         ch = inkey();
@@ -2463,6 +2469,12 @@ static void do_cmd_options_win(void)
             case 'T':
             case 't':
             {
+                if (!window_flag_desc[y])
+                {
+                    bell();
+                    break;
+                }
+
                 /* Clear windows */
                 for (j = 0; j < 8; j++)
                 {
@@ -2480,6 +2492,11 @@ static void do_cmd_options_win(void)
             {
                 /* Ignore screen */
                 if (x == 0) break;
+                if (!window_flag_desc[y])
+                {
+                    bell();
+                    break;
+                }
 
                 /* Set flag */
                 window_flag[x] |= (1L << y);
@@ -2489,6 +2506,12 @@ static void do_cmd_options_win(void)
             case 'n':
             case 'N':
             {
+                if (!window_flag_desc[y])
+                {
+                    bell();
+                    break;
+                }
+
                 /* Clear flag */
                 window_flag[x] &= ~(1L << y);
                 break;
@@ -2506,7 +2529,7 @@ static void do_cmd_options_win(void)
                 d = get_keymap_dir(ch, FALSE);
 
                 x = (x + ddx[d] + 8) % 8;
-                y = (y + ddy[d] + 16) % 16;
+                y = (y + ddy[d] + flag_rows) % flag_rows;
 
                 if (!d) bell();
             }

@@ -5338,6 +5338,20 @@ void object_track(object_type *o_ptr)
     p_ptr->window |= (PW_OBJECT);
 }
 
+/*
+ * Hack -- track the last deliberately selected spellbook
+ */
+void spellbook_track(object_type *o_ptr)
+{
+    if ((!o_ptr) || (!o_ptr->k_idx) || (!obj_is_readable_book(o_ptr))) return;
+
+    spellbook_track_obj = *o_ptr;
+    spellbook_track_valid = TRUE;
+
+    /* Window stuff */
+    p_ptr->window |= (PW_SPELL);
+}
+
 
 
 /*

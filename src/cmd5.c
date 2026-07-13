@@ -459,6 +459,7 @@ void do_cmd_study(void)
 
     /* Track the object kind */
     object_kind_track(prompt.obj->k_idx);
+    spellbook_track(prompt.obj);
 
     /* Hack -- Handle stuff */
     handle_stuff();
@@ -892,6 +893,7 @@ void do_cmd_cast(void)
         increment = 32;
 
     object_kind_track(book->k_idx);
+    spellbook_track(book);
     handle_stuff();
 
     use_realm = tval2realm(book->tval);
@@ -1315,6 +1317,7 @@ void do_cmd_browse(void)
 
     /* Track the object kind */
     object_kind_track(book->k_idx);
+    spellbook_track(book);
     handle_stuff();
 
     /* Extract spells */

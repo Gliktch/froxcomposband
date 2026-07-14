@@ -965,7 +965,7 @@ static void free_text_lines(cptr *lines_list);
 /*
  * Load an autopick preference file
  */
-void autopick_load_pref(byte mode)
+bool autopick_load_pref(byte mode)
 {
     char buf[80];
     errr err;
@@ -1090,6 +1090,7 @@ void autopick_load_pref(byte mode)
     {
         _inscribe_pack();
     }
+    return !err;
 }
 
 
@@ -2043,6 +2044,11 @@ static bool is_autopick_aux(object_type *o_ptr, autopick_type *entry, cptr o_nam
  * A function for Auto-picker/destroyer
  * Examine whether the object matches to the list of keywords or not.
  */
+static bool _obj_has_auto_pickup_inscription(object_type *o_ptr)
+{
+    return o_ptr->inscription && my_strstr(quark_str(o_ptr->inscription), "=g");
+}
+
 int is_autopick(object_type *o_ptr)
 {
     int i;
@@ -2050,9 +2056,7 @@ int is_autopick(object_type *o_ptr)
 
     if (o_ptr->tval == TV_GOLD) return -1;
 
-    if (no_mogaminator) return -1;
-
-    if (o_ptr->inscription && my_strstr(quark_str(o_ptr->inscription), "=g"))
+    if (_obj_has_auto_pickup_inscription(o_ptr))
     {
         /* see init_autopick ... I think at some point I broke this line: we
            no longer include the inscription in the match logic. Indeed, doing
@@ -2062,6 +2066,8 @@ int is_autopick(object_type *o_ptr)
            plain intolerable! */
         return 0;
     }
+
+    if (no_mogaminator) return -1;
 
     /* Prepare object name string first */
     object_desc(o_name, o_ptr, (OD_NAME_ONLY | OD_NO_FLAVOR | OD_OMIT_PREFIX | OD_NO_PLURAL));
@@ -2318,6 +2324,85 @@ static void auto_destroy_obj(object_type *o_ptr, int autopick_idx)
 }
 
 /*
+ * Autopick classification: is the matching rule an "Unwanted" one (the
+ * same definition the object list uses for its Unwanted toggle)?
+ */
+bool autopick_is_unwanted(int autopick_idx)
+{
+    if (autopick_idx < 0) return FALSE;
+    return (autopick_list[autopick_idx].action & DO_AUTODESTROY)
+        || !(autopick_list[autopick_idx].action & DO_DISPLAY);
+}
+
+
+/*
+ * Is this loose floor object one the wipe command should destroy?
+ * Artifacts (including quest items), insured and mundanified items,
+ * gold, and monster-held objects are all protected.
+ */
+bool autopick_wipe_candidate(object_type *o_ptr)
+{
+    int autopick_idx;
+
+    if (!o_ptr->k_idx) return FALSE;
+    if (o_ptr->held_m_idx) return FALSE;
+    if (o_ptr->tval == TV_GOLD) return FALSE;
+    if (o_ptr->insured) return FALSE;
+    if (o_ptr->origin_type == ORIGIN_MUNDANITY) return FALSE;
+    if (object_is_artifact(o_ptr)) return FALSE; /* artifacts, including quest items */
+
+    autopick_idx = is_autopick(o_ptr);
+    return autopick_is_unwanted(autopick_idx);
+}
+
+
+/*
+ * Explicitly wipe the current floor or wilderness cell of items the
+ * Mogaminator classifies as Unwanted.  Confirmation can preview the
+ * exact list with 'u' before anything is destroyed.
+ */
+void do_cmd_wipe_unwanted(void)
+{
+    int i, ct = 0;
+
+    for (i = 1; i < max_o_idx; i++)
+    {
+        if (autopick_wipe_candidate(&o_list[i])) ct++;
+    }
+
+    if (!ct)
+    {
+        msg_print("You don't know of any unwanted items on this floor.");
+        return;
+    }
+
+    msg_format("%d item%s on this floor categorised as 'Unwanted' will be destroyed.",
+               ct, (ct == 1) ? "" : "s");
+
+    while (TRUE)
+    {
+        char answer = msg_prompt("Destroy them? <color:y>[y/n/u]</color> (u lists the items)",
+                                 "nyu", PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_FORCE_CHOICE);
+
+        if (answer == 'u')
+        {
+            obj_list_display_wipe_preview();
+            continue;
+        }
+        if (answer != 'y') return;
+        break;
+    }
+
+    for (i = 1; i < max_o_idx; i++)
+    {
+        if (autopick_wipe_candidate(&o_list[i]))
+            delete_object_idx(i);
+    }
+
+    msg_format("You destroy %d unwanted item%s.", ct, (ct == 1) ? "" : "s");
+}
+
+/*
  * Auto-inscription and/or destroy
  *
  * Auto-destroyer works only on inventory or on floor stack only when
@@ -2463,6 +2548,11 @@ static void _get_obj(obj_ptr obj)
 
     if (no_mogaminator)
     {
+        if (_obj_has_auto_pickup_inscription(obj))
+        {
+            pack_get(obj);
+            return;
+        }
         if ((destroy_items) && (obj->loc.where != INV_EQUIP))
         {
             auto_destroy_obj(obj, -1);
@@ -2694,7 +2784,48 @@ static bool clear_auto_register(void)
     return okay;
 }
 
-static void prepare_default_pickpref(bool silent);
+static bool prepare_default_pickpref(bool silent);
+
+static int _prompt_activate_mogaminator(void)
+{
+    int i;
+    int row = MAX(1, MIN(4, MAX(1, Term->hgt - 16)) - 3);
+
+    auto_more_state = AUTO_MORE_PROMPT;
+
+    while (TRUE)
+    {
+        screen_save();
+        Term_clear_rect(rect(0, row, MIN(Term->wid, 82), MIN(16, Term->hgt - row)));
+
+        c_put_str(TERM_L_BLUE, "***** The Mogaminator *****", row, 2);
+        put_str("The Mogaminator is an automatic loot-helper, and most players find that it", row + 2, 2);
+        put_str("improves their dungeon-diving experience.", row + 3, 2);
+        put_str("It uses editable rules to decide which useful or valuable items to pick up", row + 5, 2);
+        put_str("automatically. It can inscribe items for you too, triggering warnings before", row + 6, 2);
+        put_str("you get rid of something valuable by mistake.", row + 7, 2);
+        put_str("It can also recognize items that are almost certainly junk for your current", row + 9, 2);
+        put_str("character. Depending on your rules, it can leave those items on the floor or", row + 10, 2);
+        put_str("destroy them automatically as you walk over them. You can edit its rules via", row + 11, 2);
+        put_str("the _ key, or turn it off later from that editor's Esc menu.", row + 12, 2);
+        c_put_str(TERM_L_GREEN, "[y] Use the Mogaminator  [_] Use it and edit rules now  [n/Esc] Leave it off", row + 14, 2);
+        c_put_str(TERM_ORANGE, "y", row + 14, 3);
+        c_put_str(TERM_ORANGE, "_", row + 14, 28);
+        c_put_str(TERM_ORANGE, "n", row + 14, 59);
+        c_put_str(TERM_ORANGE, "Esc", row + 14, 61);
+        Term_gotoxy(2 + strlen("***** The Mogaminator *****"), row);
+        Term_fresh();
+
+        i = inkey();
+        screen_load();
+
+        if (i == 'y' || i == 'Y') return 'y';
+        if (i == '_') return '_';
+        if (i == 'n' || i == 'N' || i == ESCAPE) return 'n';
+
+        bell();
+    }
+}
 
 /*
  *  Automatically register an auto-destroy preference line
@@ -2774,7 +2905,7 @@ bool autopick_autoregister(object_type *o_ptr)
         {
             char buf[80];
             my_strcpy(buf, pickpref_filename(PT_WITH_PREFNAME, NULL), sizeof(buf));
-            msg_print("Mogaminator preferences initialized. Turn on the <color:o>no_mogaminator</color> option if you wish to deactivate the Mogaminator.");
+            msg_print("Mogaminator preferences initialized. Press '_' to edit or disable them.");
             process_autopick_file(buf);
             _inscribe_pack();
         }
@@ -2864,6 +2995,8 @@ bool autopick_autoregister(object_type *o_ptr)
 
 #define QUIT_WITHOUT_SAVE 1
 #define QUIT_AND_SAVE     2
+#define QUIT_DISABLE      3
+#define QUIT_AND_SAVE_WIPE 4
 
 /*
  * Struct for yank buffer
@@ -3376,21 +3509,21 @@ static cptr *read_text_lines(cptr filename)
 /*
  * Copy the default autopick file to the user directory
  */
-static void prepare_default_pickpref(bool silent)
+static bool prepare_default_pickpref(bool silent)
 {
-    static char *messages[] = {
-        "You have activated the Mogaminator for the first time.",
-        "Since user preferences have not yet been created,",
-        "the default settings are loaded from lib/pref/pickpref.prf.",
+    static char *headers[] = {
+        "Mogaminator rules for this character, created from the default ruleset.",
+        "Press [Esc] then [a] for the detailed Mogaminator help.",
         NULL
     };
-
-    static char *usermessages[] = {
-        "Mogaminator user preferences loaded from lib/user/UserDefault.prf.",
+    static char *userheaders[] = {
+        "Mogaminator rules for this character, from your user-default ruleset.",
+        "Press [Esc] then [a] for the detailed Mogaminator help.",
         NULL
     };
 
     char buf[1024];
+    char dest_path[1024];
     char buf_src[255];
     char buf_usersrc[255];
     char buf_dest[255];
@@ -3404,11 +3537,7 @@ static void prepare_default_pickpref(bool silent)
     sprintf(buf_dest, "%s", pickpref_filename(PT_WITH_PREFNAME, NULL));
 
     /* Open new file */
-    path_build(buf, sizeof(buf), ANGBAND_DIR_USER, buf_dest);
-    user_fp = my_fopen(buf, "w");
-
-    /* Failed */
-    if (!user_fp) return;
+    path_build(dest_path, sizeof(dest_path), ANGBAND_DIR_USER, buf_dest);
 
     /* Open the user-default file */
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, buf_usersrc);
@@ -3422,25 +3551,31 @@ static void prepare_default_pickpref(bool silent)
         use_user_defaults = FALSE;
     }
 
-    /* Display messages */
+    /* Failed */
+    if (!pref_fp) return FALSE;
+
+    /* The starter rules are created automatically; just say so. */
     if (!silent)
     {
-        for (i = 0; use_user_defaults ? usermessages[i] : messages[i]; i++) msg_print(use_user_defaults ? usermessages[i] : messages[i]);
-        msg_print(NULL);
+        msg_print_for_prompt(TERM_WHITE, use_user_defaults ?
+            "Created this character's Mogaminator rules from your user-default ruleset." :
+            "Created starter Mogaminator rules for this character.");
     }
 
+    user_fp = my_fopen(dest_path, "w");
+
     /* Failed */
-    if (!pref_fp)
+    if (!user_fp)
     {
-        my_fclose(user_fp);
-        return;
+        my_fclose(pref_fp);
+        return FALSE;
     }
 
     /* Write header messages for a notification */
     fprintf(user_fp, "#***\n");
-    for (i = 0; use_user_defaults ? usermessages[i] : messages[i]; i++)
+    for (i = 0; use_user_defaults ? userheaders[i] : headers[i]; i++)
     {
-        fprintf(user_fp, "#***  %s\n", use_user_defaults ? usermessages[i] : messages[i]);
+        fprintf(user_fp, "#***  %s\n", use_user_defaults ? userheaders[i] : headers[i]);
     }
     fprintf(user_fp, "#***\n\n\n");
 
@@ -3451,16 +3586,19 @@ static void prepare_default_pickpref(bool silent)
     my_fclose(user_fp);
     my_fclose(pref_fp);
     _inscribe_pack_hack = TRUE;
+    return TRUE;
 }
 
 /*
  * Read an autopick prefence file to memory
  * Prepare default if no user file is found
  */
-static cptr *read_pickpref_text_lines(int *filename_mode_p, char *other_base)
+static cptr *read_pickpref_text_lines(int *filename_mode_p, char *other_base, bool *cancelled_p)
 {
     char buf[1024];
     cptr *lines_list;
+
+    if (cancelled_p) *cancelled_p = FALSE;
 
     if (((*filename_mode_p) == PT_WITH_OTHERNAME) && (other_base))
     {
@@ -3484,7 +3622,12 @@ static cptr *read_pickpref_text_lines(int *filename_mode_p, char *other_base)
         if (lines_list)
         {
             *filename_mode_p = PT_WITH_PREFNAME;
-            prepare_default_pickpref(FALSE);
+            if (!prepare_default_pickpref(FALSE))
+            {
+                if (cancelled_p) *cancelled_p = TRUE;
+                free_text_lines(lines_list);
+                return NULL;
+            }
             return lines_list;
         }
     }
@@ -3499,7 +3642,12 @@ static cptr *read_pickpref_text_lines(int *filename_mode_p, char *other_base)
         if (lines_list)
         {
             *filename_mode_p = PT_WITH_PREFNAME;
-            prepare_default_pickpref(FALSE);
+            if (!prepare_default_pickpref(FALSE))
+            {
+                if (cancelled_p) *cancelled_p = TRUE;
+                free_text_lines(lines_list);
+                return NULL;
+            }
             return lines_list;
         }
     }
@@ -3514,7 +3662,12 @@ static cptr *read_pickpref_text_lines(int *filename_mode_p, char *other_base)
         if (lines_list)
         {
             *filename_mode_p = PT_WITH_PREFNAME;
-            prepare_default_pickpref(FALSE);
+            if (!prepare_default_pickpref(FALSE))
+            {
+                if (cancelled_p) *cancelled_p = TRUE;
+                free_text_lines(lines_list);
+                return NULL;
+            }
             return lines_list;
         }
     }
@@ -3526,7 +3679,11 @@ static cptr *read_pickpref_text_lines(int *filename_mode_p, char *other_base)
         strcpy(buf, pickpref_filename(*filename_mode_p, NULL));
 
         /* Copy the default autopick file to the user directory */
-        prepare_default_pickpref(FALSE);
+        if (!prepare_default_pickpref(FALSE))
+        {
+            if (cancelled_p) *cancelled_p = TRUE;
+            return NULL;
+        }
 
         /* Use default name again */
         lines_list = read_text_lines(buf);
@@ -4406,6 +4563,8 @@ static void search_for_string(text_body_type *tb, cptr search_str, bool forward)
 enum {
     EC_QUIT = 1,
     EC_SAVEQUIT,
+    EC_SAVEQUIT_WIPE,
+    EC_DISABLE,
     EC_REVERT,
     EC_LOAD,
     EC_SAVE,
@@ -4510,7 +4669,9 @@ enum {
 /* Manu names */
 
 static char MN_QUIT[] = "Quit without save";
-static char MN_SAVEQUIT[] = "Save & Quit";
+static char MN_SAVEQUIT[] = "Save and exit";
+static char MN_SAVEQUIT_WIPE[] = "Save and wipe Unwanted";
+static char MN_DISABLE[] = "Disable and exit";
 static char MN_REVERT[] = "Revert all changes";
 static char MN_LOAD[] = "Load preferences";
 static char MN_SAVE[] = "Save as";
@@ -4557,7 +4718,7 @@ static char MN_CL_AUTOPICK[] = "' ' (Pick up)";
 static char MN_CL_DESTROY[] = "'!' (Destroy)";
 static char MN_CL_LEAVE[] = "'~' (Leave on the floor)";
 static char MN_CL_QUERY[] = "';' (Query to pick up)";
-static char MN_CL_NO_DISP[] = "'(' (Hide on M map)";
+static char MN_CL_NO_DISP[] = "'(' (Hide in lists)";
 static char MN_CL_AUTO_ID[] = "'?' (Identify)";
 
 static char MN_ADJECTIVE_GEN[] = "Adjective (general)";
@@ -4720,6 +4881,9 @@ command_menu_type menu_data[] =
     {MN_CL_NO_DISP, 1, -1, EC_CL_NO_DISP},
     {MN_CL_AUTO_ID, 1, -1, EC_CL_AUTO_ID},
 
+    {MN_DISABLE, 0, -1, EC_DISABLE},
+    {MN_SAVEQUIT_WIPE, 0, -1, EC_SAVEQUIT_WIPE},
+
     {MN_DELETE_CHAR, -1, 0x7F, EC_DELETE_CHAR},
 
     {NULL, -1, -1, 0}
@@ -4772,7 +4936,10 @@ static int do_command_menu(int level, int start)
         len = strlen(menu_data[i].name);
         if (len > max_len) max_len = len;
 
-        menu_id_list[menu_key] = i;
+        if (menu_data[i].com_id == EC_DISABLE || menu_data[i].com_id == EC_SAVEQUIT_WIPE)
+            menu_id_list[menu_key] = -1;
+        else
+            menu_id_list[menu_key] = i;
         menu_key++;
     }
 
@@ -4811,11 +4978,22 @@ static int do_command_menu(int level, int start)
             menu_key = 0;
             for (i = start; menu_data[i].level >= level; i++)
             {
-                char com_key_str[3];
+                char com_key_str[6];
+                char menu_letter;
                 cptr str;
 
                 /* Ignore lower level sub menus */
                 if (menu_data[i].level > level) continue;
+
+                /* The disable and save-and-wipe entries use fixed trailing
+                 * letters (x/y) instead of their positional slots, so the
+                 * earlier menu letters keep their established positions. */
+                if (menu_data[i].com_id == EC_DISABLE)
+                    menu_letter = 'x';
+                else if (menu_data[i].com_id == EC_SAVEQUIT_WIPE)
+                    menu_letter = 'y';
+                else
+                    menu_letter = menu_key + 'a';
 
                 if (menu_data[i].com_id == -1)
                 {
@@ -4832,7 +5010,7 @@ static int do_command_menu(int level, int start)
                     com_key_str[0] = '\0';
                 }
 
-                str = format(" %c) %-*s %2s ", menu_key + 'a', max_len, menu_data[i].name, com_key_str);
+                str = format(" %c) %-*s %4s ", menu_letter, max_len, menu_data[i].name, com_key_str);
 
                 Term_putch(col0, row1, TERM_BLUE, '|');
                 Term_putstr(col0 + 1, row1, -1, TERM_L_BLUE, str);
@@ -4852,6 +5030,13 @@ static int do_command_menu(int level, int start)
         key = inkey();
 
         if (key == ESCAPE) return 0;
+        if (level == 0)
+        {
+            if (key == 'q') return EC_QUIT;
+            if (key == 's') return EC_SAVEQUIT;
+            if (key == 'x') return EC_DISABLE;
+            if (key == 'y') return EC_SAVEQUIT_WIPE;
+        }
 
         if ('a' <= key && key <= 'z')
         {
@@ -5582,12 +5767,33 @@ static bool do_editor_command(text_body_type *tb, int com_id)
     case EC_SAVEQUIT:
         return QUIT_AND_SAVE;
 
+    case EC_SAVEQUIT_WIPE:
+        return QUIT_AND_SAVE_WIPE;
+
+    case EC_DISABLE:
+        if (tb->changed)
+        {
+            if (!get_check("Disable the Mogaminator and discard unsaved changes? ")) break;
+        }
+        else if (!get_check("Disable the Mogaminator and exit? ")) break;
+        return QUIT_DISABLE;
+
     case EC_REVERT:
         /* Revert to original */
         if (!get_check("Discard all changes and revert to original file. Are you sure? ")) break;
 
-        free_text_lines(tb->lines_list);
-        tb->lines_list = read_pickpref_text_lines(&tb->filename_mode, NULL);
+        {
+            cptr *lines_list;
+            int filename_mode = tb->filename_mode;
+            bool cancelled = FALSE;
+
+            lines_list = read_pickpref_text_lines(&filename_mode, NULL, &cancelled);
+            if (!lines_list) break;
+
+            free_text_lines(tb->lines_list);
+            tb->lines_list = lines_list;
+            tb->filename_mode = filename_mode;
+        }
         tb->dirty_flags |= DIRTY_ALL | DIRTY_MODE | DIRTY_EXPRESSION;
         tb->cx = tb->cy = 0;
         tb->mark = 0;
@@ -5613,9 +5819,18 @@ static bool do_editor_command(text_body_type *tb, int com_id)
             }
             if (pituus > 4 && strcmp(lataa_minut + pituus - 4, ".prf") == 0) lataa_minut[pituus - 4] = '\0';
 
-            free_text_lines(tb->lines_list);
-            tb->filename_mode = PT_WITH_OTHERNAME;
-            tb->lines_list = read_pickpref_text_lines(&tb->filename_mode, lataa_minut);
+            {
+                cptr *lines_list;
+                int filename_mode = PT_WITH_OTHERNAME;
+                bool cancelled = FALSE;
+
+                lines_list = read_pickpref_text_lines(&filename_mode, lataa_minut, &cancelled);
+                if (!lines_list) break;
+
+                free_text_lines(tb->lines_list);
+                tb->filename_mode = filename_mode;
+                tb->lines_list = lines_list;
+            }
             tb->dirty_flags |= DIRTY_ALL | DIRTY_MODE | DIRTY_EXPRESSION;
             tb->cx = tb->cy = 0;
             tb->mark = 0;
@@ -6620,7 +6835,30 @@ void do_cmd_edit_autopick(void)
 
     static s32b old_autosave_turn = 0L;
     byte quit = 0;
+    bool activating = no_mogaminator || !max_autopick;
 
+    if (activating)
+    {
+        int choice = _prompt_activate_mogaminator();
+
+        if (choice == 'n')
+            return;
+        no_mogaminator = FALSE;
+        if (choice == 'y')
+        {
+            if (!autopick_load_pref(ALP_CHECK_NUMERALS))
+            {
+                if (!prepare_default_pickpref(FALSE))
+                {
+                    no_mogaminator = TRUE;
+                    autopick_load_pref(ALP_CHECK_NUMERALS);
+                    return;
+                }
+                autopick_load_pref(ALP_CHECK_NUMERALS);
+            }
+            return;
+        }
+    }
     tb->changed = FALSE;
     tb->cx = cx_save;
     tb->cy = cy_save;
@@ -6665,7 +6903,19 @@ void do_cmd_edit_autopick(void)
     }
 
     /* Read or initialize whole text */
-    tb->lines_list = read_pickpref_text_lines(&tb->filename_mode, NULL);
+    {
+        bool cancelled = FALSE;
+
+        tb->lines_list = read_pickpref_text_lines(&tb->filename_mode, NULL, &cancelled);
+        if (!tb->lines_list)
+        {
+            if (activating) no_mogaminator = TRUE;
+            z_string_free(tb->last_destroyed);
+            autopick_load_pref(ALP_CHECK_NUMERALS);
+            start_time = time(NULL);
+            return;
+        }
+    }
 
     /* Reset cursor position if needed */
     for (i = 0; i < tb->cy; i++)
@@ -6775,8 +7025,10 @@ void do_cmd_edit_autopick(void)
     /* Get the filename of preference */
     strcpy(buf, pickpref_filename(tb->filename_mode, NULL));
 
-    if (quit == QUIT_AND_SAVE)
+    if (quit == QUIT_AND_SAVE || quit == QUIT_AND_SAVE_WIPE)
         write_text_lines(buf, tb->lines_list);
+    else if (quit == QUIT_DISABLE)
+        no_mogaminator = TRUE;
 
     free_text_lines(tb->lines_list);
 
@@ -6788,6 +7040,12 @@ void do_cmd_edit_autopick(void)
 
     /* Reload autopick pref */
     process_autopick_file(buf);
+
+    if (quit == QUIT_DISABLE)
+        msg_print("Mogaminator disabled. Press '_' to activate it again.");
+
+    if (quit == QUIT_AND_SAVE_WIPE)
+        do_cmd_wipe_unwanted();
 
     if (_inscribe_pack_hack) _inscribe_pack();
 

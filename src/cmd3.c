@@ -1915,6 +1915,12 @@ static _obj_list_ptr _create_obj_list(void)
         auto_pick_idx = is_autopick(o_ptr);
         obj_list_autopick_hack = FALSE;
         if ( auto_pick_idx >= 0
+          && !(autopick_list[auto_pick_idx].action & DO_DISPLAY) )
+        {
+            free(info);
+            continue;
+        }
+        if ( auto_pick_idx >= 0
           && (autopick_list[auto_pick_idx].action & (DO_AUTOPICK | DO_QUERY_AUTOPICK)) )
         {
             info->group = _GROUP_AUTOPICK;

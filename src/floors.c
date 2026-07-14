@@ -435,6 +435,7 @@ static bool _monster_can_follow(monster_type *m_ptr, _pet_transition_mode_t mode
     if (mode != _PET_TRANSITION_FOLLOW) return FALSE;
     if (reinit_wilderness) return FALSE;
     if (is_pet(m_ptr)) return FALSE;
+    if (MON_CSLEEP(m_ptr)) return FALSE;
     if (dun_level < 1) return FALSE;
     if (dis > rng) return FALSE;
     if (r_info[m_ptr->r_idx].flags1 & RF1_UNIQUE) return FALSE;

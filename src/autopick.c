@@ -6621,6 +6621,13 @@ void do_cmd_edit_autopick(void)
     static s32b old_autosave_turn = 0L;
     byte quit = 0;
 
+    if (no_mogaminator || !max_autopick)
+    {
+        if (msg_prompt("Activate the Mogaminator (automatic loot helper)? [y/n]", "ny", PROMPT_DEFAULT) != 'y')
+            return;
+        no_mogaminator = FALSE;
+    }
+
     tb->changed = FALSE;
     tb->cx = cx_save;
     tb->cy = cy_save;

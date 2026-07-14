@@ -2925,7 +2925,8 @@ int doc_display_aux_ex(doc_ptr doc, cptr caption, int top, rect_t display, u32b 
     bool    done = FALSE;
     bool    verify_format_hack = (strpos("Character Sheet", caption) == 1);
     _doc_search_t search = {{0}};
-    bool    allow_search = !(options & DOC_DISPLAY_NO_SEARCH);
+    bool    screen_dump = BOOL(options & DOC_DISPLAY_SCREEN_DUMP);
+    bool    allow_search = !(options & (DOC_DISPLAY_NO_SEARCH | DOC_DISPLAY_SCREEN_DUMP));
 
     page_size = display.cy - 4;
 
@@ -3125,6 +3126,15 @@ int doc_display_aux_ex(doc_ptr doc, cptr caption, int top, rect_t display, u32b 
                 format = DOC_FORMAT_HTML;
             else if (cb > 4 && strcmp(buf + cb - 4, ".htm") == 0)
                 format = DOC_FORMAT_HTML;
+
+            if ((format != DOC_FORMAT_HTML) && screen_dump && name[0] && !strchr(name, '.'))
+            {
+                if (msg_prompt("Save in color (HTML) format? [y/n]", "ny", PROMPT_DEFAULT) == 'y')
+                {
+                    strcat(buf, ".html");
+                    format = DOC_FORMAT_HTML;
+                }
+            }
 
             if ((format != DOC_FORMAT_HTML) && (verify_format_hack) && (strlen(buf)))
             {

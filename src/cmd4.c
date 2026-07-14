@@ -6830,7 +6830,7 @@ void do_cmd_save_screen(void)
     doc_insert(doc, string_buffer(s));
     doc_insert(doc, "</style>");
     screen_save();
-    doc_display(doc, "Current Screenshot", 0);
+    doc_display_aux_ex(doc, "Current Screenshot", 0, ui_screen_rect(), DOC_DISPLAY_SCREEN_DUMP);
     screen_load();
 
     string_free(s);

@@ -238,6 +238,7 @@ cptr doc_lex(cptr pos, doc_token_ptr token);
 int doc_display_help(cptr file_name, cptr topic);
 int doc_display_help_aux(cptr file_name, cptr topic, rect_t display);
 #define DOC_DISPLAY_NO_SEARCH       0x01
+#define DOC_DISPLAY_SCREEN_DUMP     0x02
 
 int doc_display(doc_ptr doc, cptr caption, int top);
 int doc_display_aux(doc_ptr doc, cptr caption, int top, rect_t display);

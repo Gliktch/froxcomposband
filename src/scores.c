@@ -423,7 +423,28 @@ void _purge_docs(vec_ptr scores)
 /************************************************************************
  * User Interface
  ************************************************************************/
-static void _display(doc_ptr doc, vec_ptr scores, int top, int page_size)
+static bool _score_is_visible(score_ptr score, bool hide_level_1)
+{
+    return !hide_level_1 || score->clvl > 1;
+}
+
+static vec_ptr _score_view(vec_ptr scores, bool hide_level_1)
+{
+    int i;
+    vec_ptr view = vec_alloc(NULL);
+
+    for (i = 0; i < vec_length(scores); i++)
+    {
+        score_ptr score = vec_get(scores, i);
+
+        if (_score_is_visible(score, hide_level_1))
+            vec_add(view, score);
+    }
+
+    return view;
+}
+
+static void _display(doc_ptr doc, vec_ptr scores, int top, int page_size, bool hide_level_1)
 {
     int i, j;
     doc_clear(doc);
@@ -459,6 +480,9 @@ static void _display(doc_ptr doc, vec_ptr scores, int top, int page_size)
     doc_insert(doc, "</style>");
     doc_insert(doc, "\n <color:U>Press corresponding letter to view last character sheet.</color>\n");
     doc_insert(doc, " <color:U>Press <color:keypress>^N</color> to sort by Name, <color:keypress>^R</color> to sort by Race, etc.</color>\n");
+    doc_insert(doc, hide_level_1
+        ? " <color:U>Level 1 entries are hidden. Press <color:keypress>^L</color> to show them.</color>\n"
+        : " <color:U>Level 1 entries are shown. Press <color:keypress>^L</color> to hide them.</color>\n");
     if (page_size < vec_length(scores))
     {
         doc_insert(doc, " <color:U>Use <color:keypress>PageUp</color> and <color:keypress>PageDown</color> to scroll.</color>\n");
@@ -533,8 +557,9 @@ void scores_display(vec_ptr scores)
 {
     doc_ptr   doc = doc_alloc(100);
     int       top = 0, cmd;
-    int       page_size = ui_screen_rect().cy - 6;
+    int       page_size = ui_screen_rect().cy - 7;
     bool      done = FALSE;
+    bool      hide_level_1 = TRUE;
 
     if (page_size > 26)
         page_size = 26;
@@ -542,16 +567,25 @@ void scores_display(vec_ptr scores)
     Term_clear();
     while (!done)
     {
-        _display(doc, scores, top, page_size);
-        cmd = inkey_special(TRUE);
-        if (cmd == ESCAPE || cmd == 'Q') break;
-        switch (cmd)
+        vec_ptr view = _score_view(scores, hide_level_1);
+
+        if (top >= vec_length(view))
         {
-        case ESCAPE: case 'Q':
+            if (vec_length(view) > page_size)
+                top = vec_length(view) - page_size;
+            else
+                top = 0;
+        }
+
+        _display(doc, view, top, page_size, hide_level_1);
+        cmd = inkey_special(TRUE);
+
+        if (cmd == ESCAPE || cmd == 'Q')
             done = TRUE;
-            break;
+        else switch (cmd)
+        {
         case SKEY_PGDOWN: case '3': case ' ':
-            if (top + page_size < vec_length(scores))
+            if (top + page_size < vec_length(view))
                 top += page_size;
             break;
         case SKEY_PGUP: case '9': case '-':
@@ -578,6 +612,11 @@ void scores_display(vec_ptr scores)
             vec_sort(scores, (vec_cmp_f)score_cmp_name);
             top = 0;
             break;
+        case KTRL('L'):
+            hide_level_1 = !hide_level_1;
+            top = 0;
+            Term_clear();
+            break;
         case KTRL('Y'):
             _purge_docs(scores);
             break;
@@ -585,12 +624,12 @@ void scores_display(vec_ptr scores)
             if (islower(cmd))
             {
                 int j = top + A2I(cmd);
-                if (0 <= j && j < vec_length(scores))
-                    _show_dump(vec_get(scores, j));
+                if (0 <= j && j < vec_length(view))
+                    _show_dump(vec_get(view, j));
             }
         }
+        vec_free(view);
     }
     Term_clear();
     doc_free(doc);
 }
-

@@ -32,6 +32,151 @@ static bool _rest_is_complete(void)
         && !magic_eater_can_regen();
 }
 
+static int _death_resurrection_prompt(void)
+{
+    int i;
+    int row = MIN(4, MAX(1, Term->hgt - 18));
+
+    auto_more_state = AUTO_MORE_PROMPT;
+
+    while (TRUE)
+    {
+        screen_save();
+        Term_clear_rect(rect(0, row, MIN(Term->wid, 82), MIN(18, Term->hgt - row)));
+
+        c_put_str(TERM_RED, "***** You have died... *****", row, 2);
+        c_put_str(TERM_RED, "             ...or have you?", row + 1, 2);
+        put_str("Well, how interesting! It seems a friend of yours with a very particular set of", row + 4, 2);
+        put_str("skills, acquired over a very long resurrecting career, is willing to intervene.", row + 5, 2);
+        put_str("Press [r] to be reconstructed elsewhere by the Resurrection Machine.", row + 9, 2);
+        c_put_str(TERM_ORANGE, "r", row + 9, 9);
+        put_str("Press [d/y] to view or dump the current screen. You'll return to this screen", row + 11, 2);
+        c_put_str(TERM_ORANGE, "d", row + 11, 9);
+        c_put_str(TERM_ORANGE, "y", row + 11, 11);
+        put_str("afterwards.", row + 12, 2);
+        put_str("Press [n] to decline its help and continue dying.", row + 14, 2);
+        c_put_str(TERM_ORANGE, "n", row + 14, 9);
+        Term_gotoxy(2 + strlen("***** You have died... *****"), row);
+        Term_fresh();
+
+        i = inkey();
+        screen_load();
+
+        if (i == 'n' || i == 'N') return 'n';
+        if (i == 'r' || i == 'R') return 'r';
+        if (i == 'd' || i == 'D' || i == 'y' || i == 'Y')
+        {
+            do_cmd_save_screen();
+            continue;
+        }
+
+        bell();
+    }
+}
+
+static int _death_dump_screen_prompt(void)
+{
+    int i;
+    bool quick = quickstart;
+    bool esc_armed = FALSE;
+    int row = MIN(4, MAX(1, Term->hgt - 21));
+
+    auto_more_state = AUTO_MORE_PROMPT;
+
+    while (TRUE)
+    {
+        screen_save();
+        Term_clear_rect(rect(0, row, MIN(Term->wid, 82), MIN(21, Term->hgt - row)));
+
+        c_put_str(TERM_RED, "***** You have died. *****", row, 2);
+        put_str("If you'd like to view the screen and optionally create a screen dump, press [d]", row + 2, 2);
+        c_put_str(TERM_ORANGE, "d", row + 2, 79);
+        put_str("now. You'll automatically return to this dialog afterwards.", row + 3, 2);
+        put_str("To continue to the next death screen, press [n].", row + 5, 2);
+        c_put_str(TERM_ORANGE, "n", row + 5, 47);
+        put_str("Activate quick restart mode with [x]: ", row + 7, 2);
+        c_put_str(TERM_ORANGE, "x", row + 7, 36);
+        c_put_str(quick ? TERM_L_GREEN : TERM_RED, quick ? "ON" : "OFF", row + 7, 40);
+        put_str("Still in denial? Or can't bear to leave without checking out that one last bit", row + 9, 2);
+        put_str("of loot to see what you died for? Or simply want to smack that big meanie one", row + 10, 2);
+        put_str("last time, for shuffling you off this mortal coil?", row + 11, 2);
+        put_str("In that case, press [w] now, to cheat death and resurrect in wizard mode - but", row + 13, 2);
+        c_put_str(TERM_ORANGE, "w", row + 13, 23);
+        put_str("know that of course it makes you a stinky cheater, and no score will be saved.", row + 14, 2);
+        c_put_str(TERM_L_GREEN, esc_armed
+            ? "[d/y] View Screen  [x] Quick Restart  [w] Cheat Death  [n/Esc] Accept Death"
+            : "[d/y] View Screen  [x] Quick Restart  [w] Cheat Death  [n] Accept Death",
+            row + 17, 2);
+        c_put_str(TERM_ORANGE, "d", row + 17, 3);
+        c_put_str(TERM_ORANGE, "y", row + 17, 5);
+        c_put_str(TERM_ORANGE, "x", row + 17, 22);
+        c_put_str(TERM_ORANGE, "w", row + 17, 41);
+        c_put_str(TERM_ORANGE, "n", row + 17, 58);
+        if (esc_armed)
+            c_put_str(TERM_ORANGE, "Esc", row + 17, 60);
+        Term_gotoxy(2 + strlen("***** You have died. *****"), row);
+        Term_fresh();
+
+        i = inkey();
+        screen_load();
+
+        if (i == 'n' || i == 'N')
+        {
+            i = quick ? 'x' : 'n';
+            break;
+        }
+        if (i == 'd' || i == 'D' || i == 'y' || i == 'Y')
+        {
+            do_cmd_save_screen();
+            continue;
+        }
+        if (i == 'x' || i == 'X')
+        {
+            quick = !quick;
+            quickstart = quick;
+            esc_armed = FALSE;
+            continue;
+        }
+        if (i == 'w' || i == 'W')
+        {
+            i = 'w';
+            break;
+        }
+        if (i == ESCAPE)
+        {
+            if (esc_armed)
+                return 'n';
+            esc_armed = TRUE;
+            continue;
+        }
+
+        esc_armed = FALSE;
+        bell();
+    }
+
+    return i;
+}
+
+static void _cheat_death_here(void)
+{
+    p_ptr->wizard = TRUE;
+    p_ptr->noscore |= 0x0002;
+    p_ptr->is_dead = FALSE;
+    p_ptr->leaving = FALSE;
+    strcpy(p_ptr->died_from, "(alive and well)");
+    if (p_ptr->last_message)
+    {
+        z_string_free(p_ptr->last_message);
+        p_ptr->last_message = NULL;
+    }
+    quick_restart = FALSE;
+    death_resurrect = FALSE;
+    wizard_cure_all();
+    msg_print("You cheat death and invoke wizard mode.");
+    msg_print(NULL);
+    handle_stuff();
+}
+
 bool free_act_save_p(int ml)
 {
     int i, skill = p_ptr->skills.sav;
@@ -6605,17 +6750,19 @@ int take_hit(int damage_type, int damage, cptr hit_from)
             msg_format("You are beaten by %s.", m_name);
             msg_print(NULL);
         }
-        else if ((p_ptr->total_winner) && (unique_is_friend(MON_R_MACHINE)))
-        {
-            msg_print(_default_death_msg(android));
-            msg_print(NULL);
-        }
         else
         {
             bool seppuku = streq(hit_from, "Seppuku");
             bool winning_seppuku = p_ptr->total_winner && seppuku;
+            bool can_resurrect = p_ptr->total_winner && unique_is_friend(MON_R_MACHINE);
 
             _note_death_cause(hit_from);
+            if (p_ptr->image)
+            {
+                p_ptr->image = 0;
+                p_ptr->redraw |= PR_MAP | PR_EFFECTS;
+                handle_stuff();
+            }
 
             if (world_monster)
             {
@@ -6636,9 +6783,34 @@ int take_hit(int damage_type, int damage, cptr hit_from)
 
             flush();
 
-            if (get_check_strict("Dump the screen? ", CHECK_NO_HISTORY))
             {
-                do_cmd_save_screen();
+                int death_cmd = can_resurrect ? _death_resurrection_prompt() : 'n';
+
+                if (death_cmd == 'n')
+                    death_cmd = _death_dump_screen_prompt();
+
+                if (death_cmd == 'x')
+                {
+                    quick_restart = TRUE;
+                    quickstart = TRUE;
+                    death_resurrect = FALSE;
+                }
+                else if (death_cmd == 'w')
+                {
+                    quick_restart = FALSE;
+                    _cheat_death_here();
+                    return damage;
+                }
+                else if (death_cmd == 'r')
+                {
+                    quick_restart = FALSE;
+                    death_resurrect = TRUE;
+                }
+                else
+                {
+                    quick_restart = FALSE;
+                    death_resurrect = FALSE;
+                }
             }
 
             flush();
@@ -6648,38 +6820,41 @@ int take_hit(int damage_type, int damage, cptr hit_from)
             p_ptr->last_message = NULL;
 
             /* Hack -- Note death */
-            if (!last_words)
+            if (!quick_restart && !death_resurrect)
             {
-                if (!death_line_printed)
+                if (!last_words)
                 {
-                    msg_print(_default_death_msg(android));
-                    msg_print(NULL);
-                }
-            }
-            else
-            {
-                if (winning_seppuku)
-                {
-                    get_rnd_line("seppuku.txt", 0, death_message);
+                    if (!death_line_printed)
+                    {
+                        msg_print(_default_death_msg(android));
+                        msg_print(NULL);
+                    }
                 }
                 else
                 {
-                    get_rnd_line("death.txt", 0, death_message);
-                }
+                    if (winning_seppuku)
+                    {
+                        get_rnd_line("seppuku.txt", 0, death_message);
+                    }
+                    else
+                    {
+                        get_rnd_line("death.txt", 0, death_message);
+                    }
 
-                do
-                {
-                    while (!get_string("Last word: ", death_message, 1024)) ;
-                }
-                while (winning_seppuku && !get_check_strict("Are you sure? ", CHECK_NO_HISTORY));
+                    do
+                    {
+                        while (!get_string("Last word: ", death_message, 1024)) ;
+                    }
+                    while (winning_seppuku && !get_check_strict("Are you sure? ", CHECK_NO_HISTORY));
 
-                if (death_message[0] == '\0')
-                {
-                    strcpy(death_message, _default_death_msg(android));
+                    if (death_message[0] == '\0')
+                    {
+                        strcpy(death_message, _default_death_msg(android));
+                    }
+                    else p_ptr->last_message = z_string_make(death_message);
+
+                    msg_print(death_message);
                 }
-                else p_ptr->last_message = z_string_make(death_message);
-                
-                msg_print(death_message);
             }
         }
 

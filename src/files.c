@@ -3377,10 +3377,12 @@ bool py_get_name(void)
  */
 void do_cmd_suicide(void)
 {
-    int i;
+    int i, c;
 
     /* Flush input */
     flush();
+    quick_restart = FALSE;
+    death_resurrect = FALSE;
 
     /* Verify Retirement */
     if (p_ptr->total_winner)
@@ -3394,7 +3396,16 @@ void do_cmd_suicide(void)
     else
     {
         /* Verify */
-        if (!get_check("Do you really want to commit suicide? ")) return;
+        c = msg_prompt("Do you really want to commit suicide? <color:y>[y/n] [x = yes, and restart]</color>", "nyx", PROMPT_DEFAULT | PROMPT_FORCE_CHOICE);
+        if (c == 'x')
+        {
+            quick_restart = TRUE;
+            quickstart = TRUE;
+        }
+        else if (c != 'y')
+            return;
+        else
+            quick_restart = FALSE;
     }
 
 
@@ -3406,7 +3417,11 @@ void do_cmd_suicide(void)
         flush();
         i = inkey();
         prt("", 0, 0);
-        if ((i != '@') && (i != KTRL('E'))) return;
+        if ((i != '@') && (i != KTRL('E')))
+        {
+            quick_restart = FALSE;
+            return;
+        }
     }
 
     /* Initialize "last message" buffer */

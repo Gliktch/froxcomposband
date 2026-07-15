@@ -742,7 +742,7 @@ static void wiz_create_item(void)
 /*
  * Cure everything instantly
  */
-static void do_cmd_wiz_cure_all(void)
+void wizard_cure_all(void)
 {
     /* Restore stats */
     (void)res_stat(A_STR);
@@ -1589,7 +1589,7 @@ void do_cmd_debug(void)
 
     /* Cure all maladies */
     case 'a':
-        do_cmd_wiz_cure_all();
+        wizard_cure_all();
         break;
 
     /* Know alignment */
@@ -2056,4 +2056,3 @@ static int i = 0;
 #endif
 
 #endif
-

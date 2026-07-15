@@ -6092,7 +6092,12 @@ void determine_today_mon(bool conv_old)
 void play_game(bool new_game)
 {
     int i;
-    bool load_game = TRUE;
+    bool load_game;
+
+quick_restart_loop:
+    load_game = TRUE;
+    quick_restart = FALSE;
+    death_resurrect = FALSE;
 
     autosave_l = TRUE;
 
@@ -6120,7 +6125,7 @@ void play_game(bool new_game)
 
     /* The Windows port blocks until the user chooses a menu for a New game, or
        to load an existing game. Thus, it will display its own start screen ... */
-    if (strcmp(ANGBAND_SYS, "win") != 0)
+    if (!arg_quickstart && strcmp(ANGBAND_SYS, "win") != 0)
     {
         /* On X11, you need to flush() before Term->hgt is accurate! */
         Term_flush();
@@ -6169,6 +6174,8 @@ void play_game(bool new_game)
     /* Process old character */
     if (!new_game)
     {
+        arg_quickstart = FALSE;
+
         /* Process the player name */
         process_player_name(FALSE);
     }
@@ -6593,20 +6600,10 @@ void play_game(bool new_game)
             }
             else
             {
-                /* Mega-Hack -- Allow player to cheat death */
-                if (((p_ptr->total_winner) && (unique_is_friend(MON_R_MACHINE))) || ((p_ptr->wizard || cheat_live) && !get_check("Die? ")))
+                if (death_resurrect)
                 {
                     quest_ptr qp = quests_get_current();
                     bool was_in_dung = (dun_level > 0);
-                    bool no_cheat = ((!p_ptr->wizard) && (!cheat_live));
-
-                    /* Mark savefile */
-                    if (!no_cheat)
-                    {
-                        p_ptr->noscore |= 0x0001;
-                        msg_print("You invoke wizard mode and cheat death.");
-                        msg_print(NULL);
-                    }
 
                     /* Restore hit points */
                     p_ptr->chp = p_ptr->mhp;
@@ -6649,11 +6646,12 @@ void play_game(bool new_game)
                         quests_on_leave();
                     }
 
-                    /* Note cause of death XXX XXX XXX */
-                    if (!no_cheat) (void)strcpy(p_ptr->died_from, "Cheating death");
+                    (void)strcpy(p_ptr->died_from, "(alive and well)");
 
                     /* Do not die */
                     p_ptr->is_dead = FALSE;
+                    quick_restart = FALSE;
+                    death_resurrect = FALSE;
 
                     /* Hack -- Healing */
                     (void)set_blind(0, TRUE);
@@ -6699,12 +6697,9 @@ void play_game(bool new_game)
                     p_ptr->leaving = TRUE;
                     quest_reward_drop_hack = FALSE;
 
-                    if (no_cheat)
-                    {
-                        msg_print("You are resurrected!");
-                        set_dungeon_type(DUNGEON_HEAVEN);
-                        dun_level = d_info[dungeon_type].maxdepth;
-                    }
+                    msg_print("You are resurrected!");
+                    set_dungeon_type(DUNGEON_HEAVEN);
+                    dun_level = d_info[dungeon_type].maxdepth;
 
                     /* Prepare next floor */
                     leave_floor();
@@ -6722,6 +6717,26 @@ void play_game(bool new_game)
 
     /* Close stuff */
     close_game();
+
+    if (quick_restart)
+    {
+        new_game = TRUE;
+        quick_restart = FALSE;
+        death_resurrect = FALSE;
+        arg_quickstart = TRUE;
+        quickstart = TRUE;
+        character_loaded = FALSE;
+        character_generated = FALSE;
+        character_saved = FALSE;
+        if (screen_dump)
+        {
+            z_string_free(screen_dump);
+            screen_dump = NULL;
+        }
+        goto quick_restart_loop;
+    }
+
+    death_resurrect = FALSE;
 
     /* Quit */
     quit(NULL);

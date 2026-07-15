@@ -131,6 +131,8 @@ extern bool arg_force_original;
 extern bool arg_force_roguelike;
 extern bool arg_bigtile;
 extern bool arg_protected_session;
+extern bool arg_quickstart;
+extern bool quickstart;
 extern bool arg_webclient;
 extern bool arg_test;
 extern bool arg_test_headless;
@@ -678,6 +680,8 @@ extern bool new_mane;
 extern bool mon_fight;
 extern bool generate_encounter;
 extern cptr screen_dump;
+extern bool quick_restart;
+extern bool death_resurrect;
 extern pantheon_type pant_list[PANTHEON_MAX];
 
 /*** Terrain feature variables ***/
@@ -2453,6 +2457,7 @@ extern vec_ptr stats_rand_arts(void);
 extern void stats_add_rand_art(object_type *o_ptr);
 extern vec_ptr stats_egos(void);
 extern void stats_add_ego(object_type *o_ptr);
+extern void wizard_cure_all(void);
 #ifdef ALLOW_SPOILERS
 extern void do_cmd_spoilers(void);
 #endif
@@ -2760,6 +2765,7 @@ extern void     alchemist_set_hero(bool *notice, int uus_arvo, bool normal_hero)
 extern class_t *disciple_get_class(int psubclass);
 extern class_t *karrot_get_class(void);
 extern class_t *yeqrezh_get_class(void);
+extern spell_info *yeqrezh_get_spells_known(void);
 extern class_t *troika_get_class(void);
 extern void     disciple_birth(void);
 extern int      karrot_level(void);

@@ -395,12 +395,44 @@ static void _set_mode(int mode);
 static s16b _stats_changed = -1;
 static bool lukittu = FALSE;
 
+static int _quick_start_ui(void)
+{
+    int i;
+
+    if (!previous_char.quick_ok) return UI_CANCEL;
+
+    game_mode = previous_char.game_mode;
+    p_ptr->psex = previous_char.psex;
+    p_ptr->prace = previous_char.prace;
+    p_ptr->psubrace = previous_char.psubrace;
+    p_ptr->pclass = previous_char.pclass;
+    p_ptr->psubclass = previous_char.psubclass;
+    p_ptr->personality = previous_char.personality;
+    p_ptr->realm1 = previous_char.realm1;
+    p_ptr->realm2 = previous_char.realm2;
+    p_ptr->dragon_realm = previous_char.dragon_realm;
+    p_ptr->au = previous_char.au;
+    for (i = 0; i < MAX_STATS; i++)
+    {
+        p_ptr->stat_cur[i] = previous_char.stat_max[i];
+        p_ptr->stat_max[i] = previous_char.stat_max[i];
+    }
+    _stats_changed = p_ptr->pclass; /* block default stat allocation via _stats_init */
+    return _race_class_ui();
+}
+
 static int _welcome_ui(void)
 {
     /* Mega-Hack */
     werewolf_init();
     beorning_init();
     p_ptr->chaos_patron = RANDOM_PATRON;
+
+    if (arg_quickstart)
+    {
+        arg_quickstart = FALSE;
+        if (_quick_start_ui() == UI_OK) return UI_OK;
+    }
 
     for (;;)
     {
@@ -459,25 +491,7 @@ static int _welcome_ui(void)
             frox_import_manual();
         else if (cmd == 'q' && previous_char.quick_ok)
         {
-            int i;
-            game_mode = previous_char.game_mode;
-            p_ptr->psex = previous_char.psex;
-            p_ptr->prace = previous_char.prace;
-            p_ptr->psubrace = previous_char.psubrace;
-            p_ptr->pclass = previous_char.pclass;
-            p_ptr->psubclass = previous_char.psubclass;
-            p_ptr->personality = previous_char.personality;
-            p_ptr->realm1 = previous_char.realm1;
-            p_ptr->realm2 = previous_char.realm2;
-            p_ptr->dragon_realm = previous_char.dragon_realm;
-            p_ptr->au = previous_char.au;            
-            for (i = 0; i < MAX_STATS; i++)
-            {
-                p_ptr->stat_cur[i] = previous_char.stat_max[i];
-                p_ptr->stat_max[i] = previous_char.stat_max[i];
-            }
-            _stats_changed = p_ptr->pclass; /* block default stat allocation via _stats_init */
-            if (_race_class_ui() == UI_OK)
+            if (_quick_start_ui() == UI_OK)
                 return UI_OK;
         }
         else if (cmd == 'Q' && previous_char.quick_ok)

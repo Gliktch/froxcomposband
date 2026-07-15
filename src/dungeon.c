@@ -4484,14 +4484,15 @@ static void _dispatch_command(int old_now_turn)
     }
 }
 
-static void process_command(void)
+static void process_command(bool repeating)
 {
     int old_now_turn = now_turn;
 
 #ifdef ALLOW_REPEAT /* TNB */
 
     /* Handle repeating the last command */
-    repeat_check(FALSE);
+    if (!repeating)
+        repeat_check(FALSE);
 
 #endif /* ALLOW_REPEAT -- TNB */
 
@@ -4935,7 +4936,7 @@ static void process_player(void)
             command_cmd = SPECIAL_KEY_BUILDING;
 
             /* Process the command */
-            process_command();
+            process_command(FALSE);
         }
         /* Paralyzed */
         else if (p_ptr->paralyzed)
@@ -5026,7 +5027,7 @@ static void process_player(void)
             msg_line_clear(); */
 
             /* Process the command */
-            process_command();
+            process_command(TRUE);
         }
 
         /* Normal command */
@@ -5056,7 +5057,7 @@ static void process_player(void)
             can_save = FALSE;
 
             /* Process the command */
-            process_command();
+            process_command(FALSE);
         }
 
         /* Hack -- Pack Overflow */

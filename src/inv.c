@@ -82,6 +82,16 @@ static void _activation_menu_desc(char *buf, size_t buf_size, obj_ptr obj)
         strnfmt(buf, buf_size, "<color:B>%s</color>: %s", activation, item_name);
 }
 
+static void _possible_activation_menu_desc(char *buf, size_t buf_size, obj_ptr obj)
+{
+    char item_name[MAX_NLEN];
+    u32b mode = show_item_markers ? OD_ITEM_MARKERS : 0;
+
+    mode |= OD_COLOR_CODED;
+    object_desc(item_name, obj, mode);
+    strnfmt(buf, buf_size, "<color:D>[Possible?]</color>: %s", item_name);
+}
+
 /* Creation */
 inv_ptr inv_alloc(cptr name, int type, int max)
 {
@@ -687,10 +697,17 @@ void inv_display(inv_ptr inv, slot_t start, slot_t stop, obj_p p, doc_ptr doc, i
             char name[MAX_NLEN];
             doc_style_t style = *doc_current_style(doc);
             bool charging = FALSE;
+            bool known_activation = (flags & INV_SHOW_ACTIVATION) && obj_has_known_effect(obj);
+            bool possible_activation = (flags & INV_SHOW_ACTIVATION) && !known_activation;
 
-            if (flags & INV_SHOW_ACTIVATION)
+            if (known_activation)
             {
                 _activation_menu_desc(name, sizeof(name), obj);
+                charging = FALSE;
+            }
+            else if (possible_activation)
+            {
+                _possible_activation_menu_desc(name, sizeof(name), obj);
                 charging = FALSE;
             }
             else if ((flags & INV_SHOW_FAIL_RATES) && !obj_is_device(obj) && obj->timeout)
@@ -725,7 +742,11 @@ void inv_display(inv_ptr inv, slot_t start, slot_t stop, obj_p p, doc_ptr doc, i
                 doc_pop_style(doc);
             if (flags & INV_SHOW_FAIL_RATES)
             {
-                if ( object_is_aware(obj)
+                if (possible_activation)
+                {
+                    doc_printf(doc, "<tab:%d> ??.?%%", doc_width(doc) - xtra);
+                }
+                else if ( object_is_aware(obj)
                   && (obj_is_identified_fully(obj) || (obj->known_xtra & OFL_DEVICE_FAIL)) )
                 {
                     int fail;

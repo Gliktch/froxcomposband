@@ -1082,6 +1082,7 @@ extern device_effect_info_t   staff_effect_table[];
 extern effect_t obj_get_effect(object_type *o_ptr);
 extern cptr     obj_get_effect_msg(object_type *o_ptr);
 extern bool     obj_has_effect(object_type *o_ptr);
+extern bool     obj_has_known_effect(object_type *o_ptr);
 extern int      effect_calc_fail_rate(effect_t *effect_ptr);
 extern bool     effect_add_random(object_type *o_ptr, int bias);
 

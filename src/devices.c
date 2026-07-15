@@ -2049,6 +2049,17 @@ bool obj_has_effect(object_type *o_ptr)
     return FALSE;
 }
 
+bool obj_has_known_effect(object_type *o_ptr)
+{
+    u32b flgs[OF_ARRAY_SIZE];
+
+    if ((o_ptr->tval == TV_CAPTURE) && (o_ptr->pval > 0)) return TRUE;
+    if (!obj_has_effect(o_ptr)) return FALSE;
+
+    obj_flags_known(o_ptr, flgs);
+    return have_flag(flgs, OF_ACTIVATE);
+}
+
 bool effect_try(effect_t *effect)
 {
     int fail = effect_calc_fail_rate(effect);

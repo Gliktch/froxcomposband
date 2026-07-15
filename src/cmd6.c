@@ -1689,6 +1689,18 @@ static void do_cmd_activate_aux(obj_ptr obj)
         return;
     }
 
+    if (!obj_has_effect(obj))
+    {
+        if (flush_failure) flush();
+        msg_print("It shows no reaction.");
+        sound(SOUND_FAIL);
+        obj->ident |= IDENT_TRIED;
+        p_ptr->notice |= PN_OPTIMIZE_PACK;
+        p_ptr->window |= (PW_INVEN | PW_EQUIP);
+        _item_retry_abort();
+        return;
+    }
+
     effect = obj_get_effect(obj);
     if (!effect_try(&effect))
     {
@@ -1730,7 +1742,11 @@ static void do_cmd_activate_aux(obj_ptr obj)
 
 static bool _activate_p(object_type *o_ptr)
 {
-    return /*obj_is_identified(o_ptr) &&*/ obj_has_effect(o_ptr);
+    if (obj_has_known_effect(o_ptr)) return TRUE;
+    if (obj_has_effect(o_ptr)) return TRUE;
+    if (obj_is_identified(o_ptr)) return FALSE;
+    if (o_ptr->ident & IDENT_TRIED) return FALSE;
+    return TRUE;
 }
 
 void do_cmd_activate(void)

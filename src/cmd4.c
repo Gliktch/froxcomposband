@@ -6078,7 +6078,7 @@ void do_cmd_version(void)
 {
     cptr xtra = "";
     if (VERSION_IS_DEVELOPMENT)
-        xtra = " (Development)";
+        xtra = format(" (Development%s)", FROX_BUILD_STAMP);
     else if (VER_MINOR == 0)
     {
 /*        if (VER_PATCH == 0) xtra = " (Alpha)"; */
@@ -6086,6 +6086,8 @@ void do_cmd_version(void)
     }
     msg_format("You are playing <color:B>FroxComposband</color> <color:r>%d.%d.%s.%d%s</color>.",
         VER_MAJOR, VER_MINOR, VER_PATCH, VER_EXTRA, xtra);
+    if (arg_protected_session || arg_webclient)
+        msg_print("Currently running in Protected Session mode.");
     if (1)
     {
         rect_t r = ui_map_rect();

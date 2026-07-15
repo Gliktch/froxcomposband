@@ -1527,12 +1527,26 @@ static int _class_ui(int ids[])
             {
                 class_t *class_ptr = vec_get(v, i);
                 int      old_id = p_ptr->pclass;
+                int      old_sub = p_ptr->psubclass;
+                int      old_realm1 = p_ptr->realm1;
+                int      old_realm2 = p_ptr->realm2;
+                int      old_patron = p_ptr->chaos_patron;
 
-                p_ptr->pclass = class_ptr->id;
+                if (p_ptr->pclass != class_ptr->id)
+                {
+                    p_ptr->pclass = class_ptr->id;
+                    p_ptr->psubclass = 0;
+                    p_ptr->realm1 = REALM_NONE;
+                    p_ptr->realm2 = REALM_NONE;
+                }
                 result = _subclass_ui();
                 if (result == UI_CANCEL)
                 {
                     p_ptr->pclass = old_id;
+                    p_ptr->psubclass = old_sub;
+                    p_ptr->realm1 = old_realm1;
+                    p_ptr->realm2 = old_realm2;
+                    p_ptr->chaos_patron = old_patron;
                     result = UI_NONE;
                 }
             }
@@ -2107,14 +2121,22 @@ static void _mon_race_group_ui(void)
                 b_race_group_ptr g_ptr = &b_mon_race_groups[i];
                 if (_count(g_ptr->ids) == 1)
                 {
-                    int old_id = p_ptr->prace, old_sub = p_ptr->psubrace;
+                    int old_id = p_ptr->prace;
+                    int old_sub = p_ptr->psubrace;
+                    int old_dragon_realm = p_ptr->dragon_realm;
                     p_ptr->prace = g_ptr->ids[0];
+                    if (p_ptr->prace != old_id)
+                    {
+                        p_ptr->psubrace = 0;
+                        p_ptr->dragon_realm = DRAGON_REALM_NONE;
+                    }
                     if (_mon_subrace_ui() == UI_OK)
                         break;
                     else
                     {
                         p_ptr->prace = old_id;
                         p_ptr->psubrace = old_sub;
+                        p_ptr->dragon_realm = old_dragon_realm;
                     }
                 }
                 else if (_mon_race_ui(g_ptr->ids) == UI_OK)
@@ -2180,16 +2202,21 @@ static int _mon_race_ui(int ids[])
             if (0 <= i && i < ct)
             {
                 int     old_id = p_ptr->prace;
+                int     old_sub = p_ptr->psubrace;
+                int     old_dragon_realm = p_ptr->dragon_realm;
                 int     id = ids[i];
 
                 if (p_ptr->prace != id)
                 {
                     p_ptr->prace = id;
                     p_ptr->psubrace = 0;
+                    p_ptr->dragon_realm = DRAGON_REALM_NONE;
                 }
                 if (_mon_subrace_ui() == UI_CANCEL)
                 {
                     p_ptr->prace = old_id;
+                    p_ptr->psubrace = old_sub;
+                    p_ptr->dragon_realm = old_dragon_realm;
                 }
                 else
                     return UI_OK;

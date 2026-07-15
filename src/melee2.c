@@ -3358,6 +3358,7 @@ static void process_monster(int m_idx)
                 {
                     /* Do the attack */
                     (void)make_attack_normal(m_idx);
+                    if (is_cheating_death) return;
                     if ((r_ptr->flags2 & RF2_INVISIBLE) && p_ptr->see_inv && !m_ptr->ml)
                         update_mon(m_idx, FALSE);
 
@@ -3943,6 +3944,12 @@ void process_monsters(void)
     /* Clear monster fighting indicator */
     mon_fight = FALSE;
 
+    if (is_cheating_death)
+    {
+        is_cheating_death = FALSE;
+        return;
+    }
+
     if (game_turn%TURNS_PER_TICK == 0)
         csleep_noise = (1L << (30 - p_ptr->skills.stl));
 
@@ -4132,6 +4139,8 @@ void process_monsters(void)
         if (p_ptr->no_flowed && one_in_(3))
             m_ptr->mflag2 |= MFLAG2_NOFLOW;
 
+        if (is_cheating_death) break;
+
         /* Hack -- notice death or departure */
         if (!p_ptr->playing || p_ptr->is_dead) break;
 
@@ -4141,6 +4150,7 @@ void process_monsters(void)
 
     /* Reset global index */
     hack_m_idx = 0;
+    is_cheating_death = FALSE;
 }
 
 /* Bound a number to a valid range. This could be a public utility.

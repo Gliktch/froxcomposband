@@ -3377,10 +3377,13 @@ bool py_get_name(void)
  */
 void do_cmd_suicide(void)
 {
-    int i;
+    int i, c;
 
     /* Flush input */
     flush();
+    quick_restart = FALSE;
+    death_resurrect = FALSE;
+    suppress_death_announce = FALSE;
 
     /* Verify Retirement */
     if (p_ptr->total_winner)
@@ -3394,7 +3397,16 @@ void do_cmd_suicide(void)
     else
     {
         /* Verify */
-        if (!get_check("Do you really want to commit suicide? ")) return;
+        c = msg_prompt("Do you really want to commit suicide? <color:y>[y/n] [q = yes, and restart]</color>", "nyq", PROMPT_DEFAULT | PROMPT_FORCE_CHOICE);
+        if (c == 'q')
+        {
+            quick_restart = TRUE;
+            quickstart = TRUE;
+        }
+        else if (c != 'y')
+            return;
+        else
+            quick_restart = FALSE;
     }
 
 
@@ -3406,7 +3418,11 @@ void do_cmd_suicide(void)
         flush();
         i = inkey();
         prt("", 0, 0);
-        if ((i != '@') && (i != KTRL('E'))) return;
+        if ((i != '@') && (i != KTRL('E')))
+        {
+            quick_restart = FALSE;
+            return;
+        }
     }
 
     /* Initialize "last message" buffer */
@@ -4068,6 +4084,20 @@ void close_game(void)
     /* Handle death */
     if (p_ptr->is_dead)
     {
+        /* Clear auxiliary subwindows before the tombstone is shown so the
+         * quick-restart path does not need to refresh them afterwards. */
+        {
+            int i;
+            for (i = 1; i < 8; i++)
+            {
+                if (!angband_term[i]) continue;
+                Term_activate(angband_term[i]);
+                Term_clear();
+                Term_fresh();
+            }
+            Term_activate(angband_term[0]);
+        }
+
         /* Handle retirement */
         if ((p_ptr->total_winner) && ((strpos("Ripe Old Age", p_ptr->died_from)) || (strpos("Seppuku", p_ptr->died_from)))) kingly();
 

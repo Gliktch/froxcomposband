@@ -490,6 +490,14 @@ int main(int argc, char *argv[])
 				break;
 			}
 
+			case 'Q':
+			case 'q':
+			{
+				arg_quickstart = TRUE;
+				quickstart = TRUE;
+				break;
+			}
+
 			case 'H':
 			case 'h':
 			{
@@ -557,6 +565,7 @@ int main(int argc, char *argv[])
 				puts("  -r       Request rogue-like keyset");
 				puts("  -M       Request monochrome mode");
 				puts("  -p       Request protected session mode");
+				puts("  -q       Quick Start a new character");
 				puts("  -h       Request web-hosted mode");
 				puts("            (for angband.live, implies -p)");
 				puts("");

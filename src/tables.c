@@ -2133,7 +2133,10 @@ option_type option_info[] =
     "auto_target",                  "Automatically target nearest monster" },
 
     { &always_repeat,               TRUE,  OPT_PAGE_INPUT, 0, 6,
-    "always_repeat",                "Retry count for obvious commands" },
+    "retry_obvious_count",          "Retry count for obvious commands" },
+
+    { &failed_item_retry_count_dummy, FALSE, OPT_PAGE_INPUT, 5, 9,
+    "retry_item_count",             "Retry count for failed item-use commands" },
 
     { &confirm_destroy,             FALSE, OPT_PAGE_INPUT, 5, 3,
     "confirm_destroy",              "Prompt for destruction of known worthless items" },
@@ -2142,13 +2145,10 @@ option_type option_info[] =
     "confirm_wear",                 "Confirm to wear/wield known cursed items" },
 
     { &confirm_melee_unseen,        TRUE,  OPT_PAGE_INPUT, 5, 5,
-    "confirm_melee_unseen",         "Confirmation on melee attacking unseen monsters" },
+    "confirm_hit_unseen",           "Confirmation on melee attacking unseen monsters" },
 
     { &confirm_melee_visible,       FALSE, OPT_PAGE_INPUT, 5, 6,
-    "confirm_melee_visible",        "Confirmation on melee attacking visible monsters" },
-
-    { &failed_item_retry_count_dummy, FALSE, OPT_PAGE_INPUT, 5, 9,
-    "failed_item_retry_count",      "Retry count for failed item-use commands" },
+    "confirm_hit_visible",          "Confirmation on melee attacking visible monsters" },
 
     { &target_pet,                  FALSE, OPT_PAGE_INPUT, 2, 5,
     "target_pet",                   "Allow targetting pets" },
@@ -2192,7 +2192,7 @@ option_type option_info[] =
     "center_running",               "Center map even while running" },
 
     { &center_stair_teleports,      TRUE,  OPT_PAGE_MAPSCREEN, 5, 13,
-    "center_stair_teleports",       "Center map after stairs and long teleports" },
+    "center_stair_tele",           "Center map after stairs and long teleports" },
 
     { &map_edge_center_dummy,       TRUE,  OPT_PAGE_MAPSCREEN, 5, 14,
     "map_edge_center",             "Center map when this close to viewport edge" },
@@ -2251,7 +2251,7 @@ option_type option_info[] =
     "equippy_chars",                "Display 'equippy' chars" },
 
     { &suppress_main_messages,      FALSE, OPT_PAGE_TEXT, 3, 2,
-    "suppress_main_messages",       "Suppress most ordinary messages in main view" },
+    "suppress_main_msgs",           "Suppress most ordinary messages in main view" },
 
     { &display_hp_bar,              FALSE,  OPT_PAGE_TEXT, 1, 1,
     "display_hp_bar",               "Display player hp bar" },
@@ -2629,7 +2629,7 @@ option_type option_info[] =
     "show_item_markers",            "Show item-state markers in object listings" },
 
     { &show_special_inventories,    FALSE, OPT_PAGE_LIST, 2, 15,
-    "show_special_inventories",     "Include special pack tabs in inventory lists" },
+    "show_special_bags",            "Include special pack tabs in inventory lists" },
 
     { &shops_mark_unseen,           FALSE, OPT_PAGE_LIST, 0, 31,
     "shops_mark_unseen",            "Indicate unknown flavors in shop inventories" },
@@ -2674,7 +2674,7 @@ option_type option_info[] =
     "monster_list_width",           "Maximum width of the monster list" },
 
     { &msg_pane_wrap_width,         TRUE,  OPT_PAGE_LIST, 4, 2,
-    "message_pane_wrap_width",      "Word-wrap width for the Messages pane" },
+    "message_pane_wrap",            "Word-wrap width for the Messages pane" },
 
     /*** End of Table ***/
 

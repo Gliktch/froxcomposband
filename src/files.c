@@ -620,12 +620,12 @@ errr process_pref_file_command(char *buf)
                     (*option_info[i].o_var) = TRUE;
                 }
 
-                if (streq(option_info[i].o_text, "always_repeat"))
+                if (streq(option_info[i].o_text, "retry_obvious_count"))
                 {
                     always_repeat_count = (buf[0] == 'Y') ? 100 : 0;
                     sync_retry_options();
                 }
-                else if (streq(option_info[i].o_text, "failed_item_retry_count"))
+                else if (streq(option_info[i].o_text, "retry_item_count"))
                 {
                     failed_item_retry_count = (buf[0] == 'Y') ? 10 : 0;
                     sync_retry_options();

@@ -17,7 +17,7 @@ X:quick_messages
 X:command_menu
 X:use_old_target
 X:auto_target
-Y:always_repeat
+Y:retry_obvious_count
 X:confirm_destroy
 Y:confirm_wear
 X:target_pet

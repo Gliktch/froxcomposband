@@ -144,7 +144,7 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
 
 Some commands can be executed a fixed number of times by preceding them with a count. Counted commands will repeat until the count expires or until the repetition is disturbed. A successful use of the command (e.g. successful tunnelling) disturbs the repetition, as does any attack from a monster, or any new command from the player.
 
-The <color:keyword>always_repeat</color> option, which is on by default, automatically gives commonly repeated commands (open, disarm, tunnel, bash, etc.) the configured retry count, which defaults to 100. This means you usually don't need to specify repeat counts manually; but you can do so by typing <color:keypress>0</color>, then the repeat count, and then the command.
+The <color:keyword>retry_obvious_count</color> option, which is on by default, automatically gives commonly repeated commands (open, disarm, tunnel, bash, etc.) the configured retry count, which defaults to 100. This means you usually don't need to specify repeat counts manually; but you can do so by typing <color:keypress>0</color>, then the repeat count, and then the command.
 
 <topic:CommandArguments><style:heading>Command Arguments</style>
 

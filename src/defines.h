@@ -21,6 +21,7 @@
 #define VER_PATCH "munkki"
 #define VER_EXTRA 6
 #define VERSION_IS_DEVELOPMENT (TRUE)
+#define FROX_BUILD_STAMP ""
 
 #define GAME_MODE_BEGINNER  0
 #define GAME_MODE_NORMAL    1

@@ -1006,22 +1006,33 @@ cptr doc_lex(cptr pos, doc_token_ptr token)
     return pos;
 }
 
+static string_ptr _doc_version_string(bool intro)
+{
+    string_ptr s = string_alloc_format("%d.%d.%d", VER_MAJOR, VER_MINOR, VER_EXTRA);
+
+    if (coffee_break == SPEED_COFFEE) string_append_s(s, "<color:U> (Coffee)</color>");
+    if (coffee_break == SPEED_INSTA_COFFEE) string_append_s(s, "<color:U> (Instant Coffee)</color>");
+    if (thrall_mode) string_append_s(s, "<color:R> (Thrall)</color>");
+    if (wacky_rooms) string_append_s(s, "<color:v> (Wacky)</color>");
+    if (VERSION_IS_DEVELOPMENT)
+    {
+        cptr label = ((coffee_break) && (wacky_rooms) && (thrall_mode)) ? "Dev" : "Development";
+
+        string_append_s(s, format("<color:B> (%s%s)</color>", label, FROX_BUILD_STAMP));
+    }
+    if ((VER_MINOR == 0) && (VER_MAJOR != 7)) string_append_s(s, "<color:r> (Beta)</color>");
+    if (intro && arg_protected_session && !arg_webclient) string_append_s(s, "<color:B> (Protected Mode)</color>");
+    if (intro && arg_webclient) string_append_s(s, " for angband.live");
+
+    return s;
+}
+
 static void _doc_process_var(doc_ptr doc, cptr name)
 {
-    if (strcmp(name, "version") == 0)
+    if (strcmp(name, "version") == 0 || strcmp(name, "intro_version") == 0)
     {
-        string_ptr s = string_alloc_format("%d.%d.%d", VER_MAJOR, VER_MINOR, VER_EXTRA);
-        if (coffee_break == SPEED_COFFEE) string_append_s(s, "<color:U> (Coffee)</color>");
-        if (coffee_break == SPEED_INSTA_COFFEE) string_append_s(s, "<color:U> (Instant Coffee)</color>");
-        if (thrall_mode) string_append_s(s, "<color:R> (Thrall)</color>");
-        if (wacky_rooms) string_append_s(s, "<color:v> (Wacky)</color>");
-        if (VERSION_IS_DEVELOPMENT)
-        {
-            if ((coffee_break) && (wacky_rooms) && (thrall_mode)) string_append_s(s, "<color:B> (Dev)</color>");
-            else string_append_s(s, "<color:B> (Development)</color>");
-        }
-        if ((VER_MINOR == 0) && (VER_MAJOR != 7)) string_append_s(s, "<color:r> (Beta)</color>");
-        if (arg_webclient) string_append_s(s, " for angband.live");
+        string_ptr s = _doc_version_string(strcmp(name, "intro_version") == 0);
+
         doc_insert(doc, string_buffer(s));
         string_free(s);
     }

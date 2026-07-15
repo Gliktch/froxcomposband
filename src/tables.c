@@ -2135,7 +2135,7 @@ option_type option_info[] =
     { &always_repeat,               TRUE,  OPT_PAGE_INPUT, 0, 6,
     "retry_obvious_count",          "Retry count for obvious commands" },
 
-    { &failed_item_retry_count_dummy, FALSE, OPT_PAGE_INPUT, 5, 9,
+    { &failed_item_retry_count_dummy, FALSE, OPT_PAGE_INPUT, 3, 3,
     "retry_item_count",             "Retry count for failed item-use commands" },
 
     { &confirm_destroy,             FALSE, OPT_PAGE_INPUT, 5, 3,
@@ -2147,7 +2147,7 @@ option_type option_info[] =
     { &confirm_melee_unseen,        TRUE,  OPT_PAGE_INPUT, 5, 5,
     "confirm_hit_unseen",           "Confirmation on melee attacking unseen monsters" },
 
-    { &confirm_melee_visible,       FALSE, OPT_PAGE_INPUT, 5, 6,
+    { &confirm_melee_visible,       FALSE, OPT_PAGE_INPUT, 3, 4,
     "confirm_hit_visible",          "Confirmation on melee attacking visible monsters" },
 
     { &target_pet,                  FALSE, OPT_PAGE_INPUT, 2, 5,
@@ -2262,7 +2262,7 @@ option_type option_info[] =
     { &display_food_bar,            FALSE,  OPT_PAGE_TEXT, 1, 13,
     "display_food_bar",             "Display detailed food status" },
 
-    { &display_upkeep_bar,          FALSE,  OPT_PAGE_TEXT, 1, 3,
+    { &display_upkeep_bar,          FALSE,  OPT_PAGE_TEXT, 3, 9,
     "display_upkeep_bar",           "Display remaining pet control status" },
 
     { &display_percentages,         FALSE, OPT_PAGE_TEXT, 7, 18,
@@ -2325,7 +2325,7 @@ option_type option_info[] =
     { &show_damage_range,            FALSE, OPT_PAGE_TEXT, 4, 22,
     "show_damage_range",            "Show non-melee damages as ranges in monster info" },
 
-    { &show_damage_hp,               TRUE,  OPT_PAGE_TEXT, 4, 23,
+    { &show_damage_hp,               TRUE,  OPT_PAGE_TEXT, 3, 5,
     "show_damage_hp",               "Use live HP for single-monster damage estimates" },
 
 
@@ -2371,7 +2371,7 @@ option_type option_info[] =
     { &travel_ignore_items,         TRUE, OPT_PAGE_DISTURBANCE, 2, 30,
     "travel_ignore_items",          "Ignore identified items while travelling" },
 
-    { &autorun_max_steps_dummy,     TRUE, OPT_PAGE_DISTURBANCE, 2, 0,
+    { &autorun_max_steps_dummy,     TRUE, OPT_PAGE_DISTURBANCE, 3, 6,
     "autorun_max_steps",            "Max autorun steps before stopping" },
 
     { &check_abort,                 TRUE,  OPT_PAGE_DISTURBANCE, 1, 18,
@@ -2625,10 +2625,10 @@ option_type option_info[] =
     { &show_item_graph,             TRUE,  OPT_PAGE_LIST, 2, 0,
     "show_item_graph",              "Show item graphics in object listings" },
 
-    { &show_item_markers,           FALSE, OPT_PAGE_LIST, 2, 1,
+    { &show_item_markers,           FALSE, OPT_PAGE_LIST, 3, 10,
     "show_item_markers",            "Show item-state markers in object listings" },
 
-    { &show_special_inventories,    FALSE, OPT_PAGE_LIST, 2, 15,
+    { &show_special_inventories,    FALSE, OPT_PAGE_LIST, 3, 7,
     "show_special_bags",            "Include special pack tabs in inventory lists" },
 
     { &shops_mark_unseen,           FALSE, OPT_PAGE_LIST, 0, 31,
@@ -2673,7 +2673,7 @@ option_type option_info[] =
     { &mon_list_width,              TRUE,  OPT_PAGE_LIST, 4, 1,
     "monster_list_width",           "Maximum width of the monster list" },
 
-    { &msg_pane_wrap_width,         TRUE,  OPT_PAGE_LIST, 4, 2,
+    { &msg_pane_wrap_width,         TRUE,  OPT_PAGE_LIST, 3, 8,
     "message_pane_wrap",            "Word-wrap width for the Messages pane" },
 
     /*** End of Table ***/

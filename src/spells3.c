@@ -4277,6 +4277,7 @@ void inven_damage(int who, inven_func typ, int p1, int which)
     int    p2 = 100;
     bool   varoita = FALSE;
 
+    if (p_ptr->is_dead) return;
     if (CHECK_MULTISHADOW()) return;
     if (p_ptr->inside_arena) return;
 

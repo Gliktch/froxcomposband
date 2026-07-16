@@ -108,7 +108,9 @@ void init_saved_floors(bool force)
 
     if (force)
     {
-        msg_print("Deleted temporary dungeon files (possibly from a crash). This usually causes no issues. If you notice anything odd, try recalling, traveling to a different town, or exiting to the world map and taking a step before continuing.");
+        cptr msg = "Deleted temporary dungeon files (possibly from a crash). This usually causes no issues. If you notice anything odd, try recalling, traveling to a different town, or exiting to the world map and taking a step before continuing.";
+        if (!character_generated) msg_add(msg);
+        msg_print(msg);
     }
 
     /* No floor_id used yet (No.0 is reserved to indicate non existance) */

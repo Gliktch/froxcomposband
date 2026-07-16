@@ -3383,6 +3383,7 @@ void do_cmd_suicide(void)
     flush();
     quick_restart = FALSE;
     death_resurrect = FALSE;
+    suppress_death_announce = FALSE;
 
     /* Verify Retirement */
     if (p_ptr->total_winner)
@@ -3396,8 +3397,8 @@ void do_cmd_suicide(void)
     else
     {
         /* Verify */
-        c = msg_prompt("Do you really want to commit suicide? <color:y>[y/n] [x = yes, and restart]</color>", "nyx", PROMPT_DEFAULT | PROMPT_FORCE_CHOICE);
-        if (c == 'x')
+        c = msg_prompt("Do you really want to commit suicide? <color:y>[y/n] [q = yes, and restart]</color>", "nyq", PROMPT_DEFAULT | PROMPT_FORCE_CHOICE);
+        if (c == 'q')
         {
             quick_restart = TRUE;
             quickstart = TRUE;

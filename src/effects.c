@@ -74,19 +74,18 @@ static int _death_resurrection_prompt(void)
     }
 }
 
-static int _death_dump_screen_prompt(void)
+static int _death_dump_screen_prompt(bool *quick, bool *silent)
 {
     int i;
-    bool quick = quickstart;
     bool esc_armed = FALSE;
-    int row = MIN(4, MAX(1, Term->hgt - 21));
+    int row = MIN(4, MAX(1, Term->hgt - 22));
 
     auto_more_state = AUTO_MORE_PROMPT;
 
     while (TRUE)
     {
         screen_save();
-        Term_clear_rect(rect(0, row, MIN(Term->wid, 82), MIN(21, Term->hgt - row)));
+        Term_clear_rect(rect(0, row, MIN(Term->wid, 82), MIN(22, Term->hgt - row)));
 
         c_put_str(TERM_RED, "***** You have died. *****", row, 2);
         put_str("If you'd like to view the screen and optionally create a screen dump, press [d]", row + 2, 2);
@@ -94,26 +93,25 @@ static int _death_dump_screen_prompt(void)
         put_str("now. You'll automatically return to this dialog afterwards.", row + 3, 2);
         put_str("To continue to the next death screen, press [n].", row + 5, 2);
         c_put_str(TERM_ORANGE, "n", row + 5, 47);
-        put_str("Activate quick restart mode with [x]: ", row + 7, 2);
-        c_put_str(TERM_ORANGE, "x", row + 7, 36);
-        c_put_str(quick ? TERM_L_GREEN : TERM_RED, quick ? "ON" : "OFF", row + 7, 40);
-        put_str("Still in denial? Or can't bear to leave without checking out that one last bit", row + 9, 2);
-        put_str("of loot to see what you died for? Or simply want to smack that big meanie one", row + 10, 2);
-        put_str("last time, for shuffling you off this mortal coil?", row + 11, 2);
-        put_str("In that case, press [w] now, to cheat death and resurrect in wizard mode - but", row + 13, 2);
-        c_put_str(TERM_ORANGE, "w", row + 13, 23);
-        put_str("know that of course it makes you a stinky cheater, and no score will be saved.", row + 14, 2);
-        c_put_str(TERM_L_GREEN, esc_armed
-            ? "[d/y] View Screen  [x] Quick Restart  [w] Cheat Death  [n/Esc] Accept Death"
-            : "[d/y] View Screen  [x] Quick Restart  [w] Cheat Death  [n] Accept Death",
-            row + 17, 2);
-        c_put_str(TERM_ORANGE, "d", row + 17, 3);
-        c_put_str(TERM_ORANGE, "y", row + 17, 5);
-        c_put_str(TERM_ORANGE, "x", row + 17, 22);
-        c_put_str(TERM_ORANGE, "w", row + 17, 41);
-        c_put_str(TERM_ORANGE, "n", row + 17, 58);
-        if (esc_armed)
-            c_put_str(TERM_ORANGE, "Esc", row + 17, 60);
+        put_str("Toggle silent death mode with [s]: ", row + 7, 2);
+        c_put_str(TERM_ORANGE, "s", row + 7, 33);
+        c_put_str(*silent ? TERM_L_GREEN : TERM_RED, *silent ? "ON" : "OFF", row + 7, 38);
+        put_str("Toggle quick restart mode with [q]: ", row + 8, 2);
+        c_put_str(TERM_ORANGE, "q", row + 8, 36);
+        c_put_str(*quick ? TERM_L_GREEN : TERM_RED, *quick ? "ON" : "OFF", row + 8, 41);
+        put_str("Still in denial? Or can't bear to leave without checking out that one last bit", row + 10, 2);
+        put_str("of loot to see what you died for? Or simply want to smack that big meanie one", row + 11, 2);
+        put_str("last time, for shuffling you off this mortal coil?", row + 12, 2);
+        put_str("In that case, press [w] now, to cheat death and resurrect in wizard mode - but", row + 14, 2);
+        c_put_str(TERM_ORANGE, "w", row + 14, 23);
+        put_str("know that of course it makes you a stinky cheater, and no score will be saved.", row + 15, 2);
+        c_put_str(TERM_L_GREEN, "[d/y] View Screen  [s] Silent  [q] Quick  [w] Cheat Death  [n] Accept Death", row + 18, 2);
+        c_put_str(TERM_ORANGE, "d", row + 18, 3);
+        c_put_str(TERM_ORANGE, "y", row + 18, 5);
+        c_put_str(TERM_ORANGE, "s", row + 18, 22);
+        c_put_str(TERM_ORANGE, "q", row + 18, 34);
+        c_put_str(TERM_ORANGE, "w", row + 18, 45);
+        c_put_str(TERM_ORANGE, "n", row + 18, 62);
         Term_gotoxy(2 + strlen("***** You have died. *****"), row);
         Term_fresh();
 
@@ -121,19 +119,22 @@ static int _death_dump_screen_prompt(void)
         screen_load();
 
         if (i == 'n' || i == 'N')
-        {
-            i = quick ? 'x' : 'n';
             break;
-        }
         if (i == 'd' || i == 'D' || i == 'y' || i == 'Y')
         {
             do_cmd_save_screen();
             continue;
         }
-        if (i == 'x' || i == 'X')
+        if (i == 's' || i == 'S')
         {
-            quick = !quick;
-            quickstart = quick;
+            *silent = !*silent;
+            esc_armed = FALSE;
+            continue;
+        }
+        if (i == 'q')
+        {
+            *quick = !*quick;
+            quickstart = *quick;
             esc_armed = FALSE;
             continue;
         }
@@ -144,8 +145,7 @@ static int _death_dump_screen_prompt(void)
         }
         if (i == ESCAPE)
         {
-            if (esc_armed)
-                return 'n';
+            if (esc_armed) return 'n';
             esc_armed = TRUE;
             continue;
         }
@@ -171,6 +171,9 @@ static void _cheat_death_here(void)
     }
     quick_restart = FALSE;
     death_resurrect = FALSE;
+    suppress_death_announce = FALSE;
+    disturb(1, 0);
+    p_ptr->energy_need = 0;
     wizard_cure_all();
     msg_print("You cheat death and invoke wizard mode.");
     msg_print(NULL);
@@ -6755,7 +6758,9 @@ int take_hit(int damage_type, int damage, cptr hit_from)
             bool seppuku = streq(hit_from, "Seppuku");
             bool winning_seppuku = p_ptr->total_winner && seppuku;
             bool can_resurrect = p_ptr->total_winner && unique_is_friend(MON_R_MACHINE);
+            bool silent_death = FALSE;
 
+            suppress_death_announce = FALSE;
             _note_death_cause(hit_from);
             if (p_ptr->image)
             {
@@ -6785,14 +6790,17 @@ int take_hit(int damage_type, int damage, cptr hit_from)
 
             {
                 int death_cmd = can_resurrect ? _death_resurrection_prompt() : 'n';
+                bool death_quick = quickstart;
 
                 if (death_cmd == 'n')
-                    death_cmd = _death_dump_screen_prompt();
+                    death_cmd = _death_dump_screen_prompt(&death_quick, &silent_death);
 
-                if (death_cmd == 'x')
+                quickstart = death_quick;
+                suppress_death_announce = (death_cmd == 'n' && silent_death);
+
+                if (death_cmd == 'n' && death_quick)
                 {
                     quick_restart = TRUE;
-                    quickstart = TRUE;
                     death_resurrect = FALSE;
                 }
                 else if (death_cmd == 'w')

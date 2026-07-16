@@ -682,6 +682,7 @@ extern bool generate_encounter;
 extern cptr screen_dump;
 extern bool quick_restart;
 extern bool death_resurrect;
+extern bool suppress_death_announce;
 extern pantheon_type pant_list[PANTHEON_MAX];
 
 /*** Terrain feature variables ***/

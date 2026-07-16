@@ -95,7 +95,14 @@ void updatecharinfoS(void)
 	fprintf(oFile, "cLvl: \"%i\",\n", p_ptr->lev);
 	fprintf(oFile, "isDead: \"%i\",\n", p_ptr->is_dead);
 	fprintf(oFile, "isThrall: \"%i\",\n", thrall_mode ? 1 : 0);
-	fprintf(oFile, "killedBy: \"%s\"\n", p_ptr->died_from);
+	if (suppress_death_announce)
+	{
+		fprintf(oFile, "suppressDeathAnnounce: \"1\"\n");
+	}
+	else
+	{
+		fprintf(oFile, "killedBy: \"%s\"\n", p_ptr->died_from);
+	}
 	fprintf(oFile, "}");
 	fclose(oFile);
 }

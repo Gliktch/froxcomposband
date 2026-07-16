@@ -1221,6 +1221,7 @@ bool generate_encounter;
 cptr screen_dump = NULL;
 bool quick_restart = FALSE;
 bool death_resurrect = FALSE;
+bool suppress_death_announce = FALSE;
 
 /*** Terrain feature variables ***/
 

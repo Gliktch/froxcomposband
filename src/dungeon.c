@@ -6720,9 +6720,12 @@ quick_restart_loop:
 
     if (quick_restart)
     {
+        term *old = Term;
+
         new_game = TRUE;
         quick_restart = FALSE;
         death_resurrect = FALSE;
+        suppress_death_announce = FALSE;
         arg_quickstart = TRUE;
         quickstart = TRUE;
         character_loaded = FALSE;
@@ -6733,6 +6736,14 @@ quick_restart_loop:
             z_string_free(screen_dump);
             screen_dump = NULL;
         }
+        for (i = 1; i < 8; i++)
+        {
+            if (!angband_term[i]) continue;
+            Term_activate(angband_term[i]);
+            Term_clear();
+            Term_fresh();
+        }
+        Term_activate(old);
         goto quick_restart_loop;
     }
 

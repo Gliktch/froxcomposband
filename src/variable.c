@@ -81,6 +81,7 @@ bool arg_bigtile = FALSE;    /* Command arg -- Request big tile mode */
 bool arg_protected_session; /* Command arg -- Request protected session mode */
 bool arg_quickstart;        /* Command arg -- Request quick start */
 bool quickstart;    /* Default quick restart to on at death */
+bool silent_death;  /* Default silent death to on at death */
 #ifdef WEBCLIENT
 bool arg_webclient = TRUE;  /* Command arg -- Request angband.live/webclient mode */
 #else
@@ -1221,6 +1222,7 @@ bool generate_encounter;
 cptr screen_dump = NULL;
 bool quick_restart = FALSE;
 bool death_resurrect = FALSE;
+bool is_cheating_death = FALSE;
 bool suppress_death_announce = FALSE;
 
 /*** Terrain feature variables ***/

@@ -133,6 +133,7 @@ extern bool arg_bigtile;
 extern bool arg_protected_session;
 extern bool arg_quickstart;
 extern bool quickstart;
+extern bool silent_death;
 extern bool arg_webclient;
 extern bool arg_test;
 extern bool arg_test_headless;
@@ -682,6 +683,7 @@ extern bool generate_encounter;
 extern cptr screen_dump;
 extern bool quick_restart;
 extern bool death_resurrect;
+extern bool is_cheating_death;
 extern bool suppress_death_announce;
 extern pantheon_type pant_list[PANTHEON_MAX];
 

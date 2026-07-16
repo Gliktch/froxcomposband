@@ -236,6 +236,8 @@ bool make_attack_normal(int m_idx)
     /* Silver monsters have special effects on werewolves */
     bool track_werewolf_dam = (((p_ptr->prace == RACE_WEREWOLF) || (p_ptr->current_r_idx == MON_WEREWOLF)) && (r_ptr->flags7 & RF7_SILVER)) ? TRUE : FALSE;
 
+    if (is_cheating_death) return FALSE;
+
     /* Not allowed to attack */
     if (r_ptr->flags1 & (RF1_NEVER_BLOW)) return (FALSE);
 
@@ -311,7 +313,7 @@ bool make_attack_normal(int m_idx)
         if (!blow->method) break;
 
         /* Stop if player is dead or gone (e.g. SHATTER knocks player back) */
-        if (!p_ptr->playing || p_ptr->is_dead) break;
+        if (!p_ptr->playing || p_ptr->is_dead || is_cheating_death) break;
         if ((!mon_spell_current()) && ((py != opy) || (px != opx)) && (distance(py, px, m_ptr->fy, m_ptr->fx) > 1)) break;
         /*   ^--- Assume it is GAZE = {MST_BOLT, GF_ATTACK} from a beholder */
 
@@ -503,7 +505,7 @@ bool make_attack_normal(int m_idx)
                 int            effect_dam;
 
                 if (!effect->effect) break;
-                if (!p_ptr->playing || p_ptr->is_dead) break;
+                if (!p_ptr->playing || p_ptr->is_dead || is_cheating_death) break;
                 if (nemesis_hack) break;
                 if (p_ptr->leaving) break;
                 if (effect->pct && randint1(100) > effect->pct) continue;
@@ -903,6 +905,7 @@ bool make_attack_normal(int m_idx)
                 } /* switch (effect) */
                 mon_lore_effect(m_ptr, effect);
             } /* for each effect */
+            if (is_cheating_death) break;
             total_dam += blow_dam;
             if (explode)
             {
@@ -1356,6 +1359,8 @@ bool make_attack_normal(int m_idx)
         if (retaliation_hack)
             break;
     }
+
+    if (is_cheating_death) return TRUE;
 
     /* Hex - revenge damage stored */
     revenge_store(total_dam);

@@ -4862,8 +4862,8 @@ bool trap_can_be_ignored(int feat)
     case TRAP_FIRE:
         if (res_can_ignore(RES_FIRE)) return TRUE;
         break;
-    case TRAP_ACID: /* Note: Your armor still gets messed up even if your pack is safe! */
-        if (res_pct(RES_ACID) == 100) return TRUE;
+    case TRAP_ACID:
+        if (res_can_ignore(RES_ACID)) return TRUE;
         break;
     case TRAP_BLIND:
         if (res_can_ignore(RES_BLIND)) return TRUE;

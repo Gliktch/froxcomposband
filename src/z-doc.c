@@ -668,7 +668,8 @@ static bool _doc_search_open(doc_ptr doc, rect_t display, _doc_search_ptr search
     search->current = 0;
     search->active = (search->text[0] != '\0');
     search->total = search->active ? _doc_search_count(doc, search->text) : 0;
-    doc->selection = doc_region_invalid();
+    if (!old.active || !old.current || strcmp(old.text, search->text))
+        doc->selection = doc_region_invalid();
     return TRUE;
 }
 
@@ -2714,7 +2715,13 @@ int doc_display_character_sheet(doc_ptr doc)
 
         if (_doc_search_prompt_cmd(cmd, &search))
         {
-            _doc_search_open(active_doc, display, &search);
+            if (_doc_search_open(active_doc, display, &search))
+            {
+                if (cmd == '\\' || _doc_cmd_is_shift_f3(cmd))
+                    _doc_search_prev(active_doc, &search, &top, page_size);
+                else
+                    _doc_search_next(active_doc, &search, &top, page_size);
+            }
             continue;
         }
         if (search.active)
@@ -2971,7 +2978,13 @@ int doc_display_aux_ex(doc_ptr doc, cptr caption, int top, rect_t display, u32b 
 
         if (allow_search && _doc_search_prompt_cmd(cmd, &search))
         {
-            _doc_search_open(doc, display, &search);
+            if (_doc_search_open(doc, display, &search))
+            {
+                if (cmd == '\\' || _doc_cmd_is_shift_f3(cmd))
+                    _doc_search_prev(doc, &search, &top, page_size);
+                else
+                    _doc_search_next(doc, &search, &top, page_size);
+            }
             continue;
         }
         if (allow_search && search.active)

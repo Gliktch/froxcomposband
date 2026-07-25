@@ -979,7 +979,7 @@ static string_ptr _inventory_prompt(void)
     return string_alloc_format(
         "<color:w>Carrying %d.%d pounds (<color:%c>%d%%</color> capacity).</color>\n\n"
         "Examine which item <color:w>(<color:keypress>Esc</color> to exit)</color>?",
-        wgt / 10, wgt % 10, pct > 100 ? 'r' : 'G', pct);
+        wgt / 10, wgt % 10, pct >= 100 ? 'r' : 'G', pct);
 }
 
 static void _prompt_add_where(obj_prompt_ptr prompt, int where)

@@ -4109,15 +4109,17 @@ static bool _find_adjacent_ammo_stack_drop(object_type *j_ptr, int y, int x, int
             int score;
             int ty = y + dy;
             int tx = x + dx;
+            bool adjacent = dy || dx;
             bool comb = FALSE;
             s16b this_o_idx, next_o_idx = 0;
             cave_type *c_ptr;
 
-            if (!dy && !dx) continue;
+            if (!adjacent) continue;
             if (!in_bounds(ty, tx)) continue;
             if (!projectable(y, x, ty, tx)) continue;
 
             c_ptr = &cave[ty][tx];
+            if (c_ptr->m_idx) continue;
             if (!cave_drop_bold(ty, tx)) continue;
 
             for (this_o_idx = c_ptr->o_idx; this_o_idx; this_o_idx = next_o_idx)
@@ -4169,6 +4171,7 @@ s16b drop_near(object_type *j_ptr, int chance, int y, int x)
 
     bool flag = FALSE;
     bool done = FALSE;
+    bool ammo = obj_is_ammo(j_ptr);
 
     /* Extract plural */
     bool plural = object_plural(j_ptr);
@@ -4243,6 +4246,7 @@ s16b drop_near(object_type *j_ptr, int chance, int y, int x)
             /* Scan local grids */
             for (dx = -3; dx <= 3; dx++)
             {
+                bool adjacent = dy || dx;
                 bool comb = FALSE;
 
                 /* Calculate actual distance */
@@ -4263,6 +4267,9 @@ s16b drop_near(object_type *j_ptr, int chance, int y, int x)
 
                 /* Obtain grid */
                 c_ptr = &cave[ty][tx];
+
+                /* Do not prefer stacking under nearby monsters. */
+                if (ammo && c_ptr->m_idx && adjacent) continue;
 
                 /* Require floor space */
                 if (!cave_drop_bold(ty, tx)) continue;
@@ -4296,6 +4303,7 @@ s16b drop_near(object_type *j_ptr, int chance, int y, int x)
 
                 /* Calculate score */
                 s = 1000 - (d + k * 5);
+                if (ammo && comb && adjacent && d <= 2) s += 10;
 
                 /* Skip bad values */
                 if (s < bs) continue;

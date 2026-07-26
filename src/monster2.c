@@ -3003,7 +3003,7 @@ void update_mon(int m_idx, bool full)
             /* Eldritch Horror */
             if (!fuzzy && (r_info[m_ptr->ap_r_idx].flags2 & RF2_ELDRITCH_HORROR))
             {
-                sanity_blast(m_ptr, FALSE);
+                if (!p_ptr->leaving) sanity_blast(m_ptr, FALSE);
             }
 
             if (!fuzzy)
@@ -3044,7 +3044,7 @@ void update_mon(int m_idx, bool full)
             check_mon_health_redraw(m_idx);
 
             /* Disturb on disappearance */
-            if (do_disturb)
+            if (do_disturb && !repair_monster_visibility_hack)
             {
                 if (disturb_pets || is_hostile(m_ptr))
                     disturb(1, 0);

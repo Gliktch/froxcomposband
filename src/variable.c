@@ -170,6 +170,7 @@ bool shimmer_objects;    /* Hack -- optimize multi-hued objects */
 
 bool repair_monsters;    /* Hack -- optimize detect monsters */
 bool repair_objects;    /* Hack -- optimize detect objects */
+bool repair_monster_visibility_hack; /* Hack -- suppress detection-expiry disturbances */
 
 bool hack_mind;
 

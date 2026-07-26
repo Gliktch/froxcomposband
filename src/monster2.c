@@ -2680,6 +2680,20 @@ void update_mon(int m_idx, bool full)
     {
         /* Extract the distance */
         d = m_ptr->cdis;
+
+        /* Newly placed or restored monsters can reach visibility-only
+         * updates before a full distance pass. Treat unknown distance as
+         * unknown, not adjacent. */
+        if (!d)
+        {
+            int dy = (py > fy) ? (py - fy) : (fy - py);
+            int dx = (px > fx) ? (px - fx) : (fx - px);
+
+            d = (dy > dx) ? (dy + (dx>>1)) : (dx + (dy>>1));
+            if (d > 255) d = 255;
+            if (!d) d = 1;
+            m_ptr->cdis = d;
+        }
     }
 
 
@@ -2989,7 +3003,7 @@ void update_mon(int m_idx, bool full)
             /* Eldritch Horror */
             if (!fuzzy && (r_info[m_ptr->ap_r_idx].flags2 & RF2_ELDRITCH_HORROR))
             {
-                sanity_blast(m_ptr, FALSE);
+                if (!p_ptr->leaving) sanity_blast(m_ptr, FALSE);
             }
 
             if (!fuzzy)
@@ -3030,7 +3044,7 @@ void update_mon(int m_idx, bool full)
             check_mon_health_redraw(m_idx);
 
             /* Disturb on disappearance */
-            if (do_disturb)
+            if (do_disturb && !repair_monster_visibility_hack)
             {
                 if (disturb_pets || is_hostile(m_ptr))
                     disturb(1, 0);

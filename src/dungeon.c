@@ -5232,9 +5232,12 @@ static void process_player(void)
                         }
                         else
                         {
+                            bool old_repair_monster_visibility_hack = repair_monster_visibility_hack;
+
                             m_ptr->mflag2 &= ~(MFLAG2_MARK);
-                            m_ptr->ml = FALSE;
+                            repair_monster_visibility_hack = TRUE;
                             update_mon(i, FALSE);
+                            repair_monster_visibility_hack = old_repair_monster_visibility_hack;
                             check_mon_health_redraw(i);
                             lite_spot(m_ptr->fy, m_ptr->fx);
                             p_ptr->window |= PW_MONSTER_LIST;

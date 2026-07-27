@@ -146,9 +146,11 @@ void monk_display_attack_info(doc_ptr doc, int hand)
     int to_d = p_ptr->weapon_info[hand].to_d * 10;
     critical_t crit;
     doc_ptr cols[2] = {0};
+    u32b flgs[OF_ARRAY_SIZE] = {0};
 
     cols[0] = doc_alloc(45);
     cols[1] = doc_alloc(35);
+    weapon_flags(hand, flgs);
 
     /* First Column */
     doc_printf(cols[0], "<color:G>%-14.14s %6s %5s %6s</color>\n", "Attack", "Dice", "Pct", "Dam");
@@ -228,7 +230,7 @@ void monk_display_attack_info(doc_ptr doc, int hand)
         int hit = _calc_damage_per_hit(tot_dam, to_d + 50, 20, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Acid</color>: %d\n", blows * hit / 1000);
     }
-    else if (have_flag(p_ptr->weapon_info[hand].flags, OF_BRAND_ACID))
+    else if (have_flag(flgs, OF_BRAND_ACID))
     {
         int hit = _calc_damage_per_hit(tot_dam, to_d, 17, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Acid</color>: %d\n", blows * hit / 1000);
@@ -239,7 +241,7 @@ void monk_display_attack_info(doc_ptr doc, int hand)
         int hit = _calc_damage_per_hit(tot_dam, to_d + 30, 17, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Fire</color>: %d\n", blows * hit / 1000);
     }
-    else if (have_flag(p_ptr->weapon_info[hand].flags, OF_BRAND_FIRE))
+    else if (have_flag(flgs, OF_BRAND_FIRE))
     {
         int hit = _calc_damage_per_hit(tot_dam, to_d, 17, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Fire</color>: %d\n", blows * hit / 1000);
@@ -250,7 +252,7 @@ void monk_display_attack_info(doc_ptr doc, int hand)
         int hit = _calc_damage_per_hit(tot_dam, to_d + 30, 17, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Cold</color>: %d\n", blows * hit / 1000);
     }
-    else if (have_flag(p_ptr->weapon_info[hand].flags, OF_BRAND_COLD))
+    else if (have_flag(flgs, OF_BRAND_COLD))
     {
         int hit = _calc_damage_per_hit(tot_dam, to_d, 17, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Cold</color>: %d\n", blows * hit / 1000);
@@ -261,7 +263,7 @@ void monk_display_attack_info(doc_ptr doc, int hand)
         int hit = _calc_damage_per_hit(tot_dam, to_d + 70, 25, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Elec</color>: %d\n", blows * hit / 1000);
     }
-    else if (have_flag(p_ptr->weapon_info[hand].flags, OF_BRAND_ELEC))
+    else if (have_flag(flgs, OF_BRAND_ELEC))
     {
         int hit = _calc_damage_per_hit(tot_dam, to_d, 17, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Elec</color>: %d\n", blows * hit / 1000);
@@ -272,10 +274,44 @@ void monk_display_attack_info(doc_ptr doc, int hand)
         int hit = _calc_damage_per_hit(tot_dam, to_d + 30, 17, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Pois</color>: %d\n", blows * hit / 1000);
     }
-    else if (have_flag(p_ptr->weapon_info[hand].flags, OF_BRAND_POIS))
+    else if (have_flag(flgs, OF_BRAND_POIS))
     {
         int hit = _calc_damage_per_hit(tot_dam, to_d, 17, p_ptr->tim_force);
         doc_printf(cols[1], " <color:r>      Pois</color>: %d\n", blows * hit / 1000);
+    }
+
+    for (i = 0;; i++)
+    {
+        slay_type slay = slay_list[i];
+        int mult = 0;
+        char name[24];
+        if (!slay.tier) break;
+        switch (slay.slay_flag)
+        {
+        case OF_BRAND_ACID:
+        case OF_BRAND_ELEC:
+        case OF_BRAND_FIRE:
+        case OF_BRAND_COLD:
+        case OF_BRAND_POIS:
+            continue;
+        }
+        if (slay.kill_flag && have_flag(flgs, slay.kill_flag))
+        {
+            mult = slay_tiers[slay.tier - 1].kill / 10;
+            snprintf(name, sizeof(name), "*%s*", slay.kill_desc);
+        }
+        else if (have_flag(flgs, slay.slay_flag))
+        {
+            mult = slay_tiers[slay.tier - 1].slay / 10;
+            snprintf(name, sizeof(name), "%s", slay.kill_desc);
+        }
+        if (mult)
+        {
+            int hit = _calc_damage_per_hit(tot_dam, to_d, mult, p_ptr->tim_force);
+            doc_printf(cols[1], " <color:%c>%10.10s</color>: %d\n",
+                attr_to_attr_char(slay.is_slay ? TERM_YELLOW : TERM_RED),
+                name, blows * hit / 1000);
+        }
     }
 
     doc_insert_cols(doc, cols, 2, 0);

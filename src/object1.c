@@ -109,27 +109,27 @@ void reset_visuals(void)
 void weapon_flags(int hand, u32b flgs[OF_ARRAY_SIZE])
 {
     object_type *o_ptr = equip_obj(p_ptr->weapon_info[hand].slot);
+    int i;
     if (o_ptr)
     {
-        int i;
         obj_flags(o_ptr, flgs);
-        for (i = 0; i < OF_ARRAY_SIZE; i++)
-            flgs[i] |= p_ptr->weapon_info[hand].flags[i];
         if ((disciple_is_(DISCIPLE_TROIKA)) && (object_is_melee_weapon(o_ptr))) troika_bonus_flags(o_ptr, flgs);
     }
+    for (i = 0; i < OF_ARRAY_SIZE; i++)
+        flgs[i] |= p_ptr->weapon_info[hand].flags[i];
 }
 
 void weapon_flags_known(int hand, u32b flgs[OF_ARRAY_SIZE])
 {
     object_type *o_ptr = equip_obj(p_ptr->weapon_info[hand].slot);
+    int i;
     if (o_ptr)
     {
-        int i;
         obj_flags_known(o_ptr, flgs);
-        for (i = 0; i < OF_ARRAY_SIZE; i++)
-            flgs[i] |= p_ptr->weapon_info[hand].known_flags[i];
         if (disciple_is_(DISCIPLE_TROIKA)) troika_bonus_flags(o_ptr, flgs);
     }
+    for (i = 0; i < OF_ARRAY_SIZE; i++)
+        flgs[i] |= p_ptr->weapon_info[hand].known_flags[i];
 }
 
 void missile_flags(object_type *arrow, u32b flgs[OF_ARRAY_SIZE])

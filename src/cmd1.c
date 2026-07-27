@@ -442,14 +442,18 @@ bool test_hit_norm(int chance, int ac, int vis)
     return (TRUE);
 }
 
-s16b tot_dam_aux_monk(int tdam, monster_type *m_ptr, int mode)
+s16b tot_dam_aux_monk(int tdam, monster_type *m_ptr, int mode, int hand)
 {
     int mult = 10;
     int bonus = 0;
     monster_race *r_ptr = &r_info[m_ptr->r_idx];
     const int monk_elem_slay = 17;
+    u32b flgs[OF_ARRAY_SIZE] = {0};
+    int i;
 
-    if (have_flag(p_ptr->weapon_info[0].flags, OF_BRAND_ACID) || mode == MYSTIC_ACID || mode == DRACONIAN_STRIKE_ACID)
+    weapon_flags(hand, flgs);
+
+    if (have_flag(flgs, OF_BRAND_ACID) || mode == MYSTIC_ACID || mode == DRACONIAN_STRIKE_ACID)
     {
         if (r_ptr->flagsr & RFR_EFF_IM_ACID_MASK)
         {
@@ -466,7 +470,7 @@ s16b tot_dam_aux_monk(int tdam, monster_type *m_ptr, int mode)
         }
     }
 
-    if (have_flag(p_ptr->weapon_info[0].flags, OF_BRAND_ELEC) || mode == MYSTIC_ELEC || mode == DRACONIAN_STRIKE_ELEC)
+    if (have_flag(flgs, OF_BRAND_ELEC) || mode == MYSTIC_ELEC || mode == DRACONIAN_STRIKE_ELEC)
     {
         if (r_ptr->flagsr & RFR_EFF_IM_ELEC_MASK)
         {
@@ -483,7 +487,7 @@ s16b tot_dam_aux_monk(int tdam, monster_type *m_ptr, int mode)
         }
     }
 
-    if (have_flag(p_ptr->weapon_info[0].flags, OF_BRAND_FIRE) || mode == MYSTIC_FIRE || mode == DRACONIAN_STRIKE_FIRE)
+    if (have_flag(flgs, OF_BRAND_FIRE) || mode == MYSTIC_FIRE || mode == DRACONIAN_STRIKE_FIRE)
     {
         if (r_ptr->flagsr & RFR_EFF_IM_FIRE_MASK)
         {
@@ -506,7 +510,7 @@ s16b tot_dam_aux_monk(int tdam, monster_type *m_ptr, int mode)
         }
     }
 
-    if (have_flag(p_ptr->weapon_info[0].flags, OF_BRAND_COLD) || mode == MYSTIC_COLD || mode == DRACONIAN_STRIKE_COLD)
+    if (have_flag(flgs, OF_BRAND_COLD) || mode == MYSTIC_COLD || mode == DRACONIAN_STRIKE_COLD)
     {
         if (r_ptr->flagsr & RFR_EFF_IM_COLD_MASK)
         {
@@ -529,7 +533,7 @@ s16b tot_dam_aux_monk(int tdam, monster_type *m_ptr, int mode)
         }
     }
 
-    if (have_flag(p_ptr->weapon_info[0].flags, OF_BRAND_POIS) || mode == MYSTIC_POIS || mode == DRACONIAN_STRIKE_POIS)
+    if (have_flag(flgs, OF_BRAND_POIS) || mode == MYSTIC_POIS || mode == DRACONIAN_STRIKE_POIS)
     {
         if (r_ptr->flagsr & RFR_EFF_IM_POIS_MASK)
         {
@@ -544,6 +548,31 @@ s16b tot_dam_aux_monk(int tdam, monster_type *m_ptr, int mode)
         {
             if (mult < monk_elem_slay) mult = monk_elem_slay;
         }
+    }
+
+    for (i = 0;; i++)
+    {
+        slay_type slay = slay_list[i];
+        int my_mult = 10;
+        if (!slay.tier) break;
+        switch (slay.slay_flag)
+        {
+        case OF_BRAND_ACID:
+        case OF_BRAND_ELEC:
+        case OF_BRAND_FIRE:
+        case OF_BRAND_COLD:
+        case OF_BRAND_POIS:
+            continue;
+        }
+        if (!slay.tester(r_ptr, m_ptr, FALSE)) continue;
+        if (slay.kill_flag && have_flag(flgs, slay.kill_flag))
+            my_mult = slay_tiers[slay.tier - 1].kill / 10;
+        else if (have_flag(flgs, slay.slay_flag))
+            my_mult = slay_tiers[slay.tier - 1].slay / 10;
+        if (my_mult > mult)
+            mult = my_mult;
+        if (my_mult > 10)
+            slay.tester(r_ptr, m_ptr, TRUE);
     }
 
     if (p_ptr->tim_force) /* Craft skillmaster martial artist. Craft Monks cannot learn Mana Branding */
@@ -2453,7 +2482,7 @@ static bool py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
                     resist_stun += 66;
 
                 k = damroll(ma_ptr->dd + p_ptr->weapon_info[hand].to_dd, ma_ptr->ds + p_ptr->weapon_info[hand].to_ds);
-                k = tot_dam_aux_monk(k, m_ptr, mode);
+                k = tot_dam_aux_monk(k, m_ptr, mode, hand);
 
                 if (backstab || fuiuchi) /* skillmaster (stealthy or hiding in shadows) */
                 {
@@ -3345,7 +3374,8 @@ static bool py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
                             drain_heal = (drain_heal * mutant_regenerate_mod) / 100;
                             vampirism_hack = m_ptr->hp;
                             vamp_player(drain_heal);
-                            obj_learn_slay(o_ptr, OF_BRAND_VAMP, "is <color:D>Vampiric</color>");
+                            if (o_ptr)
+                                obj_learn_slay(o_ptr, OF_BRAND_VAMP, "is <color:D>Vampiric</color>");
                         }
                     }
                 }

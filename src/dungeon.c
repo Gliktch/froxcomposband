@@ -6476,7 +6476,8 @@ quick_restart_loop:
             else
             {
                 object_type forge;
-                py_birth_obj_aux(TV_SCROLL, SV_SCROLL_IDENTIFY, 12);
+                if (!easy_id)
+                    py_birth_obj_aux(TV_SCROLL, SV_SCROLL_IDENTIFY, 12);
                 py_birth_obj_aux(TV_SCROLL, SV_SCROLL_STAR_DESTRUCTION, 10);
                 py_birth_obj_aux(TV_SCROLL, SV_SCROLL_REMOVE_CURSE, 1);
                 py_birth_obj_aux(TV_POTION, SV_POTION_CURING, 2);

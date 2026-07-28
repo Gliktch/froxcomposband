@@ -1334,6 +1334,39 @@ static void _mon_display_probe(doc_ptr doc, int m_idx)
 
 }
 
+static int _list_width_max(void)
+{
+    int max_width = MIN(120, MAX(50, Term->wid - 15));
+
+    return max_width & ~(0x01);
+}
+
+static void _adjust_list_width(byte *width, int delta)
+{
+    int new_width = *width;
+
+    if (delta > 0)
+    {
+        int max_width = _list_width_max();
+
+        new_width += (new_width & 0x01) ? 1 : 2;
+        if (new_width > max_width) new_width = max_width;
+    }
+    else
+    {
+        new_width -= (new_width & 0x01) ? 1 : 2;
+        if (new_width < 24) new_width = 24;
+    }
+
+    *width = new_width;
+}
+
+static void _apply_list_width(rect_t *rect, byte width)
+{
+    if (rect->cx > width)
+        rect->cx = width;
+}
+
 static void _list_monsters_aux(_mon_list_ptr list, rect_t display_rect, int mode)
 {
     int  top = 0, page_size, pos = 1;
@@ -1400,6 +1433,25 @@ static void _list_monsters_aux(_mon_list_ptr list, rect_t display_rect, int mode
 
         switch (cmd)
         {
+        /* Resize */
+        case '+':
+            _adjust_list_width(&monster_list_width, 1);
+            display_rect = ui_menu_rect();
+            _apply_list_width(&display_rect, monster_list_width);
+            screen_load();
+            screen_save();
+            redraw = TRUE;
+            handled = TRUE;
+            break;
+        case '-':
+            _adjust_list_width(&monster_list_width, -1);
+            display_rect = ui_menu_rect();
+            _apply_list_width(&display_rect, monster_list_width);
+            screen_load();
+            screen_save();
+            redraw = TRUE;
+            handled = TRUE;
+            break;
         /* Monster Recall */
         case '/': case 'R':
         {
@@ -1714,8 +1766,7 @@ void do_cmd_list_monsters(int mode)
     _mon_list_ptr list = _create_monster_list(mode);
     rect_t        display_rect = ui_menu_rect();
 
-    if (display_rect.cx > monster_list_width)
-        display_rect.cx = monster_list_width;
+    _apply_list_width(&display_rect, monster_list_width);
 
     if (list->ct_total)
         _list_monsters_aux(list, display_rect, mode);
@@ -1773,6 +1824,8 @@ struct _obj_list_info_s
     int dx, dy;
     int score;
     int count;
+    int total_count;
+    bool all_objects;
 };
 typedef struct _obj_list_info_s _obj_list_info_t, *_obj_list_info_ptr;
 
@@ -1787,8 +1840,11 @@ struct _obj_list_s
 {
     vec_ptr list;
     int     ct_autopick;
+    int     ct_autopick_total;
     int     ct_total;
+    int     ct_total_unfiltered;
     int     ct_feature;
+    bool    filtered;
 };
 
 typedef struct _obj_list_s _obj_list_t, *_obj_list_ptr;
@@ -1798,8 +1854,11 @@ static _obj_list_ptr _obj_list_alloc(void)
     _obj_list_ptr result = malloc(sizeof(_obj_list_t));
     result->list = vec_alloc(free);
     result->ct_autopick = 0;
+    result->ct_autopick_total = 0;
     result->ct_total = 0;
+    result->ct_total_unfiltered = 0;
     result->ct_feature = 0;
+    result->filtered = FALSE;
     return result;
 }
 
@@ -1813,6 +1872,75 @@ static void _obj_list_free(_obj_list_ptr list)
 #define _GROUP_FEATURE  1
 #define _GROUP_AUTOPICK 2
 #define _GROUP_OTHER    3
+
+typedef struct {
+    bool show_ammo;
+    bool show_sensed;
+    bool show_identified;
+    bool show_unsensed;
+    bool show_unwanted;
+    bool show_stairs;
+} _obj_list_filter_t, *_obj_list_filter_ptr;
+
+static bool _obj_list_session_filter_initialized = FALSE;
+static _obj_list_filter_t _obj_list_session_filter;
+
+static _obj_list_filter_t _obj_list_filter_default(void)
+{
+    _obj_list_filter_t filter = { TRUE, TRUE, TRUE, TRUE, no_mogaminator, list_stairs };
+    return filter;
+}
+
+void object_list_reset_mog_filter(void)
+{
+    if (_obj_list_session_filter_initialized)
+        _obj_list_session_filter.show_unwanted = no_mogaminator ? TRUE : FALSE;
+}
+
+static _obj_list_filter_ptr _obj_list_filter_current(void)
+{
+    if (!_obj_list_session_filter_initialized)
+    {
+        _obj_list_session_filter = _obj_list_filter_default();
+        _obj_list_session_filter_initialized = TRUE;
+    }
+    return &_obj_list_session_filter;
+}
+
+static bool _obj_list_filter_is_active(_obj_list_filter_ptr filter)
+{
+    return !filter->show_ammo
+        || !filter->show_sensed
+        || !filter->show_identified
+        || !filter->show_unsensed
+        || !filter->show_unwanted;
+}
+
+static bool _obj_list_is_sensed(object_type *o_ptr)
+{
+    return !object_is_known(o_ptr) && (o_ptr->ident & IDENT_SENSE);
+}
+
+static bool _obj_list_is_unsensed(object_type *o_ptr)
+{
+    return !object_is_known(o_ptr) && !(o_ptr->ident & IDENT_SENSE);
+}
+
+static bool _obj_list_object_matches_filter(object_type *o_ptr, _obj_list_filter_ptr filter)
+{
+    if (!filter->show_ammo && obj_is_ammo(o_ptr)) return FALSE;
+    if (!filter->show_identified && object_is_known(o_ptr)) return FALSE;
+    if (!filter->show_sensed && _obj_list_is_sensed(o_ptr)) return FALSE;
+    if (!filter->show_unsensed && _obj_list_is_unsensed(o_ptr)) return FALSE;
+    return TRUE;
+}
+
+static bool _obj_list_autopick_is_unwanted(int auto_pick_idx)
+{
+    if (auto_pick_idx < 0) return FALSE;
+    return (autopick_list[auto_pick_idx].action & DO_AUTODESTROY)
+        || !(autopick_list[auto_pick_idx].action & DO_DISPLAY);
+}
 
 static int _obj_list_comp(_obj_list_info_ptr left, _obj_list_info_ptr right)
 {
@@ -1855,14 +1983,15 @@ static int _obj_list_comp(_obj_list_info_ptr left, _obj_list_info_ptr right)
     return 0;
 }
 
-static _obj_list_ptr _create_obj_list(void)
+static _obj_list_ptr _create_obj_list(_obj_list_filter_ptr filter)
 {
     _obj_list_ptr list = _obj_list_alloc();
     int i, y, x;
+    list->filtered = _obj_list_filter_is_active(filter);
 
     /* The object list now includes features, at least on the surface. This permits
        easy town traveling to the various shops */
-    if ((!dun_level || list_stairs) && !p_ptr->wild_mode)
+    if ((!dun_level || filter->show_stairs) && !p_ptr->wild_mode)
     {
         for (y = 0; y < cur_hgt - 1; y++)
         {
@@ -1871,7 +2000,7 @@ static _obj_list_ptr _create_obj_list(void)
                 cave_type *c_ptr = &cave[y][x];
                 feature_type *f_ptr = &f_info[c_ptr->feat];
                 if (((!dun_level) && ((have_flag(f_ptr->flags, FF_STORE)) || (have_flag(f_ptr->flags, FF_STAIRS)) ||
-                    (have_flag(f_ptr->flags, FF_BLDG)))) || ((list_stairs) && (have_flag(f_ptr->flags, FF_STAIRS)) &&
+                    (have_flag(f_ptr->flags, FF_BLDG)))) || ((filter->show_stairs) && (have_flag(f_ptr->flags, FF_STAIRS)) &&
                     (c_ptr->info & (CAVE_MARK))) )
                 {
                     _obj_list_info_ptr info = _obj_list_info_alloc();
@@ -1895,11 +2024,32 @@ static _obj_list_ptr _create_obj_list(void)
         object_type       *o_ptr = &o_list[i];
         _obj_list_info_ptr info;
         int                auto_pick_idx;
+        bool               auto_pick;
+        int                ct = 0;
 
         if (!o_ptr->k_idx) continue;
         if (!o_ptr->number) continue; /* Object list crashes on piles of 0 */
         if (!(o_ptr->marked & OM_FOUND)) continue;
         if (o_ptr->tval == TV_GOLD) continue;
+
+        obj_list_autopick_hack = TRUE;
+        auto_pick_idx = is_autopick(o_ptr);
+        obj_list_autopick_hack = FALSE;
+        ct = obj_is_ammo(o_ptr) ? 1 : o_ptr->number;
+        auto_pick = auto_pick_idx >= 0
+                 && (autopick_list[auto_pick_idx].action & (DO_AUTOPICK | DO_QUERY_AUTOPICK));
+
+        list->ct_total_unfiltered += ct;
+        if (auto_pick)
+            list->ct_autopick_total += ct;
+
+        if ( !filter->show_unwanted
+          && _obj_list_autopick_is_unwanted(auto_pick_idx) )
+        {
+            continue;
+        }
+
+        if (!_obj_list_object_matches_filter(o_ptr, filter)) continue;
 
         info = _obj_list_info_alloc();
         info->subgroup = _SUBGROUP_DATA;
@@ -1911,49 +2061,81 @@ static _obj_list_ptr _create_obj_list(void)
         info->score = obj_value(o_ptr);
         info->count = o_ptr->number;
 
-        obj_list_autopick_hack = TRUE;
-        auto_pick_idx = is_autopick(o_ptr);
-        obj_list_autopick_hack = FALSE;
-        if ( auto_pick_idx >= 0
-          && !(autopick_list[auto_pick_idx].action & DO_DISPLAY) )
-        {
-            free(info);
-            continue;
-        }
-        if ( auto_pick_idx >= 0
-          && (autopick_list[auto_pick_idx].action & (DO_AUTOPICK | DO_QUERY_AUTOPICK)) )
+        if (auto_pick)
         {
             info->group = _GROUP_AUTOPICK;
-            list->ct_autopick += obj_is_ammo(o_ptr) ? 1 : o_ptr->number;
+            list->ct_autopick += ct;
         }
         else
             info->group = _GROUP_OTHER;
 
         vec_add(list->list, info);
-        list->ct_total += obj_is_ammo(o_ptr) ? 1 : o_ptr->number;
+        list->ct_total += ct;
     }
 
     /* Add Headings and Sort */
-    if (list->ct_autopick)
-    {
-        _obj_list_info_ptr info = _obj_list_info_alloc();
-        info->group = _GROUP_AUTOPICK;
-        info->subgroup = _SUBGROUP_HEADER;
-        info->count = list->ct_autopick;
-        vec_add(list->list, info);
-
-        info = _obj_list_info_alloc();
-        info->group = _GROUP_AUTOPICK;
-        info->subgroup = _SUBGROUP_FOOTER;
-        vec_add(list->list, info);
-    }
-    if (list->ct_total - list->ct_autopick)
+    if (list->filtered && !list->ct_total && list->ct_total_unfiltered)
     {
         _obj_list_info_ptr info = _obj_list_info_alloc();
         info->group = _GROUP_OTHER;
         info->subgroup = _SUBGROUP_HEADER;
-        info->count = list->ct_total - list->ct_autopick;
+        info->count = 0;
+        info->total_count = list->ct_total_unfiltered;
+        info->all_objects = TRUE;
         vec_add(list->list, info);
+    }
+    else if (list->filtered)
+    {
+        int ct_other = list->ct_total - list->ct_autopick;
+        int ct_other_total = list->ct_total_unfiltered - list->ct_autopick_total;
+
+        if (list->ct_autopick_total)
+        {
+            _obj_list_info_ptr info = _obj_list_info_alloc();
+            info->group = _GROUP_AUTOPICK;
+            info->subgroup = _SUBGROUP_HEADER;
+            info->count = list->ct_autopick;
+            info->total_count = list->ct_autopick_total;
+            vec_add(list->list, info);
+
+            info = _obj_list_info_alloc();
+            info->group = _GROUP_AUTOPICK;
+            info->subgroup = _SUBGROUP_FOOTER;
+            vec_add(list->list, info);
+        }
+        if (ct_other_total)
+        {
+            _obj_list_info_ptr info = _obj_list_info_alloc();
+            info->group = _GROUP_OTHER;
+            info->subgroup = _SUBGROUP_HEADER;
+            info->count = ct_other;
+            info->total_count = ct_other_total;
+            vec_add(list->list, info);
+        }
+    }
+    else
+    {
+        if (list->ct_autopick)
+        {
+            _obj_list_info_ptr info = _obj_list_info_alloc();
+            info->group = _GROUP_AUTOPICK;
+            info->subgroup = _SUBGROUP_HEADER;
+            info->count = list->ct_autopick;
+            vec_add(list->list, info);
+
+            info = _obj_list_info_alloc();
+            info->group = _GROUP_AUTOPICK;
+            info->subgroup = _SUBGROUP_FOOTER;
+            vec_add(list->list, info);
+        }
+        if (list->ct_total - list->ct_autopick)
+        {
+            _obj_list_info_ptr info = _obj_list_info_alloc();
+            info->group = _GROUP_OTHER;
+            info->subgroup = _SUBGROUP_HEADER;
+            info->count = list->ct_total - list->ct_autopick;
+            vec_add(list->list, info);
+        }
     }
     if (list->ct_feature)
     {
@@ -2009,22 +2191,39 @@ static int _draw_obj_list(_obj_list_ptr list, int top, rect_t rect)
             }
             else if (info_ptr->group == _GROUP_AUTOPICK)
             {
-                c_put_str(TERM_WHITE,
-                      format("There %s %d wanted object%s:",
-                             info_ptr->count != 1 ? "are" : "is",
-                             info_ptr->count,
-                             info_ptr->count != 1 ? "s" : ""),
-                      rect.y + i, rect.x);
+                if (list->filtered)
+                    c_put_str(TERM_WHITE,
+                          format("Showing %d/%d wanted object%s:",
+                                 info_ptr->count,
+                                 info_ptr->total_count,
+                                 info_ptr->total_count != 1 ? "s" : ""),
+                          rect.y + i, rect.x);
+                else
+                    c_put_str(TERM_WHITE,
+                          format("There %s %d wanted object%s:",
+                                 info_ptr->count != 1 ? "are" : "is",
+                                 info_ptr->count,
+                                 info_ptr->count != 1 ? "s" : ""),
+                          rect.y + i, rect.x);
             }
             else
             {
-                c_put_str(TERM_WHITE,
-                      format("There %s %d %sobject%s:",
-                             info_ptr->count != 1 ? "are" : "is",
-                             info_ptr->count,
-                             list->ct_autopick ? "other " : "",
-                             info_ptr->count != 1 ? "s" : ""),
-                      rect.y + i, rect.x);
+                if (list->filtered)
+                    c_put_str(TERM_WHITE,
+                          format("Showing %d/%d %sobject%s:",
+                                 info_ptr->count,
+                                 info_ptr->total_count,
+                                 (info_ptr->all_objects || !list->ct_autopick_total) ? "" : "other ",
+                                 info_ptr->total_count != 1 ? "s" : ""),
+                          rect.y + i, rect.x);
+                else
+                    c_put_str(TERM_WHITE,
+                          format("There %s %d %sobject%s:",
+                                 info_ptr->count != 1 ? "are" : "is",
+                                 info_ptr->count,
+                                 list->ct_autopick ? "other " : "",
+                                 info_ptr->count != 1 ? "s" : ""),
+                          rect.y + i, rect.x);
             }
         }
         else if (info_ptr->subgroup == _SUBGROUP_FOOTER)
@@ -2076,37 +2275,153 @@ static int _draw_obj_list(_obj_list_ptr list, int top, rect_t rect)
                 c_put_str(TERM_WHITE, format("%-9.9s ", loc), rect.y + i, rect.x + 3 + cx_obj + 1);
         }
     }
+    if (!i && rect.cy > 0)
+    {
+        Term_erase(rect.x, rect.y, rect.cx);
+        c_put_str(TERM_WHITE, "You see no objects.", rect.y, rect.x);
+        i++;
+    }
     return i;
+}
+
+static void _obj_list_header_put(rect_t rect, int *x, byte attr, cptr text)
+{
+    int remaining = rect.x + rect.cx - *x;
+    int len = strlen(text);
+
+    if (remaining <= 0) return;
+    Term_putstr(*x, rect.y, remaining, attr, text);
+    *x += MIN(len, remaining);
+}
+
+static void _obj_list_header_toggle(rect_t rect, int *x, cptr before, cptr key, cptr after, bool included)
+{
+    byte word_attr = included ? TERM_L_GREEN : TERM_RED;
+
+    _obj_list_header_put(rect, x, word_attr, before);
+    _obj_list_header_put(rect, x, TERM_YELLOW, key);
+    _obj_list_header_put(rect, x, word_attr, after);
+}
+
+static void _draw_obj_list_filter_header(rect_t rect, _obj_list_filter_ptr filter)
+{
+    int x = rect.x;
+
+    Term_erase(rect.x, rect.y, rect.cx);
+    Term_erase(rect.x, rect.y + 1, rect.cx);
+    _obj_list_header_put(rect, &x, TERM_L_BLUE, "Filter: ");
+    _obj_list_header_toggle(rect, &x, "", "A", "mmo", filter->show_ammo);
+    _obj_list_header_put(rect, &x, TERM_L_BLUE, "|");
+    _obj_list_header_toggle(rect, &x, "I", "D", "entified", filter->show_identified);
+    _obj_list_header_put(rect, &x, TERM_L_BLUE, "|");
+    _obj_list_header_toggle(rect, &x, "S", "E", "nsed", filter->show_sensed);
+    _obj_list_header_put(rect, &x, TERM_L_BLUE, "|");
+    _obj_list_header_toggle(rect, &x, "U", "N", "sensed", filter->show_unsensed);
+    _obj_list_header_put(rect, &x, TERM_L_BLUE, "|");
+    _obj_list_header_toggle(rect, &x, "", "S", "tairs", filter->show_stairs);
+    _obj_list_header_put(rect, &x, TERM_L_BLUE, "|");
+    _obj_list_header_toggle(rect, &x, "", "U", "nwanted", filter->show_unwanted);
+}
+
+static rect_t _obj_list_rect(rect_t display_rect)
+{
+    display_rect.y += 2;
+    display_rect.cy -= 2;
+    return display_rect;
+}
+
+static bool _obj_list_is_selectable(_obj_list_ptr list, int idx)
+{
+    _obj_list_info_ptr info;
+
+    if (idx < 0 || idx >= vec_length(list->list)) return FALSE;
+
+    info = vec_get(list->list, idx);
+    assert(info);
+    return info->subgroup == _SUBGROUP_DATA && info->idx;
+}
+
+static int _obj_list_first_selectable(_obj_list_ptr list)
+{
+    int i;
+
+    for (i = 0; i < vec_length(list->list); i++)
+    {
+        if (_obj_list_is_selectable(list, i))
+            return i;
+    }
+    return -1;
+}
+
+static void _obj_list_position_selectable(_obj_list_ptr list, int *top, int page_size, int *pos)
+{
+    int idx = _obj_list_first_selectable(list);
+    int max_top = MAX(0, vec_length(list->list) - page_size);
+
+    if (idx < 0)
+    {
+        *top = 0;
+        *pos = page_size > 1 ? 1 : 0;
+        return;
+    }
+
+    if (idx < *top || idx >= *top + page_size)
+        *top = MIN(idx, max_top);
+    *pos = idx - *top;
+    if (*pos < 0) *pos = 0;
+}
+
+static void _obj_list_rebuild(
+    _obj_list_ptr *list,
+    _obj_list_filter_ptr filter,
+    rect_t list_rect,
+    int *top,
+    int *page_size,
+    int *pos,
+    int *ct_types
+)
+{
+    _obj_list_free(*list);
+    *list = _create_obj_list(filter);
+    *ct_types = vec_length((*list)->list);
+    *page_size = list_rect.cy;
+    if (*page_size > *ct_types)
+        *page_size = *ct_types;
+    if (*page_size < 1)
+        *page_size = 1;
+    if (*top > MAX(0, *ct_types - *page_size))
+        *top = MAX(0, *ct_types - *page_size);
+    if (*pos >= *page_size)
+        *pos = *page_size - 1;
+    if (*pos < 0)
+        *pos = 0;
+    if (!_obj_list_is_selectable(*list, *top + *pos))
+        _obj_list_position_selectable(*list, top, *page_size, pos);
 }
 
 void do_cmd_list_objects(void)
 {
-    _obj_list_ptr list = _create_obj_list();
+    _obj_list_filter_ptr filter = _obj_list_filter_current();
+    _obj_list_filter_t effective_filter = *filter;
+    _obj_list_ptr list = _create_obj_list(&effective_filter);
     rect_t        display_rect = ui_menu_rect();
-    bool          stairs_on = list_stairs;
-    bool          disable_toggling = FALSE;
+    rect_t        list_rect;
 
-    if (display_rect.cx > object_list_width)
-        display_rect.cx = object_list_width;
+    _apply_list_width(&display_rect, object_list_width);
+    list_rect = _obj_list_rect(display_rect);
 
-    if (((list->ct_total + list->ct_feature) < 1) && (!stairs_on))
-    {
-        list_stairs = TRUE;
-        disable_toggling = TRUE; /* Otherwise we can switch stairs back off for an empty list... */
-        _obj_list_free(list);
-        list = _create_obj_list();
-    }
-
-    if (list->ct_total + list->ct_feature)
     {
         int  top = 0, page_size, pos = 1;
         int  ct_types = vec_length(list->list);
         bool done = FALSE;
         bool redraw = TRUE;
 
-        page_size = display_rect.cy;
+        page_size = list_rect.cy;
         if (page_size > ct_types)
             page_size = ct_types;
+        if (page_size < 1)
+            page_size = 1;
+        _obj_list_position_selectable(list, &top, page_size, &pos);
 
         msg_line_clear();
         screen_save();
@@ -2117,14 +2432,14 @@ void do_cmd_list_objects(void)
 
             if (redraw)
             {
-                int ct;
-                ct = _draw_obj_list(list, top, display_rect);
-                Term_erase(display_rect.x, display_rect.y + ct, display_rect.cx);
-                c_put_str(TERM_L_BLUE, "[Press ? for help or ESC to exit]",
-                        display_rect.y + ct, display_rect.x + 3);
+                int ct, i;
+                _draw_obj_list_filter_header(display_rect, &effective_filter);
+                ct = _draw_obj_list(list, top, list_rect);
+                for (i = ct; i < list_rect.cy; i++)
+                    Term_erase(list_rect.x, list_rect.y + i, list_rect.cx);
                 redraw = FALSE;
             }
-            Term_gotoxy(display_rect.x, display_rect.y + pos);
+            Term_gotoxy(list_rect.x, list_rect.y + pos);
 
             cmd = inkey_special(TRUE);
 
@@ -2136,6 +2451,21 @@ void do_cmd_list_objects(void)
 
             switch (cmd)
             {
+            case '+':
+            case '-':
+            {
+                _adjust_list_width(&object_list_width, cmd == '+' ? 1 : -1);
+                display_rect = ui_menu_rect();
+                _apply_list_width(&display_rect, object_list_width);
+                Term_erase(display_rect.x + display_rect.cx, display_rect.y, 1);
+                Term_erase(display_rect.x + display_rect.cx, display_rect.y + 1, 1);
+                list_rect = _obj_list_rect(display_rect);
+                _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
+                screen_load();
+                screen_save();
+                redraw = TRUE;
+                break;
+            }
             case '?':
                 doc_display_help("context_object_list.txt", NULL);
                 screen_load();
@@ -2151,14 +2481,67 @@ void do_cmd_list_objects(void)
                 break;
             case 'S':
             {
-                if (disable_toggling) break;
-                list_stairs = !list_stairs;
-                _obj_list_free(list);
-                list = _create_obj_list();
-                if (list->ct_total + list->ct_feature) ct_types = vec_length(list->list);
-                page_size = display_rect.cy;
-                if (page_size > ct_types) page_size = ct_types;
-                if (pos >= page_size) pos = page_size - 1;
+                filter->show_stairs = !filter->show_stairs;
+                effective_filter = *filter;
+                _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
+                screen_load();
+                screen_save();
+                redraw = TRUE;
+                break;
+            }
+            case 'A':
+            {
+                filter->show_ammo = !filter->show_ammo;
+                effective_filter = *filter;
+                _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
+                screen_load();
+                screen_save();
+                redraw = TRUE;
+                break;
+            }
+            case 'E':
+            {
+                filter->show_sensed = !filter->show_sensed;
+                effective_filter = *filter;
+                _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
+                screen_load();
+                screen_save();
+                redraw = TRUE;
+                break;
+            }
+            case 'D':
+            {
+                filter->show_identified = !filter->show_identified;
+                effective_filter = *filter;
+                _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
+                screen_load();
+                screen_save();
+                redraw = TRUE;
+                break;
+            }
+            case 'N':
+            {
+                filter->show_unsensed = !filter->show_unsensed;
+                effective_filter = *filter;
+                _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
+                screen_load();
+                screen_save();
+                redraw = TRUE;
+                break;
+            }
+            case 'U':
+            {
+                if (no_mogaminator)
+                {
+                    msg_print("Exit this menu then press _ to activate the Mogaminator, in order to define unwanted items for filtering.");
+                    screen_load();
+                    screen_save();
+                    redraw = TRUE;
+                    break;
+                }
+                filter->show_unwanted = !filter->show_unwanted;
+                effective_filter = *filter;
+                _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
                 screen_load();
                 screen_save();
                 redraw = TRUE;
@@ -2202,18 +2585,21 @@ void do_cmd_list_objects(void)
             }
             case SKEY_TOP:
             case '7':
+                if (!ct_types) break;
                 top = 0;
                 pos = 0;
                 redraw = TRUE;
                 break;
             case SKEY_BOTTOM:
             case '1':
+                if (!ct_types) break;
                 top = MAX(0, ct_types - page_size);
                 pos = 0;
                 redraw = TRUE;
                 break;
             case SKEY_PGUP:
             case '9':
+                if (!ct_types) break;
                 top -= page_size;
                 if (top < 0)
                 {
@@ -2224,6 +2610,7 @@ void do_cmd_list_objects(void)
                 break;
             case SKEY_PGDOWN:
             case '3':
+                if (!ct_types) break;
                 top += page_size;
                 if (top > ct_types - page_size)
                 {
@@ -2234,6 +2621,7 @@ void do_cmd_list_objects(void)
                 break;
             case SKEY_DOWN:
             case '2':
+                if (!ct_types) break;
                 if (top + pos < ct_types - 1)
                 {
                     pos++;
@@ -2254,6 +2642,7 @@ void do_cmd_list_objects(void)
                 break;
             case SKEY_UP:
             case '8':
+                if (!ct_types) break;
                 if (pos > 0)
                     pos--;
                 if (pos == 0)
@@ -2345,16 +2734,14 @@ void do_cmd_list_objects(void)
         }
         screen_load();
     }
-    else
-        msg_print("You see no objects.");
 
     _obj_list_free(list);
-    list_stairs = stairs_on; /* Keep old default */
 }
 
 void _fix_object_list_aux(void)
 {
-    _obj_list_ptr list = _create_obj_list();
+    _obj_list_filter_t filter = _obj_list_filter_default();
+    _obj_list_ptr list = _create_obj_list(&filter);
     rect_t        display_rect = {0};
     int           ct = 0, i;
 

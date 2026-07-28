@@ -271,8 +271,8 @@ static void rd_options(savefile_ptr file)
     mana_warn = savefile_read_byte(file);
     random_artifact_pct = savefile_read_byte(file);
     reduce_uniques_pct = savefile_read_byte(file);
-    object_list_width = savefile_is_older_than(file, 7,1,3,1) ? 50 : savefile_read_byte(file);
-    monster_list_width = savefile_is_older_than(file, 7,1,3,1) ? 50 : savefile_read_byte(file);
+    object_list_width = savefile_is_older_than(file, 7,1,3,1) ? 56 : savefile_read_byte(file);
+    monster_list_width = savefile_is_older_than(file, 7,1,3,1) ? 56 : savefile_read_byte(file);
     generate_empty = savefile_is_older_than(file, 7,1,2,12) ? EMPTY_SOMETIMES : savefile_read_byte(file);
     small_level_type = savefile_is_older_than(file, 7,1,0,11) ? 0 : savefile_read_byte(file);
 
@@ -315,6 +315,7 @@ static void rd_options(savefile_ptr file)
 
     /* Extract the options */
     extract_option_vars();
+    object_list_reset_mog_filter();
 
     /* Display_percentages is now the easy_damage birth option, and the
      * former slot of display_percentages is now occupied by list_stairs */

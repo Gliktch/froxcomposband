@@ -6844,6 +6844,7 @@ void do_cmd_edit_autopick(void)
         if (choice == 'n')
             return;
         no_mogaminator = FALSE;
+        object_list_reset_mog_filter();
         if (choice == 'y')
         {
             if (!autopick_load_pref(ALP_CHECK_NUMERALS))
@@ -6851,6 +6852,7 @@ void do_cmd_edit_autopick(void)
                 if (!prepare_default_pickpref(FALSE))
                 {
                     no_mogaminator = TRUE;
+                    object_list_reset_mog_filter();
                     autopick_load_pref(ALP_CHECK_NUMERALS);
                     return;
                 }
@@ -6909,7 +6911,11 @@ void do_cmd_edit_autopick(void)
         tb->lines_list = read_pickpref_text_lines(&tb->filename_mode, NULL, &cancelled);
         if (!tb->lines_list)
         {
-            if (activating) no_mogaminator = TRUE;
+            if (activating)
+            {
+                no_mogaminator = TRUE;
+                object_list_reset_mog_filter();
+            }
             z_string_free(tb->last_destroyed);
             autopick_load_pref(ALP_CHECK_NUMERALS);
             start_time = time(NULL);
@@ -7028,7 +7034,10 @@ void do_cmd_edit_autopick(void)
     if (quit == QUIT_AND_SAVE || quit == QUIT_AND_SAVE_WIPE)
         write_text_lines(buf, tb->lines_list);
     else if (quit == QUIT_DISABLE)
+    {
         no_mogaminator = TRUE;
+        object_list_reset_mog_filter();
+    }
 
     free_text_lines(tb->lines_list);
 

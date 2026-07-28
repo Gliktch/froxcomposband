@@ -773,7 +773,7 @@ extern bool use_menu;
 #define ALP_DISP_MES 0x01
 #define ALP_CHECK_NUMERALS 0x02
 #define ALP_NEW_GAME 0x04
-extern void autopick_load_pref(byte mode);
+extern bool autopick_load_pref(byte mode);
 extern errr process_autopick_file_command(char *buf);
 #define AUTOPICK_COLOR_CODED 0x01
 extern string_ptr autopick_line_from_entry(autopick_type *entry, int options);

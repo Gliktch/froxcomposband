@@ -55,7 +55,7 @@ mushroom of restoring<color:U>#!E</color>
 <color:B>-------------------------------------------------------------------------------</color>
 This line is a comment.                                                         
 </indent></style>
-If you are new, you probably want to run from this complexity as fast as you can. Notice the top line of the screen where it tells you how to get out: <color:keypress>^Q</color> (and you can also exit through the <color:keypress>ESC</color> menu). The desire to exit immediately is understandable, and in fact <color:G>not a problem: simply pressing</color> <color:keypress>_</color> <color:G>turned the Mogaminator on and initialized it with default preferences,</color> so it should do a good job without any further messing. (If you are very lazy, you can stop reading here and just happily play away with the default preferences for the rest of the game!)
+If you are new, you probably want to run from this complexity as fast as you can. Notice the top line of the screen where it tells you how to get out: <color:keypress>^Q</color> (and you can also exit through the <color:keypress>ESC</color> menu). The desire to exit immediately is understandable, and in fact <color:G>not a problem: accepting the initial </color><color:keypress>_</color><color:G> prompts turns the Mogaminator on and initializes it with default preferences,</color> so it should do a good job without any further messing. You can also disable it from the <color:keypress>ESC</color> menu in this editor. (If you are very lazy, you can stop reading here and just happily play away with the default preferences for the rest of the game!)
 
 <topic:WhatHappened><color:U>So What Happened?</color>
 
@@ -416,7 +416,7 @@ Note that the editor automatically colors each rule line according to the syntax
 
 If, after reading all of the above, you decide that the Mogaminator is too much for you to handle, you may instead use a simpler system to manage objects: the <color:keyword>Easy Destroyer</color>. This system is configured via options (see <link:option.txt#AutoDestroyer>); the option <color:keyword>destroy_items</color> turns the Easy Destroyer on and off. Using the Mogaminator and the Easy Destroyer side-by-side is recommended <color:v>if and only if</color> you have the <color:keyword>always_pickup</color> option on.
 
-If you have turned on the Mogaminator but don't like what it's doing, you can use the <color:keyword>no_mogaminator</color> option to turn it off, or the <color:keyword>leave_mogaminator</color> option to limit object destruction to complete junk only. Using <color:keyword>always_pickup</color> also disables item destruction by the Mogaminator while still allowing the Easy Destroyer.
+If you have turned on the Mogaminator but don't like what it's doing, you can disable it from this editor's <color:keypress>ESC</color> menu or use the <color:keyword>no_mogaminator</color> option to turn it off. The <color:keyword>leave_mogaminator</color> option limits object destruction to complete junk only. Using <color:keyword>always_pickup</color> also disables item destruction by the Mogaminator while still allowing the Easy Destroyer.
 
 <topic:Reference><style:heading>Reference Tables</style>
 
@@ -463,7 +463,7 @@ If this seems complicated, study the default preferences and you will soon figur
   <color:keypress>;</color>     Primary    Prompt to pick up
   <color:keypress>~</color>     Primary    Leave on the floor
         Primary    <indent>Pick up - assumed if you fail to provide an alternative primary action letter. There is no specific action letter for this action, it is simply assumed unless overridden.</indent>
-  <color:keypress>(</color>     Secondary  <indent>Hide in <color:keypress>M</color> map</indent>
+  <color:keypress>(</color>     Secondary  <indent>Hide in <color:keypress>M</color> map and object lists</indent>
   <color:keypress>?</color>     Secondary  <indent>Automatically identify this item, provided you have scrolls or staves of Identify.</indent>
   <color:keypress>#</color>     Terminal   <indent>Auto-inscribe matching objects with whatever text follows this key. Note that Primary and Secondary action letters must be placed at the <color:keyword>beginning</color> of a rule line, while Terminal action letters must be placed at the <color:keyword>end</color> of a rule line.</indent>
 

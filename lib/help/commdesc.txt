@@ -374,7 +374,7 @@ Allows the user to interact with colors. This command only works on some systems
 This command will reload "pickpref.prf" and "pickpref-<<playername>>.prf" for the Mogaminator; only needs to be used if you have edited these files during the game with an external text editor.</indent>
 
   <indent><color:U>Edit Mogaminator Preferences (<color:keypress>_</color>)</color>
-Allows you to edit your pickup preferences, and activates the Mogaminator if it was not yet active. The <color:keypress>ESC</color> key will open the menu in this editor. You can see and use all edit commands from the command menu. Press <color:keypress>^Q</color> or <color:keypress>^W</color> to quit the editor.</indent>
+Prompts before opening the pickup-preference editor, and can activate the Mogaminator if it was not yet active. The <color:keypress>ESC</color> key will open the menu in this editor, including an option to disable the Mogaminator and exit. Press <color:keypress>^Q</color> or <color:keypress>^W</color> to quit the editor.</indent>
 
 <topic:Help><style:heading>Help</style>
 

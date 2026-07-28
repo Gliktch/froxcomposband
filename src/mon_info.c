@@ -1036,7 +1036,7 @@ static int _mon_display_target_doc(doc_ptr doc, rect_t display)
 {
     int top = 0;
     int page_size = MAX(1, display.cy - 1);
-    int max_top = MAX(0, doc_cursor(doc).y - page_size);
+    int max_top = MAX(0, doc_line_count(doc) - page_size);
 
     if (display.cx > 80)
         display.cx = 80;
@@ -1076,6 +1076,7 @@ int mon_display_instance_target(monster_type *mon)
         _mon_display_flags |= _MON_DISPLAY_RAW_SPELL_DAMAGE;
     _mon_display_instance = mon;
     mon_display_doc(mon_apparent_race(mon), doc);
+    display.cy = MIN(display.cy, MAX(2, doc_line_count(doc) + 1));
     screen_save();
     result = _mon_display_target_doc(doc, display);
     screen_load();

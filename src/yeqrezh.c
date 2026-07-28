@@ -97,7 +97,7 @@ static void _beam_of_disintegration_spell(int cmd, variant *res)
     {
         int dir = 0;
         var_set_bool(res, FALSE);
-        if (!get_fire_dir(&dir)) return;
+        if (!get_fire_dir_aux(&dir, TARGET_DISI)) return;
         fire_beam(GF_DISINTEGRATE, dir, spell_power(damroll(dice, sides) + p_ptr->to_d_spell));
         var_set_bool(res, TRUE);
         break;

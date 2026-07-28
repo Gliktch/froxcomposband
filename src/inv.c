@@ -646,6 +646,14 @@ cptr inv_name(inv_ptr inv)
     return inv->name;
 }
 
+static bool _obj_is_crafted(obj_ptr obj)
+{
+    return obj
+        && obj->discount == 99
+        && object_is_ego(obj)
+        && !(obj->curse_flags & OFC_PERMA_CURSE);
+}
+
 /* Menus and Display
  * It turns out to be more convenient for inv_display() to know
  * about special equipment handling (cf describe_slots and two-handed
@@ -699,6 +707,7 @@ void inv_display(inv_ptr inv, slot_t start, slot_t stop, obj_p p, doc_ptr doc, i
             bool charging = FALSE;
             bool known_activation = (flags & INV_SHOW_ACTIVATION) && obj_has_known_effect(obj);
             bool possible_activation = (flags & INV_SHOW_ACTIVATION) && !known_activation;
+            bool crafted = (flags & INV_SHOW_CRAFTED) && _obj_is_crafted(obj);
 
             if (known_activation)
             {
@@ -715,6 +724,8 @@ void inv_display(inv_ptr inv, slot_t start, slot_t stop, obj_p p, doc_ptr doc, i
                 object_desc(name, obj, mode);
                 charging = TRUE;
             }
+            else if (crafted)
+                object_desc(name, obj, mode);
             else
                 object_desc(name, obj, OD_COLOR_CODED | mode);
             if (flags & INV_SHOW_SLOT)
@@ -734,7 +745,9 @@ void inv_display(inv_ptr inv, slot_t start, slot_t stop, obj_p p, doc_ptr doc, i
                 style.right = doc_width(doc) - xtra;
                 doc_push_style(doc, &style);
             }
-            if (charging)
+            if (crafted)
+                doc_printf(doc, "<color:B>[Crafted]</color> <color:D>%s</color>", name);
+            else if (charging)
                 doc_printf(doc, "<color:D>%s</color>", name);
             else
                 doc_printf(doc, "%s", name);

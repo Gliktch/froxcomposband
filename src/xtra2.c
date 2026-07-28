@@ -5725,7 +5725,7 @@ bool get_buff_mon_dir(int *dp)
     bool result;
 
     _buff_target_override = FALSE;
-    result = get_aim_dir_aux(dp, TARGET_BUFF);
+    result = get_fire_dir_aux(dp, TARGET_BUFF);
     if (result && *dp == 5)
     {
         if (used_old_target)

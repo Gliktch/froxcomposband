@@ -2823,6 +2823,7 @@ bool mundane_spell(bool only_equip)
     prompt.where[1] = INV_EQUIP;
     prompt.where[2] = INV_QUIVER;
     prompt.where[3] = INV_FLOOR;
+    prompt.flags = INV_SHOW_CRAFTED;
     obj_prompt_add_special_packs(&prompt); 
 
     obj_prompt(&prompt);

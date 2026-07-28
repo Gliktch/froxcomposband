@@ -2617,7 +2617,7 @@ option_type option_info[] =
     "show_weights",                 "Show weights in object listings" },
 
     { &show_discounts,              TRUE,  OPT_PAGE_LIST, 0, 12,
-    "show_discounts",               "Show discounts in object listings" },
+    "show_discounts",               "Show non-shop item discounts in selling games" },
 
     { &show_power,                  FALSE, OPT_PAGE_LIST, 2, 14,
     "show_power",                   "Show device power in object listings (if known)" },

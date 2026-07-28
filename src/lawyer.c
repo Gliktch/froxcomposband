@@ -502,7 +502,7 @@ cptr do_law_spell(int spell, int mode)
             {
                 project_length = range;
 
-                if (!get_fire_dir(&dir)) return NULL;
+                if (!get_fire_dir_aux(&dir, TARGET_DISI)) return NULL;
 
                 fire_beam(GF_DISINTEGRATE, dir, dam);
             }

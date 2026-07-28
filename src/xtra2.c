@@ -156,6 +156,24 @@ int exp_requirement(int level)
         return base * p_ptr->expfact / 100;
 }
 
+static void _display_stat_choice(int selected)
+{
+    int i;
+    char tmp[32];
+
+    c_put_str(TERM_YELLOW, "        Which stat do you want to raise? ", 1, 14);
+
+    for (i = 0; i < 6; i++)
+    {
+        cnv_stat(p_ptr->stat_max[i], tmp);
+        c_put_str(i == selected ? TERM_L_BLUE : TERM_WHITE,
+            format("        %c) %s (cur %6.6s)              ",
+                I2A(i), stat_abbrev_true[i], tmp), i + 2, 14);
+    }
+
+    c_put_str(TERM_YELLOW, "        C) Character Sheet              ", 8, 14);
+}
+
 void gain_chosen_stat(void)
 {
     int choice;
@@ -164,23 +182,7 @@ void gain_chosen_stat(void)
     screen_save();
     while(1)
     {
-        int n;
-        char tmp[32];
-
-        cnv_stat(p_ptr->stat_max[0], tmp);
-        put_str(format("        a) Str (cur %6.6s)              ", tmp), 2, 14);
-        cnv_stat(p_ptr->stat_max[1], tmp);
-        put_str(format("        b) Int (cur %6.6s)              ", tmp), 3, 14);
-        cnv_stat(p_ptr->stat_max[2], tmp);
-        put_str(format("        c) Wis (cur %6.6s)              ", tmp), 4, 14);
-        cnv_stat(p_ptr->stat_max[3], tmp);
-        put_str(format("        d) Dex (cur %6.6s)              ", tmp), 5, 14);
-        cnv_stat(p_ptr->stat_max[4], tmp);
-        put_str(format("        e) Con (cur %6.6s)              ", tmp), 6, 14);
-        cnv_stat(p_ptr->stat_max[5], tmp);
-        put_str(format("        f) Chr (cur %6.6s)              ", tmp), 7, 14);
-        c_put_str(TERM_YELLOW, "        C) Character Sheet              ", 8, 14);
-        c_put_str(TERM_YELLOW, "        Which stat do you want to raise? ", 1, 14);
+        _display_stat_choice(-1);
 
         while(1)
         {
@@ -195,14 +197,11 @@ void gain_chosen_stat(void)
             if ((choice >= 'a') && (choice <= 'f')) break;
         }
         if ((choice < 'a') || (choice > 'f')) continue;
-        for(n = 0; n < 6; n++)
-        {
-            if (n != choice - 'a')
-                put_str("                                         ", n+2, 14);
-        }
-        if (get_check("Are you sure? ")) break;
+        choice -= 'a';
+        _display_stat_choice(choice);
+        if (get_check(format("You will increase %s. Are you sure? ", stat_name_true[choice]))) break;
     }
-    do_inc_stat(choice - 'a');
+    do_inc_stat(choice);
     if (p_ptr->p_stat)
         p_ptr->p_stat--;
     screen_load();

@@ -945,6 +945,7 @@ enum {
 };
 extern void do_cmd_list_monsters(int mode);
 extern void do_cmd_list_objects(void);
+extern void object_list_reset_mog_filter(void);
 extern void fix_monster_list(void);
 extern void fix_object_list(void);
 

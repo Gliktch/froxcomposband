@@ -344,9 +344,9 @@ bool decimal_stats; /* Decimalized stat display */
 bool percentage_life; /* Show life rating as a percentage */
 bool black_curses; /* Show cursed items as black in unwielding menu */
 bool obj_list_width;
-byte object_list_width = 50;
+byte object_list_width = 56;
 bool mon_list_width;
-byte monster_list_width = 50;
+byte monster_list_width = 56;
 bool msg_pane_wrap_width;
 byte message_pane_wrap_width = 151;
 bool autorun_max_steps_dummy;

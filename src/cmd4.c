@@ -2302,6 +2302,8 @@ void do_cmd_options_aux(int page, cptr info)
                         if (confirm == 'n') break;
                     }
                     (*option_info[opt[k]].o_var) = TRUE;
+                    if (option_info[opt[k]].o_var == &no_mogaminator)
+                        object_list_reset_mog_filter();
                     k = (k + 1) % n;
                     if (scroll_mode)
                     {
@@ -2323,6 +2325,8 @@ void do_cmd_options_aux(int page, cptr info)
                 else
                 {
                     (*option_info[opt[k]].o_var) = FALSE;
+                    if (option_info[opt[k]].o_var == &no_mogaminator)
+                        object_list_reset_mog_filter();
                     k = (k + 1) % n;
                     if (scroll_mode)
                     {
@@ -2340,6 +2344,8 @@ void do_cmd_options_aux(int page, cptr info)
                 if (_special_option_handle_direction(option_info[opt[k]].o_var, 1))
                     break;
                 (*option_info[opt[k]].o_var) = !(*option_info[opt[k]].o_var);
+                if (option_info[opt[k]].o_var == &no_mogaminator)
+                    object_list_reset_mog_filter();
                 break;
             }
 

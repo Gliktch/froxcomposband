@@ -10,7 +10,13 @@ This command displays all known objects on the current level. Objects the <color
 
   <color:keypress>/ or I</color>             Inspect Selected Object
   <color:keypress>J or ` or (</color>        Travel to Selected Object
+  <color:keypress>+/-</color>                Adjust List Width
+  <color:keypress>A</color>                  Toggle Ammo
+  <color:keypress>D</color>                  Toggle Identified Items
+  <color:keypress>E</color>                  Toggle Sensed Items
+  <color:keypress>N</color>                  Toggle Unsensed Items
   <color:keypress>S</color>                  Toggle Inclusion of Stairs
+  <color:keypress>U</color>                  Toggle Mogaminator Ignored/Destroyed Items
 
   <color:keypress>ESC or Q</color>           Quit this Command
   <color:keypress>?</color>                  Display this Help Topic
@@ -18,6 +24,8 @@ This command displays all known objects on the current level. Objects the <color
   <color:keypress>[a-z]</color>              Select next matching entry
 
 <style:note>Note: Since lowercase keystrokes now attempt to match the next entry, only uppercase alphabetic commands are available. The exception is that for users of the roguelike keyset, the usual up/down keys <color:keypress>k</color> and <color:keypress>j</color> will scroll up and down, even at the cost of not matching an entry.</style>
+
+<style:note>Note: Filter toggles on this screen are remembered for the current game session.</style>
 
 <style:note>Note: If <color:keyword>quick_messages</color> is enabled, then an unhandled keystroke will dismiss the object list.</style>
 

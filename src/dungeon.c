@@ -1597,7 +1597,8 @@ static void process_world_aux_hp_and_sp(void)
         && (upkeep_regen <= 0) && (!magic_eater_can_regen()) && (!samurai_can_concentrate())
         && (!p_ptr->blind) && (!p_ptr->confused) && (!p_ptr->poisoned) && (!p_ptr->afraid)
         && (!p_ptr->stun) && (!p_ptr->cut) && (!player_slow()) && (!p_ptr->paralyzed)
-        && (!p_ptr->image) && (!p_ptr->word_recall) && (!p_ptr->alter_reality))
+        && (!p_ptr->image) && (!p_ptr->word_recall) && (!p_ptr->alter_reality)
+        && (resting != -2 || p_ptr->food < PY_FOOD_MAX))
     {
         if (upkeep_factor >= 100)
             msg_print("You dare not sleep while your followers strain against your control.");
@@ -4613,8 +4614,8 @@ static void process_player(void)
                 || p_ptr->pclass == CLASS_RAGE_MAGE
                 || elemental_is_(ELEMENTAL_WATER)
                 || mimic_no_regen() )
-              && !magic_eater_can_regen() 
-			  && !samurai_can_concentrate())
+              && !magic_eater_can_regen()
+              && !samurai_can_concentrate())
             {
                 set_action(ACTION_NONE);
             }
@@ -4642,7 +4643,8 @@ static void process_player(void)
               && !p_ptr->paralyzed
               && !p_ptr->image
               && !p_ptr->word_recall
-              && !p_ptr->alter_reality )
+              && !p_ptr->alter_reality
+              && p_ptr->food < PY_FOOD_MAX )
             {
                 set_action(ACTION_NONE);
             }

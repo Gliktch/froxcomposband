@@ -2606,21 +2606,33 @@ void do_cmd_autoget(void)
 void do_cmd_rest(void)
 {
     int tmp;
+    bool rest_state_changed = (p_ptr->action != ACTION_NONE);
+    bool rest_complete = FALSE;
     if (REPEAT_PULL(&tmp))
         command_arg = tmp;
 
     set_action(ACTION_NONE);
     if (weaponmaster_get_toggle() == TOGGLE_SHADOW_STANCE)
+    {
         weaponmaster_set_toggle(TOGGLE_NONE);
+        rest_state_changed = TRUE;
+    }
 
     if ((p_ptr->pclass == CLASS_BARD) && (p_ptr->magic_num1[0] || p_ptr->magic_num1[1]))
     {
         bard_stop_singing();
+        rest_state_changed = TRUE;
     }
 
     /* Hex */
-    if (hex_spelling_any()) stop_hex_spell_all();
+    if (hex_spelling_any())
+    {
+        stop_hex_spell_all();
+        rest_state_changed = TRUE;
+    }
 
+    if (warlock_get_toggle() != TOGGLE_NONE)
+        rest_state_changed = TRUE;
     warlock_stop_singing();
 
     /* Prompt for time if needed */
@@ -2692,14 +2704,62 @@ void do_cmd_rest(void)
 
         /* XXX race_mimic? */
         if (clear)
+        {
             mimic_race(MIMIC_NONE, "You cannot rest while maintaining your current form.");
+            rest_state_changed = TRUE;
+        }
     }
 
-    if (p_ptr->special_defense & NINJA_S_STEALTH) set_superstealth(FALSE);
+    if (p_ptr->special_defense & NINJA_S_STEALTH)
+    {
+        set_superstealth(FALSE);
+        rest_state_changed = TRUE;
+    }
 
-    if (p_ptr->filibuster) set_filibuster(FALSE);
+    if (p_ptr->filibuster)
+    {
+        set_filibuster(FALSE);
+        rest_state_changed = TRUE;
+    }
 
-    /* Take a turn XXX XXX XXX (?) */
+    /* Do not start a rest that is already complete. */
+    if (command_arg == -1)
+    {
+        rest_complete = (p_ptr->chp == p_ptr->mhp || mimic_no_regen())
+            && (p_ptr->csp >= p_ptr->msp
+                || p_ptr->pclass == CLASS_RUNE_KNIGHT
+                || p_ptr->pclass == CLASS_RAGE_MAGE
+                || elemental_is_(ELEMENTAL_WATER)
+                || mimic_no_regen())
+            && !magic_eater_can_regen()
+            && !samurai_can_concentrate();
+    }
+    else if (command_arg == -2)
+    {
+        rest_complete = (p_ptr->chp == p_ptr->mhp || mimic_no_regen())
+            && (p_ptr->csp >= p_ptr->msp
+                || p_ptr->pclass == CLASS_RUNE_KNIGHT
+                || p_ptr->pclass == CLASS_RAGE_MAGE
+                || elemental_is_(ELEMENTAL_WATER)
+                || mimic_no_regen())
+            && !magic_eater_can_regen()
+            && !samurai_can_concentrate()
+            && !p_ptr->blind && !p_ptr->confused
+            && !p_ptr->poisoned && !p_ptr->afraid
+            && !p_ptr->stun && !p_ptr->cut
+            && !player_slow() && !p_ptr->paralyzed
+            && !p_ptr->image && !p_ptr->word_recall
+            && !p_ptr->alter_reality
+            && p_ptr->food < PY_FOOD_MAX;
+    }
+
+    if (rest_complete && !rest_state_changed)
+    {
+        energy_use = 0;
+        msg_print("You are already fully rested.");
+        return;
+    }
+
     energy_use = 100;
 
     /* The sin of sloth */

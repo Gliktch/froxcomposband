@@ -113,7 +113,7 @@ W:40:20:5:20000
 P:0:1d1:0:0:0
 F:INSTA_ART | INFRA | AURA_FIRE | AURA_ELEC
 D:Thomas Edison, the "Wizard of Menlo Park," patented 1,093
-D:invention including the incandescent lightbulb.
+D:inventions, including the incandescent lightbulb.
 
 N:8:'Frakir'
 I:45:0:1

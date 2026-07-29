@@ -2275,6 +2275,12 @@ static int _draw_obj_list(_obj_list_ptr list, int top, rect_t rect)
                 c_put_str(TERM_WHITE, format("%-9.9s ", loc), rect.y + i, rect.x + 3 + cx_obj + 1);
         }
     }
+    if (!i && rect.cy > 0)
+    {
+        Term_erase(rect.x, rect.y, rect.cx);
+        c_put_str(TERM_WHITE, "You see no objects.", rect.y, rect.x);
+        i++;
+    }
     return i;
 }
 
@@ -2312,7 +2318,7 @@ static void _draw_obj_list_filter_header(rect_t rect, _obj_list_filter_ptr filte
     _obj_list_header_put(rect, &x, TERM_L_BLUE, "|");
     _obj_list_header_toggle(rect, &x, "U", "N", "sensed", filter->show_unsensed);
     _obj_list_header_put(rect, &x, TERM_L_BLUE, "|");
-    _obj_list_header_toggle(rect, &x, "", "S", "tairs", !dun_level || filter->show_stairs);
+    _obj_list_header_toggle(rect, &x, "", "S", "tairs", filter->show_stairs);
     _obj_list_header_put(rect, &x, TERM_L_BLUE, "|");
     _obj_list_header_toggle(rect, &x, "", "U", "nwanted", filter->show_unwanted);
 }
@@ -2400,22 +2406,10 @@ void do_cmd_list_objects(void)
     _obj_list_ptr list = _create_obj_list(&effective_filter);
     rect_t        display_rect = ui_menu_rect();
     rect_t        list_rect;
-    bool          force_stairs = FALSE;
-    bool          disable_toggling = FALSE;
 
     _apply_list_width(&display_rect, object_list_width);
     list_rect = _obj_list_rect(display_rect);
 
-    if (((list->ct_total + list->ct_feature) < 1) && (!effective_filter.show_stairs))
-    {
-        effective_filter.show_stairs = TRUE;
-        force_stairs = TRUE;
-        disable_toggling = TRUE; /* Otherwise we can switch stairs back off for an empty list... */
-        _obj_list_free(list);
-        list = _create_obj_list(&effective_filter);
-    }
-
-    if (list->ct_total + list->ct_feature || (list->filtered && list->ct_total_unfiltered))
     {
         int  top = 0, page_size, pos = 1;
         int  ct_types = vec_length(list->list);
@@ -2485,10 +2479,8 @@ void do_cmd_list_objects(void)
                 break;
             case 'S':
             {
-                if (disable_toggling) break;
                 filter->show_stairs = !filter->show_stairs;
                 effective_filter = *filter;
-                if (force_stairs) effective_filter.show_stairs = TRUE;
                 _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
                 screen_load();
                 screen_save();
@@ -2499,7 +2491,6 @@ void do_cmd_list_objects(void)
             {
                 filter->show_ammo = !filter->show_ammo;
                 effective_filter = *filter;
-                if (force_stairs) effective_filter.show_stairs = TRUE;
                 _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
                 screen_load();
                 screen_save();
@@ -2510,7 +2501,6 @@ void do_cmd_list_objects(void)
             {
                 filter->show_sensed = !filter->show_sensed;
                 effective_filter = *filter;
-                if (force_stairs) effective_filter.show_stairs = TRUE;
                 _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
                 screen_load();
                 screen_save();
@@ -2521,7 +2511,6 @@ void do_cmd_list_objects(void)
             {
                 filter->show_identified = !filter->show_identified;
                 effective_filter = *filter;
-                if (force_stairs) effective_filter.show_stairs = TRUE;
                 _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
                 screen_load();
                 screen_save();
@@ -2532,7 +2521,6 @@ void do_cmd_list_objects(void)
             {
                 filter->show_unsensed = !filter->show_unsensed;
                 effective_filter = *filter;
-                if (force_stairs) effective_filter.show_stairs = TRUE;
                 _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
                 screen_load();
                 screen_save();
@@ -2551,7 +2539,6 @@ void do_cmd_list_objects(void)
                 }
                 filter->show_unwanted = !filter->show_unwanted;
                 effective_filter = *filter;
-                if (force_stairs) effective_filter.show_stairs = TRUE;
                 _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
                 screen_load();
                 screen_save();
@@ -2596,18 +2583,21 @@ void do_cmd_list_objects(void)
             }
             case SKEY_TOP:
             case '7':
+                if (!ct_types) break;
                 top = 0;
                 pos = 0;
                 redraw = TRUE;
                 break;
             case SKEY_BOTTOM:
             case '1':
+                if (!ct_types) break;
                 top = MAX(0, ct_types - page_size);
                 pos = 0;
                 redraw = TRUE;
                 break;
             case SKEY_PGUP:
             case '9':
+                if (!ct_types) break;
                 top -= page_size;
                 if (top < 0)
                 {
@@ -2618,6 +2608,7 @@ void do_cmd_list_objects(void)
                 break;
             case SKEY_PGDOWN:
             case '3':
+                if (!ct_types) break;
                 top += page_size;
                 if (top > ct_types - page_size)
                 {
@@ -2628,6 +2619,7 @@ void do_cmd_list_objects(void)
                 break;
             case SKEY_DOWN:
             case '2':
+                if (!ct_types) break;
                 if (top + pos < ct_types - 1)
                 {
                     pos++;
@@ -2648,6 +2640,7 @@ void do_cmd_list_objects(void)
                 break;
             case SKEY_UP:
             case '8':
+                if (!ct_types) break;
                 if (pos > 0)
                     pos--;
                 if (pos == 0)
@@ -2739,8 +2732,6 @@ void do_cmd_list_objects(void)
         }
         screen_load();
     }
-    else
-        msg_print("You see no objects.");
 
     _obj_list_free(list);
 }

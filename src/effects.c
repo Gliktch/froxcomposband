@@ -78,6 +78,10 @@ static int _death_resurrection_prompt(void)
 static int _death_dump_screen_prompt(bool *quick, bool *silent)
 {
     int i;
+    char killer[82];
+    const char *death_title = "***** You have died. ***** ";
+    const char *killer_label = "Killer: ";
+    int killer_start = strlen(death_title) + strlen(killer_label);
     bool esc_armed = FALSE;
     int row = MIN(4, MAX(1, Term->hgt - 22));
 
@@ -88,10 +92,16 @@ static int _death_dump_screen_prompt(bool *quick, bool *silent)
         screen_save();
         Term_clear_rect(rect(0, row, MIN(Term->wid, 82), MIN(22, Term->hgt - row)));
 
-        c_put_str(TERM_RED, "***** You have died. *****", row, 2);
-        put_str("If you'd like to view the screen and optionally create a screen dump, press [d]", row + 2, 2);
-        c_put_str(TERM_ORANGE, "d", row + 2, 79);
-        put_str("now. You'll automatically return to this dialog afterwards.", row + 3, 2);
+        if (strlen(p_ptr->died_from) > 40)
+            strnfmt(killer, sizeof killer, "***** You have died. ***** Killer: %-.40s...", p_ptr->died_from);
+        else
+            strnfmt(killer, sizeof killer, "***** You have died. ***** Killer: %s", p_ptr->died_from);
+        c_put_str(TERM_RED, death_title, row, 2);
+        c_put_str(TERM_WHITE, killer_label, row, 2 + strlen(death_title));
+        c_put_str(TERM_RED, killer + killer_start, row, 2 + killer_start);
+        put_str("If you'd like to view the screen and optionally create a screen dump, press", row + 2, 2);
+        put_str("[d] now. You'll automatically return to this dialog afterwards.", row + 3, 2);
+        c_put_str(TERM_ORANGE, "d", row + 3, 3);
         put_str("To continue to the next death screen, press [n].", row + 5, 2);
         c_put_str(TERM_ORANGE, "n", row + 5, 47);
         put_str("Toggle silent deaths mode with [s]: ", row + 7, 2);
@@ -100,12 +110,12 @@ static int _death_dump_screen_prompt(bool *quick, bool *silent)
         put_str("Toggle quick restart mode with [q]: ", row + 8, 2);
         c_put_str(TERM_ORANGE, "q", row + 8, 34);
         c_put_str(*quick ? TERM_L_GREEN : TERM_RED, *quick ? "ON" : "OFF", row + 8, 38);
-        put_str("Still in denial? Or can't bear to leave without checking out that one last bit", row + 10, 2);
-        put_str("of loot to see what you died for? Or simply want to smack that big meanie one", row + 11, 2);
-        put_str("last time, for shuffling you off this mortal coil?", row + 12, 2);
-        put_str("In that case, press [w] now, to cheat death and resurrect in wizard mode - but", row + 14, 2);
+        put_str("Still in denial? Or can't bear to leave without checking out that one last", row + 10, 2);
+        put_str("bit of loot to see what you died for? Or simply want to smack that big meanie", row + 11, 2);
+        put_str("one last time, for shuffling you off this mortal coil?", row + 12, 2);
+        put_str("In that case, press [w] now, to cheat death and resurrect in wizard mode, but", row + 14, 2);
         c_put_str(TERM_ORANGE, "w", row + 14, 23);
-        put_str("know that of course it makes you a stinky cheater, and no score will be saved.", row + 15, 2);
+        put_str("know that of course it makes you a stinky cheater and no score will be saved.", row + 15, 2);
         c_put_str(TERM_L_GREEN, esc_armed
             ? "[d/y] View Screen  [s] Silent  [q] Quick  [w] Cheat Death  [Esc] Accept Death"
             : "[d/y] View Screen  [s] Silent  [q] Quick  [w] Cheat Death  [n] Accept Death",
@@ -116,7 +126,7 @@ static int _death_dump_screen_prompt(bool *quick, bool *silent)
         c_put_str(TERM_ORANGE, "q", row + 18, 34);
         c_put_str(TERM_ORANGE, "w", row + 18, 45);
         c_put_str(TERM_ORANGE, esc_armed ? "Esc" : "n", row + 18, 62);
-        Term_gotoxy(2 + strlen("***** You have died. *****"), row);
+        Term_gotoxy(MIN(2 + (int)strlen(killer), Term->wid - 1), row);
         Term_fresh();
 
         i = inkey();

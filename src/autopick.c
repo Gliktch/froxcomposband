@@ -942,6 +942,7 @@ static cptr pickpref_filename(int filename_mode, char *other_base)
 static bool write_text_lines(cptr filename, cptr *lines_list);
 static cptr *read_text_lines(cptr filename);
 static void free_text_lines(cptr *lines_list);
+static bool update_legacy_pickpref_rules(cptr *lines_list);
 
 #define _LINES_LIST_INIT() \
   if (err == 0) \
@@ -3388,10 +3389,7 @@ static void describe_autopick(char *buff, autopick_type *entry)
 }
 
 
-/*
- * Read whole lines of a file to memory
- */
-static cptr *read_text_lines(cptr filename)
+static cptr *read_text_lines_aux(cptr filename, bool default_from_pref_dir, bool *updated_p)
 {
     cptr *lines_list = NULL;
     FILE *fff;
@@ -3399,7 +3397,8 @@ static cptr *read_text_lines(cptr filename)
     int lines = 0;
     char buf[1024];
 
-    path_build(buf, sizeof(buf), (streq("pickpref.prf", filename) ? ANGBAND_DIR_PREF : ANGBAND_DIR_USER), filename);
+    if (updated_p) *updated_p = FALSE;
+    path_build(buf, sizeof(buf), ((default_from_pref_dir && streq("pickpref.prf", filename)) ? ANGBAND_DIR_PREF : ANGBAND_DIR_USER), filename);
 
     /* Open the file */
     fff = my_fopen(buf, "r");
@@ -3419,10 +3418,65 @@ static cptr *read_text_lines(cptr filename)
             lines_list[0] = z_string_make("");
 
         my_fclose(fff);
+        if (update_legacy_pickpref_rules(lines_list) && updated_p)
+            *updated_p = TRUE;
     }
 
     if (!fff) return NULL;
     return lines_list;
+}
+
+/*
+ * Read whole lines of a file to memory
+ */
+static cptr *read_text_lines(cptr filename)
+{
+    return read_text_lines_aux(filename, TRUE, NULL);
+}
+
+static bool update_pickpref_line(cptr *lines_list, int line, cptr old, cptr new)
+{
+    if (!streq(lines_list[line], old)) return FALSE;
+
+    z_string_free(lines_list[line]);
+    lines_list[line] = z_string_make(new);
+    return TRUE;
+}
+
+static bool update_legacy_pickpref_rules(cptr *lines_list)
+{
+    int i;
+    bool updated = FALSE;
+
+    for (i = 0; lines_list[i]; i++)
+    {
+        if (streq(lines_list[i], "?:[LEQ $LEVEL 50]")
+          && lines_list[i + 1]
+          && lines_list[i + 2]
+          && lines_list[i + 3]
+          && lines_list[i + 4]
+          && streq(lines_list[i + 1], "(unsensed armors")
+          && streq(lines_list[i + 2], "(unsensed weapons")
+          && streq(lines_list[i + 3], "(unsensed shooters")
+          && streq(lines_list[i + 4], "?:1"))
+        {
+            updated |= update_pickpref_line(lines_list, i + 1, "(unsensed armors", "unsensed armors");
+            updated |= update_pickpref_line(lines_list, i + 2, "(unsensed weapons", "unsensed weapons");
+            updated |= update_pickpref_line(lines_list, i + 3, "(unsensed shooters", "unsensed shooters");
+            i += 4;
+        }
+        else if (streq(lines_list[i], "collecting potions")
+              && lines_list[i + 1]
+              && lines_list[i + 2]
+              && streq(lines_list[i + 1], "collecting scrolls")
+              && streq(lines_list[i + 2], "(collecting items"))
+        {
+            updated |= update_pickpref_line(lines_list, i + 2, "(collecting items", "collecting items");
+            i += 2;
+        }
+    }
+
+    return updated;
 }
 
 
@@ -3461,6 +3515,7 @@ static bool prepare_default_pickpref(bool silent)
     bool use_user_defaults = TRUE;
     FILE *pref_fp;
     FILE *user_fp;
+    cptr *lines_list = NULL;
     int i;
 
     sprintf(buf_usersrc, "%s", pickpref_filename(PT_USERDEFAULT, NULL));
@@ -3496,12 +3551,17 @@ static bool prepare_default_pickpref(bool silent)
         }
     }
 
+    my_fclose(pref_fp);
+    pref_fp = NULL;
+    lines_list = read_text_lines(use_user_defaults ? buf_usersrc : buf_src);
+    if (!lines_list) return FALSE;
+
     user_fp = my_fopen(dest_path, "w");
 
     /* Failed */
     if (!user_fp)
     {
-        my_fclose(pref_fp);
+        free_text_lines(lines_list);
         return FALSE;
     }
 
@@ -3514,11 +3574,11 @@ static bool prepare_default_pickpref(bool silent)
     fprintf(user_fp, "#***\n\n\n");
 
     /* Copy the contents of default file */
-    while (!my_fgets(pref_fp, buf, sizeof(buf)))
-        fprintf(user_fp, "%s\n", buf);
+    for (i = 0; lines_list[i]; i++)
+        fprintf(user_fp, "%s\n", lines_list[i]);
 
     my_fclose(user_fp);
-    my_fclose(pref_fp);
+    free_text_lines(lines_list);
     _inscribe_pack_hack = TRUE;
     return TRUE;
 }
@@ -3658,6 +3718,18 @@ static bool write_text_lines(cptr filename, cptr *lines_list)
 
     if (!fff) return FALSE;
     return TRUE;
+}
+
+bool autopick_update_legacy_pref_file(cptr filename)
+{
+    bool updated = FALSE;
+    cptr *lines_list = read_text_lines_aux(filename, FALSE, &updated);
+
+    if (!lines_list) return FALSE;
+    if (updated)
+        (void)write_text_lines(filename, lines_list);
+    free_text_lines(lines_list);
+    return updated;
 }
 
 

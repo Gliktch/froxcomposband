@@ -265,7 +265,7 @@ second realm's third spellbooks#@mg!k
 
 collecting potions
 collecting scrolls
-(collecting items
+collecting items
 
 #########################################
 # Destroy Junk
@@ -306,9 +306,9 @@ Iron Spike#@vz
 #If you are using the enhanced get command (auto_get_objects)
 #then I recommend the following 3 rules for the *entire* game.
 ?:[LEQ $LEVEL 50]
-(unsensed armors
-(unsensed weapons
-(unsensed shooters
+unsensed armors
+unsensed weapons
+unsensed shooters
 ?:1
 
 ?:[EQU $CLASS Tourist]

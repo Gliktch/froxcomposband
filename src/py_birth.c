@@ -678,7 +678,7 @@ static int _race_class_ui(void)
         if (game_mode != GAME_MODE_BEGINNER)
             doc_insert(cols[1], "<color:y>  =</color>) Options\n");
         doc_insert(cols[1], "<color:y>TAB</color>) More Info\n");
-        doc_insert(cols[1], "<color:y>RET</color>) Next Screen\n");
+        doc_insert(cols[1], "<color:y>Enter</color>) Next Screen\n");
         doc_insert(cols[1], "<color:y>ESC</color>) Prev Screen\n");
 
         doc_insert_cols(_doc, cols, 2, 1);
@@ -2480,7 +2480,7 @@ static int _stats_ui(void)
         if (game_mode != GAME_MODE_BEGINNER)
             doc_insert(cols[1], "<color:y>  =</color>) Options\n");
         doc_insert(cols[1], "<color:y>TAB</color>) More Info\n");
-        doc_printf(cols[1], "<color:%c>RET</color>) <color:%c>Begin Play</color>\n",
+        doc_printf(cols[1], "<color:%c>Enter</color>) <color:%c>Begin Play</color>\n",
             score <= _MAX_SCORE ? 'y' : 'D',
             score <= _MAX_SCORE ? 'v' : 'D');
         doc_insert(cols[1], "<color:y>ESC</color>) Prev Screen\n");

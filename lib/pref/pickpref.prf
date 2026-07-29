@@ -39,6 +39,7 @@ potions:of life#!kq
 potions:of *healing*#!kq
 
 ?:[NOT [EQU $CLASS Berserker]]
+rods:enlightenment
 scrolls:artifact creation#!*
 scrolls:of destruction#@r7!*
 scrolls:mass genocide#!*

@@ -103,7 +103,7 @@ Resumes a previous travel that was interrupted before reaching its target. This 
 Stays in the same square for one move. If you normally pick up objects you encounter, you will pick up whatever you are standing on. This command can take a count. You may also use the "5" key (both keysets). If the Mogaminator or the easy auto-destroyer is active, specified objects will be picked up or destroyed.</indent>
 
   <indent><color:U>Rest (<color:keypress>R</color>)</color>
-Resting is better for you than repeatedly staying still, and can be told to automatically stop after a certain amount of time, or when various conditions are met. In any case, you always wake up when anything disturbing happens, or when you press any key. This command requests a count if no count is specified; the count defaults to the special value <color:keypress>&</color>, which means "rest until fully healed". Another special value, <color:keypress>*</color> for "rest to full HP/SP", is also accepted.</indent>
+Resting is better for you than repeatedly staying still, and can be told to automatically stop after a certain amount of time, or when various conditions are met. In any case, you always wake up when anything disturbing happens, or when you press any key. This command requests a count if no count is specified; the count defaults to the special value <color:keypress>&</color>, which means "rest until fully healed and no longer gorged". Another special value, <color:keypress>*</color> for "rest to full HP/SP", is also accepted.</indent>
 
 <topic:Searching><style:heading>Searching Commands</style>
 

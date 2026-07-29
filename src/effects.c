@@ -29,6 +29,7 @@ static bool _rest_is_complete(void)
         && !p_ptr->image
         && !p_ptr->word_recall
         && !p_ptr->alter_reality
+        && p_ptr->food < PY_FOOD_MAX
         && !magic_eater_can_regen();
 }
 

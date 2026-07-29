@@ -2457,6 +2457,8 @@ void do_cmd_list_objects(void)
                 _adjust_list_width(&object_list_width, cmd == '+' ? 1 : -1);
                 display_rect = ui_menu_rect();
                 _apply_list_width(&display_rect, object_list_width);
+                Term_erase(display_rect.x + display_rect.cx, display_rect.y, 1);
+                Term_erase(display_rect.x + display_rect.cx, display_rect.y + 1, 1);
                 list_rect = _obj_list_rect(display_rect);
                 _obj_list_rebuild(&list, &effective_filter, list_rect, &top, &page_size, &pos, &ct_types);
                 screen_load();

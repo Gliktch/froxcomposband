@@ -5022,7 +5022,7 @@ static int do_command_menu(int level, int start)
     }
 
     /* Extra space for displaying menu key and command key */
-    max_menu_wid = max_len + 3 + 3;
+    max_menu_wid = max_len + 3 + 5;
 
     /* Prepare box line */
     linestr[0] = '\0';
@@ -5070,6 +5070,14 @@ static int do_command_menu(int level, int start)
                 if (menu_data[i].com_id == -1)
                 {
                     strcpy(com_key_str, ">");
+                }
+                else if (menu_data[i].com_id == EC_QUIT)
+                {
+                    strcpy(com_key_str, "^Q/q");
+                }
+                else if (menu_data[i].com_id == EC_SAVEQUIT)
+                {
+                    strcpy(com_key_str, "^W/s");
                 }
                 else if (menu_data[i].key != -1)
                 {
@@ -7018,7 +7026,7 @@ void do_cmd_edit_autopick(void)
         draw_text_editor(tb);
 
         /* Display header line */
-        c_prt(TERM_L_BLUE, "(^Q:Quit, ^W:Save&Quit, ESC:Menu, Other:Input text)", 0, 0);
+        c_prt(TERM_L_BLUE, "(^Q:Quit, ^W:Save and exit, ESC:Menu, Other:Input text)", 0, 0);
         if (tb->changed)
             c_prt(TERM_YELLOW, "*", 0, 58);
 

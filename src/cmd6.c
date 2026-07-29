@@ -70,6 +70,7 @@ void command_item_retry_clear(void)
 
 static void _item_retry_start(byte command, obj_ptr obj)
 {
+    if (_item_retry.active) return;
     if (command_rep || !failed_item_retry_count) return;
 
     _item_retry.active = TRUE;

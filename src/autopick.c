@@ -4674,8 +4674,8 @@ enum {
 /* Manu names */
 
 static char MN_QUIT[] = "Quit without save";
-static char MN_SAVEQUIT[] = "Save & Quit";
-static char MN_DISABLE[] = "Disable & Exit";
+static char MN_SAVEQUIT[] = "Save and exit";
+static char MN_DISABLE[] = "Disable and exit";
 static char MN_REVERT[] = "Revert all changes";
 static char MN_LOAD[] = "Load preferences";
 static char MN_SAVE[] = "Save as";
@@ -4949,7 +4949,7 @@ static int do_command_menu(int level, int start)
     }
 
     /* Extra space for displaying menu key and command key */
-    max_menu_wid = max_len + 3 + 3;
+    max_menu_wid = max_len + 3 + 5;
 
     /* Prepare box line */
     linestr[0] = '\0';
@@ -4977,7 +4977,7 @@ static int do_command_menu(int level, int start)
             menu_key = 0;
             for (i = start; menu_data[i].level >= level; i++)
             {
-                char com_key_str[3];
+                char com_key_str[6];
                 cptr str;
 
                 /* Ignore lower level sub menus */
@@ -4986,6 +4986,14 @@ static int do_command_menu(int level, int start)
                 if (menu_data[i].com_id == -1)
                 {
                     strcpy(com_key_str, ">");
+                }
+                else if (menu_data[i].com_id == EC_QUIT)
+                {
+                    strcpy(com_key_str, "^Q/q");
+                }
+                else if (menu_data[i].com_id == EC_SAVEQUIT)
+                {
+                    strcpy(com_key_str, "^W/s");
                 }
                 else if (menu_data[i].key != -1)
                 {
@@ -4998,7 +5006,7 @@ static int do_command_menu(int level, int start)
                     com_key_str[0] = '\0';
                 }
 
-                str = format(" %c) %-*s %2s ", menu_key + 'a', max_len, menu_data[i].name, com_key_str);
+                str = format(" %c) %-*s %4s ", menu_key + 'a', max_len, menu_data[i].name, com_key_str);
 
                 Term_putch(col0, row1, TERM_BLUE, '|');
                 Term_putstr(col0 + 1, row1, -1, TERM_L_BLUE, str);
@@ -5018,6 +5026,11 @@ static int do_command_menu(int level, int start)
         key = inkey();
 
         if (key == ESCAPE) return 0;
+        if (level == 0)
+        {
+            if (key == 'q') return EC_QUIT;
+            if (key == 's') return EC_SAVEQUIT;
+        }
 
         if ('a' <= key && key <= 'z')
         {
@@ -6924,7 +6937,7 @@ void do_cmd_edit_autopick(void)
         draw_text_editor(tb);
 
         /* Display header line */
-        c_prt(TERM_L_BLUE, "(^Q:Quit, ^W:Save&Quit, ESC:Menu, Other:Input text)", 0, 0);
+        c_prt(TERM_L_BLUE, "(^Q:Quit, ^W:Save and exit, ESC:Menu, Other:Input text)", 0, 0);
         if (tb->changed)
             c_prt(TERM_YELLOW, "*", 0, 58);
 

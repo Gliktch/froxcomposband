@@ -2480,23 +2480,26 @@ static void do_cmd_options_win(void)
                     bell();
                     break;
                 }
-
-                /* Clear windows */
-                for (j = 0; j < 8; j++)
+                if (x > 0)
                 {
-                    window_flag[j] &= ~(1L << y);
+                    if (window_flag[x] & (1L << y))
+                        window_flag[x] &= ~(1L << y);
+                    else
+                    {
+                        /* Assign one flag exclusively to this subwindow. */
+                        for (j = 0; j < 8; j++)
+                            window_flag[j] &= ~(1L << y);
+                        for (i = 0; i < 16; i++)
+                            window_flag[x] &= ~(1L << i);
+                        window_flag[x] |= (1L << y);
+                    }
                 }
+                break;
+            }
 
-                /* Clear flags */
-                for (i = 0; i < 16; i++)
-                {
-                    window_flag[x] &= ~(1L << i);
-                }
-            }   /* Fall through */
             case 'y':
             case 'Y':
             {
-                /* Ignore screen */
                 if (x == 0) break;
                 if (!window_flag_desc[y])
                 {
@@ -2504,7 +2507,6 @@ static void do_cmd_options_win(void)
                     break;
                 }
 
-                /* Set flag */
                 window_flag[x] |= (1L << y);
                 break;
             }

@@ -4302,6 +4302,8 @@ errr process_autopick_file(cptr name)
 
     errr err = 0;
 
+    (void)autopick_update_legacy_pref_file(name);
+
     /* Build the filename */
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, name);
 

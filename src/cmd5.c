@@ -1697,6 +1697,10 @@ bool rakuba(int dam, bool force)
     if (sy && !p_ptr->is_dead)
         (void)move_player_effect(py, px, MPE_DONT_PICKUP | MPE_DONT_SWAP_MON);
 
+    /* Do not let this dangerous state change scroll past unnoticed. */
+    if (!p_ptr->is_dead)
+        msg_prompt("<color:v>*** THROWN FROM MOUNT! ***</color> Press <color:y>Space</color> to continue.", " ", PROMPT_FORCE_CHOICE);
+
     return fall_dam;
 }
 

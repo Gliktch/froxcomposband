@@ -3966,6 +3966,8 @@ bool target_okay_aux(int mode)
 {
     if (mode & TARGET_BUFF)
     {
+        if (_buff_target_override) return TRUE;
+
         if (_buff_target_m_idx > 0 && target_able_aux(_buff_target_m_idx, mode))
         {
             monster_type *m_ptr = &m_list[_buff_target_m_idx];
@@ -4047,6 +4049,15 @@ static bool ang_sort_comp_target_distance(vptr u, vptr v, int a, int b)
 
         if (pa < pb) return TRUE;
         if (pa > pb) return FALSE;
+    }
+    else if (_target_sort_mode & TARGET_KILL)
+    {
+        monster_type *ma_ptr = &m_list[cave[y[a]][x[a]].m_idx];
+        monster_type *mb_ptr = &m_list[cave[y[b]][x[b]].m_idx];
+        bool a_hostile = is_hostile(ma_ptr);
+        bool b_hostile = is_hostile(mb_ptr);
+
+        if (a_hostile != b_hostile) return a_hostile;
     }
 
     return ang_sort_comp_distance(u, v, a, b);
@@ -5372,25 +5383,16 @@ bool target_set(int mode)
                 if ( !(mode & TARGET_MARK)
                   || (c_ptr->m_idx && m_list[c_ptr->m_idx].ml) )
                 {
-                    if ((mode & TARGET_MARK) || (mode & TARGET_BUFF))
+                    if (mode & TARGET_MARK)
                         target_who = c_ptr->m_idx;
                     else if ((mode & TARGET_CAPTURE) && c_ptr->m_idx && m_list[c_ptr->m_idx].ml)
                         target_who = c_ptr->m_idx;
                     else
                         target_who = -1;
-                    if ((mode & TARGET_BUFF) && (target_who > 0)
-                     && !_buff_cycle_candidate(&m_list[target_who]))
-                        target_who = 0;
-                    if ((mode & TARGET_BUFF)
-                     && (target_who <= 0))
-                        bell();
-                    else
-                    {
-                        if ((mode & TARGET_BUFF) && (target_who > 0))
-                            _set_buff_target(&m_list[target_who]);
-                        target_grab(y, x);
-                        done = TRUE;
-                    }
+                    if (mode & TARGET_BUFF)
+                        _set_buff_target_override(y, x);
+                    target_grab(y, x);
+                    done = TRUE;
                 }
                 else
                 {
@@ -5721,10 +5723,11 @@ bool get_buff_mon_dir(int *dp)
     s16b old_row = target_row;
     s16b old_col = target_col;
     bool old_never_okay = old_target_never_okay;
-    bool used_old_target = old_target_okay_mode(TARGET_BUFF);
+    bool used_old_target;
     bool result;
 
     _buff_target_override = FALSE;
+    used_old_target = old_target_okay_mode(TARGET_BUFF);
     result = get_fire_dir_aux(dp, TARGET_BUFF);
     if (result && *dp == 5)
     {

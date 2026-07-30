@@ -415,7 +415,7 @@ I:23:11:0
 W:5:0:0:50:50
 A:5/1
 P:0:1d9:0:0:0
-F:SHOW_MODS | RIDING | THROWING | TOWN
+F:SHOW_MODS | RIDING | TOWN
 D:A light, somewhat curved blade that can be used to thrust or slash; familiar
 D:to horseman and duelists alike.
 
@@ -647,7 +647,7 @@ I:22:2:0
 W:5:0:0:50:36
 A:5/1
 P:0:1d8:0:0:0
-F:SHOW_MODS | RIDING | TOWN
+F:SHOW_MODS | RIDING | THROWING | TOWN
 D:The basic polearm, with a double-edged knife mounted on a light shaft.
 D:This weapon can be thrown effectively.
 

@@ -419,6 +419,7 @@ extern bool disturb_pets;    /* Disturb when visible pets move */
 extern bool disturb_panel;    /* Disturb whenever map panel changes */
 extern bool disturb_state;    /* Disturb whenever player state changes */
 extern bool disturb_minor;    /* Disturb whenever boring things happen */
+extern bool disturb_wakeup;   /* Disturb whenever a known monster wakes up */
 extern bool town_no_disturb;    /* Never disturb when a town monster moves */
 extern bool ring_bell;    /* Audible bell (on errors, etc) */
 extern bool disturb_trap_detect;    /* Disturb when leaving trap detected area */

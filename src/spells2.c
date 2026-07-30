@@ -2148,7 +2148,9 @@ void aggravate_monsters(int who)
             /* Wake up */
             if (MON_CSLEEP(m_ptr))
             {
-                (void)set_monster_csleep(i, 0);
+                if (set_monster_csleep(i, 0)
+                    && disturb_wakeup && mon_show_msg(m_ptr))
+                    disturb(0, 0);
                 sleep = TRUE;
             }
             if ((is_hostile(m_ptr)) && ((who < 0) || (!p_ptr->uimapuku) ||

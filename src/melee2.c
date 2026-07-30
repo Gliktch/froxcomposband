@@ -1797,7 +1797,9 @@ bool mon_attack_mon(int m_idx, int t_idx)
         if ( !r_ptr->blows[ap_cnt].effects[0].effect  /* XXX B:BEG or B:INSULT */
           || check_hit2(power, rlev, ac, stun) )
         {
-            (void)set_monster_csleep(t_idx, 0);
+            if (set_monster_csleep(t_idx, 0)
+                && disturb_wakeup && mon_show_msg(t_ptr))
+                disturb(0, 0);
 
             if (t_ptr->ml)
                 check_mon_health_redraw(t_idx);
@@ -2130,7 +2132,9 @@ bool mon_attack_mon(int m_idx, int t_idx)
             case RBM_CRAWL:
             case RBM_SPIT:
             case RBM_EXPLODE:
-                set_monster_csleep(t_idx, 0);
+                if (set_monster_csleep(t_idx, 0)
+                    && disturb_wakeup && mon_show_msg(t_ptr))
+                    disturb(0, 0);
                 if (see_m)
                     msg_format("%^s misses%s", m_name, retaliation_hack ? ".<color:g>)</color>" : ".");
                 break;
@@ -2553,6 +2557,9 @@ static void process_monster(int m_idx)
             monster_desc(m_name, m_ptr, 0);
             msg_format("%^s wakes up.", m_name);
         }
+
+        if (disturb_wakeup && mon_show_msg(m_ptr))
+            disturb(0, 0);
 
         /* Hack -- Count the wakings */
         if (is_original_ap_and_seen(m_ptr) && (r_ptr->r_wake < MAX_UCHAR))
@@ -3424,7 +3431,9 @@ static void process_monster(int m_idx)
                 did_move_body = TRUE;
 
                 /* Wake up the moved monster */
-                (void)set_monster_csleep(c_ptr->m_idx, 0);
+                if (set_monster_csleep(c_ptr->m_idx, 0)
+                    && disturb_wakeup && mon_show_msg(y_ptr))
+                    disturb(0, 0);
 
                 /* XXX XXX XXX Message */
             }
@@ -4445,11 +4454,17 @@ static void process_mon_mtimed(mon_ptr mon)
                 /* Just woke up */
                 else
                 {
-                    if (mon->ml && disturb_minor && mon_show_msg(mon))
+                    if (mon_show_msg(mon))
                     {
                         char m_name[80];
-                        monster_desc(m_name, mon, 0);
-                        msg_format("%^s wakes up.", m_name);
+
+                        if (disturb_minor)
+                        {
+                            monster_desc(m_name, mon, 0);
+                            msg_format("%^s wakes up.", m_name);
+                        }
+                        if (disturb_wakeup)
+                            disturb(0, 0);
                     }
                     if (is_original_ap_and_seen(mon))
                     {

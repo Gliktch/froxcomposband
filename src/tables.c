@@ -2407,6 +2407,9 @@ option_type option_info[] =
     { &disturb_minor,               TRUE,  OPT_PAGE_DISTURBANCE, 0, 24,
     "disturb_minor",                "Disturb whenever boring things happen" },
 
+    { &disturb_wakeup,              FALSE, OPT_PAGE_DISTURBANCE, 3, 11,
+    "disturb_wakeup",               "Disturb whenever a known monster wakes" },
+
     { &town_no_disturb,             FALSE, OPT_PAGE_DISTURBANCE, 1, 17,
     "town_no_disturb",              "Never disturb when a town monster moves" },
 

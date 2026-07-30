@@ -297,14 +297,16 @@ void monk_display_attack_info(doc_ptr doc, int hand)
         }
         if (slay.kill_flag && have_flag(flgs, slay.kill_flag))
         {
-            mult = slay_tiers[slay.tier - 1].kill / 10;
+            mult = slay_tiers[slay.tier - 1].kill;
             snprintf(name, sizeof(name), "*%s*", slay.kill_desc);
         }
         else if (have_flag(flgs, slay.slay_flag))
         {
-            mult = slay_tiers[slay.tier - 1].slay / 10;
+            mult = slay_tiers[slay.tier - 1].slay;
             snprintf(name, sizeof(name), "%s", slay.kill_desc);
         }
+        if (mult > 10)
+            mult = 10 + (mult - 10) / 4;
         if (mult)
         {
             int hit = _calc_damage_per_hit(tot_dam, to_d, mult, p_ptr->tim_force);

@@ -566,9 +566,11 @@ s16b tot_dam_aux_monk(int tdam, monster_type *m_ptr, int mode, int hand)
         }
         if (!slay.tester(r_ptr, m_ptr, FALSE)) continue;
         if (slay.kill_flag && have_flag(flgs, slay.kill_flag))
-            my_mult = slay_tiers[slay.tier - 1].kill / 10;
+            my_mult = slay_tiers[slay.tier - 1].kill;
         else if (have_flag(flgs, slay.slay_flag))
-            my_mult = slay_tiers[slay.tier - 1].slay / 10;
+            my_mult = slay_tiers[slay.tier - 1].slay;
+        if (my_mult > 10)
+            my_mult = 10 + (my_mult - 10) / 4;
         if (my_mult > mult)
             mult = my_mult;
         if (my_mult > 10)

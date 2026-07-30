@@ -155,7 +155,7 @@ cptr life_rating_desc(bool use_attr)
     int tulos = p_ptr->player_hp[PY_MAX_LEVEL - 1] / 10 - 223;
     char buf[15];
     byte attr;
-    if (!use_attr) return (percentage_life ? format("%d/100", life_rating()) : format("%d/76", tulos));
+    if (!use_attr) return (percentage_life ? format("%d%%", life_rating()) : format("%d/76", tulos));
     if (tulos >= 76) /* 76 is the max but let's be paranoid... */
     {
         strcpy(buf, "Optimal");

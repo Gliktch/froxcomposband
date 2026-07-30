@@ -444,6 +444,11 @@
 #define PY_MAX_GOLD     999999999L      /* Maximum gold */
 #define PY_MAX_LEVEL    50              /* Maximum level */
 
+/* Flat vitality baseline for every character: offsets the top-end HP loss
+ * from the 85-115 life-rating rebalance (added after the life multipliers
+ * in calc_hitpoints so it stays flat across classes and CON). */
+#define PY_VITALITY_OFFSET  5
+
 /*
  * Player "food" crucial values
  */

@@ -404,7 +404,7 @@ These two main contributions to your max HP are added together and multiplied by
 
 Finally, after the multipliers, some lump sums are added (your class base HP, race base HP, and any HP from active buffs like heroism); and your effective maximum HP is adjusted to account for any reduction in your life points. It's a complicated system, but during the game you only need to worry about your random life rating and your CON!
 
-Life ratings were previously displayed (and in many variants are still displayed) on a percentage scale of 87% to 117%, with 87% corresponding to absolute values of 0-2 and 117% to 73-76; the average on this scale was around 102-103%, corresponding to 36-41.
+Life ratings were previously displayed (and in many variants are still displayed) on a percentage scale of 85% to 115%, with 85% corresponding to absolute values of 0-2 and 115% to 73-76; the average on this scale was around 102-103%, corresponding to 36-41.
 
 
 <color:G>Q:</color> When should I reroll my life rating with a Potion of New Life?

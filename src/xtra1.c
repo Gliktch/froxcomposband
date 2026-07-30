@@ -4129,6 +4129,7 @@ static void calc_hitpoints(void)
 
     mmhp += class_ptr->base_hp;
     mmhp += (IS_WRAITH() ? MIN(race_ptr->base_hp, 13) : race_ptr->base_hp);
+    mmhp += PY_VITALITY_OFFSET;
 
     if (mmhp < 1)
         mmhp = 1;

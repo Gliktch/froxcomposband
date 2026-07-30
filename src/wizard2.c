@@ -152,11 +152,13 @@ int life_rating(void)
 
 cptr life_rating_desc(bool use_attr)
 {
-    int tulos = p_ptr->player_hp[PY_MAX_LEVEL - 1] / 10 - 223;
+    int tulos = p_ptr->player_hp[PY_MAX_LEVEL - 1] / 10 - 218;
+    int dev = life_rating() - 100;
+    byte dev_attr = (dev >= 0) ? TERM_GREEN : (dev >= -8) ? TERM_YELLOW : TERM_RED;
     char buf[15];
     byte attr;
-    if (!use_attr) return (percentage_life ? format("%d/100", life_rating()) : format("%d/76", tulos));
-    if (tulos >= 76) /* 76 is the max but let's be paranoid... */
+    if (!use_attr) return (percentage_life ? format("%d%% (%+d%%)", life_rating(), dev) : format("%d/76", tulos));
+    if (tulos >= 76) /* 76 is the max under the 115% cap */
     {
         strcpy(buf, "Optimal");
         attr = TERM_VIOLET;
@@ -201,7 +203,8 @@ cptr life_rating_desc(bool use_attr)
         strcpy(buf, "Abysmal");
         attr = TERM_L_DARK;
     }
-    if (percentage_life) return format("<color:%c>%s</color> (%d%%)", attr_to_attr_char(attr), buf, life_rating());
+    if (percentage_life) return format("<color:%c>%s</color>, %d%% (<color:%c>%+d%%</color>)",
+        attr_to_attr_char(attr), buf, life_rating(), attr_to_attr_char(dev_attr), dev);
     else return format("<color:%c>%s</color> (%d/76)", attr_to_attr_char(attr), buf, tulos);
 }
 
@@ -217,16 +220,16 @@ void do_cmd_rerate_aux(void)
 
         /* These extra early checks give a slight boost to average life ratings (~39) */
         pct = _life_rating_aux(5);
-        if (pct < 87) continue;
+        if (pct < 85) continue;
 
         pct = _life_rating_aux(10);
-        if (pct < 87) continue;
+        if (pct < 85) continue;
 
         pct = _life_rating_aux(25);
-        if (pct < 87) continue;
+        if (pct < 85) continue;
 
         pct = life_rating();
-        if (87 <= pct && pct <= 117) break;
+        if (85 <= pct && pct <= 115) break;
     }
 }
 

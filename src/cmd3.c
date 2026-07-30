@@ -1680,6 +1680,12 @@ static void _list_monsters_aux(_mon_list_ptr list, rect_t display_rect, int mode
             }
             handled = TRUE;
             break;
+        /* Do not let movement commands dismiss the list with quick_messages. */
+        case ',':
+        case '.':
+        case ';':
+            handled = TRUE;
+            break;
         /* Help */
         case '?':
             doc_display_help("context_monster_list.txt", NULL);
@@ -2655,6 +2661,11 @@ void do_cmd_list_objects(void)
                     }
                     redraw = TRUE;
                 }
+                break;
+            /* Do not let movement commands dismiss the list with quick_messages. */
+            case ',':
+            case '.':
+            case ';':
                 break;
 
             default: /* Attempt to locate next element in list beginning with pressed key */

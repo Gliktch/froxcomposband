@@ -383,6 +383,7 @@ bool disturb_pets;    /* Disturb when visible pets move */
 bool disturb_panel;    /* Disturb whenever map panel changes */
 bool disturb_state;    /* Disturb whenever player state changes */
 bool disturb_minor;    /* Disturb whenever boring things happen */
+bool disturb_wakeup;   /* Disturb whenever a known monster wakes up */
 bool town_no_disturb;
 bool ring_bell;    /* Audible bell (on errors, etc) */
 bool disturb_trap_detect;    /* Disturb when leaving trap detected area */

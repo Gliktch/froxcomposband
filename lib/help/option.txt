@@ -435,6 +435,9 @@ This option causes you to be disturbed whenever the player state changes, includ
 <topic:disturb_minor><color:U>Disturb whenever boring things happen</color> <color:D>(disturb_minor)</color>
 This option causes you to be disturbed by various minor things, including monsters bashing down doors, new inventory object feelings, and beginning to run out of fuel.
 
+<topic:disturb_wakeup><color:U>Disturb whenever a known monster wakes</color> <color:D>(disturb_wakeup)</color>
+This option causes you to be disturbed whenever a monster whose presence is currently known wakes up. Unknown or offscreen sleep-state changes do not disturb.
+
 <topic:town_no_disturb><color:U>Never disturb when a town monster moves</color> <color:D>(town_no_disturb)</color>
 If this option is on, non-attacking moves by monsters native to towns (such as mercenaries, drunks or street urchins) will never disturb you.
 

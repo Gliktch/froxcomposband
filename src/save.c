@@ -15,13 +15,17 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef WINDOWS
+#if defined(WINDOWS) || defined(_WIN32)
 #include <process.h>
 #endif
-
-#ifdef SIGTERM
-extern int kill(int, int);
+#ifdef HAVE_STAT
+#include <sys/stat.h>
+#include <sys/types.h>
 #endif
+#include <signal.h>
+
+/* Windows CRTs provide no usable kill(); the lock-termination callers are
+ * guarded so they fall back to the unsupported path there. */
 
 /*Exo's character information patch*/
 void updatecharinfoS(void)
@@ -1604,9 +1608,12 @@ bool savefile_session_lock_supported(void)
 {
 #ifdef SET_UID
 # ifdef USG
-#  if defined(F_SETLK)
-    return TRUE;
-#  endif
+    /* The fcntl F_SETLK path is deliberately unsupported: closing one
+     * descriptor releases every record lock the process holds on that
+     * inode, so the re-acquire handshake can silently drop the session
+     * lock.  Refuse protected sessions on these systems rather than
+     * lock unsafely. */
+    return FALSE;
 # else
 #  if defined(LOCK_EX) && defined(LOCK_NB)
     return TRUE;
@@ -1739,7 +1746,7 @@ static bool _savefile_lock_meta_read_path(cptr path, _savefile_lock_meta_t *meta
 
 static int _savefile_pid_status(long pid)
 {
-#ifdef SIGTERM
+#if defined(SIGTERM) && !defined(WINDOWS) && !defined(_WIN32)
     if (pid > 0)
     {
         if (kill((int)pid, 0) == 0) return _SAVEFILE_PID_RUNNING;
@@ -1752,7 +1759,7 @@ static int _savefile_pid_status(long pid)
 
 static long _savefile_current_pid(void)
 {
-#ifdef WINDOWS
+#if defined(WINDOWS) || defined(_WIN32)
     return (long)_getpid();
 #elif defined(HAVE_UNISTD_H)
     return (long)getpid();
@@ -1947,63 +1954,269 @@ static char _savefile_lock_show_details(cptr path, _savefile_lock_meta_t *meta)
     return inkey();
 }
 
-static bool _savefile_lock_try_terminate(int fd, _savefile_lock_meta_t *meta, cptr *msg1, cptr *msg2)
-{
-#ifdef SIGTERM
-    int i;
-
-    if (!meta->has_pid)
-    {
-        *msg1 = "No valid PID was found in the session lock.";
-        *msg2 = "Press ? for details, or any other key to exit.";
-        return FALSE;
-    }
-
-    if (!meta->has_uid || meta->uid != _savefile_current_uid())
-    {
-        *msg1 = "Termination is only available for a lock owned by the same user.";
-        *msg2 = "Press ? for details, or any other key to exit.";
-        return FALSE;
-    }
-
-    if (kill((int)meta->pid, SIGTERM) != 0)
-    {
-        *msg1 = "The other process could not be terminated.";
-        *msg2 = "It may already be exiting, or permission may have been denied.";
-        return FALSE;
-    }
-
-    for (i = 0; i < 25; i++)
-    {
-        Term_xtra(TERM_XTRA_DELAY, 100);
-        if (_savefile_session_try_lock(fd) == 0) return TRUE;
-    }
-
-    *msg1 = "The other process did not release the savefile lock in time.";
-    *msg2 = "Wait a moment and try again, or close it manually.";
-    return FALSE;
-#else
-    *msg1 = "Process termination is not available on this build.";
-    *msg2 = "Press ? for details, or any other key to exit.";
-    return FALSE;
-#endif
-}
-
-static void _savefile_lock_quit_screen(cptr msg1, cptr msg2)
+static void _savefile_lock_base_screen(bool show_k, bool show_o)
 {
     Term_clear();
     c_prt(TERM_RED, "Savefile is currently in use by another running copy of the game.", 2, 0);
     c_prt(TERM_RED, "It's not possible to continue safely, without a strong likelihood of corruption or data loss.", 3, 0);
-    if (msg1) prt(msg1, 6, 0);
-    if (msg2) prt(msg2, 7, 0);
-    prt("Press t to attempt termination, ? for details, or any other key to exit.", 9, 0);
+    if (show_k)
+        prt("Press t to attempt termination, k to attempt force-kill, ? for details,", 5, 0);
+    else
+        prt("Press t to attempt termination, ? for details, or any other key to exit.", 5, 0);
+    if (show_o)
+        prt("o to override safeties, or any other key to exit.", 6, 0);
+    else if (show_k)
+        prt("or any other key to exit.", 6, 0);
 }
 
-static bool _savefile_session_lock_conflict(int fd, cptr path)
+typedef struct
+{
+    bool show_details;
+    long pid;
+    cptr sig_name;
+    int wait_cycles;
+    int wait_total;
+    bool lock_released;
+} _savefile_lock_result_t;
+
+static bool _savefile_lock_try_terminate(int fd, _savefile_lock_meta_t *meta, int sig,
+    _savefile_lock_result_t *result, char *msg1, size_t msg1_size, char *msg2, size_t msg2_size)
+{
+#if defined(SIGTERM) && !defined(WINDOWS) && !defined(_WIN32)
+    int i;
+    char tmp[256];
+#ifdef SIGKILL
+    cptr sig_name = (sig == SIGKILL) ? "SIGKILL" : "SIGTERM";
+#else
+    cptr sig_name = "SIGTERM";
+#endif
+
+    result->show_details = FALSE;
+    result->lock_released = FALSE;
+    result->wait_total = 50;
+
+    if (!meta->has_pid)
+    {
+        result->pid = 0;
+        result->sig_name = sig_name;
+        result->wait_cycles = 0;
+        my_strcpy(msg1, "No valid PID was found in the session lock.", msg1_size);
+        my_strcpy(msg2, "Press ? for details, or any other key to exit.", msg2_size);
+        return FALSE;
+    }
+
+    result->pid = meta->pid;
+    result->sig_name = sig_name;
+
+    if (!meta->has_uid || meta->uid != _savefile_current_uid())
+    {
+        result->wait_cycles = 0;
+        my_strcpy(msg1, "Termination is only available for a lock owned by the same user.", msg1_size);
+        my_strcpy(msg2, "Press ? for details, or any other key to exit.", msg2_size);
+        return FALSE;
+    }
+
+    result->show_details = TRUE;
+
+    /* A fresh attempt clears the previous attempt's output first */
+    _savefile_lock_base_screen(FALSE, FALSE);
+
+    strnfmt(tmp, sizeof(tmp), "Sending %s to PID %ld...", sig_name, (long)meta->pid);
+    prt(tmp, 8, 0);
+    Term_fresh();
+
+    if (kill((int)meta->pid, sig) != 0)
+    {
+        result->wait_cycles = 0;
+        strnfmt(msg1, msg1_size, "Could not send %s to PID %ld: %s.", sig_name, (long)meta->pid, strerror(errno));
+        strnfmt(msg2, msg2_size, "It may already be exiting, or permission may have been denied.");
+        return FALSE;
+    }
+
+    for (i = 0; i < 50; i++)
+    {
+        strnfmt(tmp, sizeof(tmp), "Waiting for PID %ld to release the savefile lock... %d/50", (long)meta->pid, i + 1);
+        prt(tmp, 8, 0);
+        Term_fresh();
+        Term_xtra(TERM_XTRA_DELAY, 100);
+        if (_savefile_session_try_lock(fd) == 0) break;
+    }
+
+    if (i < 50)
+    {
+        result->wait_cycles = i + 1;
+        result->lock_released = TRUE;
+        return TRUE;
+    }
+
+    result->wait_cycles = 50;
+    strnfmt(msg1, msg1_size, "PID %ld received %s but did not release the savefile lock.", (long)meta->pid, sig_name);
+    msg2[0] = '\0';
+    return FALSE;
+#else
+    result->show_details = FALSE;
+    result->pid = meta->has_pid ? meta->pid : 0;
+    result->sig_name = "SIGTERM";
+    result->wait_cycles = 0;
+    result->wait_total = 50;
+    result->lock_released = FALSE;
+    my_strcpy(msg1, "Process termination is not available on this build.", msg1_size);
+    my_strcpy(msg2, "Press ? for details, or any other key to exit.", msg2_size);
+    return FALSE;
+#endif
+}
+
+static void _savefile_lock_quit_screen(cptr msg1, cptr msg2, const _savefile_lock_result_t *result, bool sigkill_failed)
+{
+    char tmp[256];
+
+    _savefile_lock_base_screen(result && result->show_details && !result->lock_released, sigkill_failed);
+
+    if (result && result->show_details)
+    {
+        prt("Termination details", 8, 0);
+        if (result->pid > 0)
+            strnfmt(tmp, sizeof(tmp), "  PID:            %ld", (long)result->pid);
+        else
+            my_strcpy(tmp, "  PID:            unknown", sizeof(tmp));
+        prt(tmp, 9, 0);
+        strnfmt(tmp, sizeof(tmp), "  Signal:         %s", result->sig_name);
+        prt(tmp, 10, 0);
+        strnfmt(tmp, sizeof(tmp), "  Lock wait:      %d/%d cycles (%d.%d seconds)", result->wait_cycles, result->wait_total, result->wait_cycles / 10, result->wait_cycles % 10);
+        prt(tmp, 11, 0);
+        prt("  Lock released:  no", 12, 0);
+        if (msg1 && msg1[0]) prt(msg1, 14, 0);
+        if (!msg2 || !msg2[0])
+        {
+            c_prt(TERM_PURPLE, "Wait a moment and try again with ", 15, 0);
+            c_prt(TERM_YELLOW, "t", 15, 33);
+            c_prt(TERM_PURPLE, ", attempt to force-kill with ", 15, 35);
+            c_prt(TERM_YELLOW, "k", 15, 63);
+            if (sigkill_failed)
+            {
+                c_prt(TERM_PURPLE, ", override safeties with ", 16, 0);
+                c_prt(TERM_YELLOW, "o", 16, 25);
+                c_prt(TERM_PURPLE, ", or any other key to exit.", 16, 27);
+            }
+            else
+                c_prt(TERM_PURPLE, "or any other key to exit.", 16, 0);
+        }
+        else if (msg2 && msg2[0]) prt(msg2, 15, 0);
+    }
+    else if (msg1 && msg1[0])
+    {
+        c_prt(TERM_YELLOW, "Last attempt:", 8, 0);
+        prt(msg1, 9, 0);
+        if (msg2 && msg2[0]) prt(msg2, 10, 0);
+    }
+}
+
+static void _savefile_lock_success_screen(const _savefile_lock_result_t *result)
+{
+    char tmp[256];
+
+    _savefile_lock_base_screen(FALSE, FALSE);
+    prt("Termination details", 8, 0);
+    strnfmt(tmp, sizeof(tmp), "  PID:            %ld", (long)result->pid);
+    prt(tmp, 9, 0);
+    strnfmt(tmp, sizeof(tmp), "  Signal:         %s", result->sig_name);
+    prt(tmp, 10, 0);
+    strnfmt(tmp, sizeof(tmp), "  Lock wait:      %d/%d cycles (%d.%d seconds)", result->wait_cycles, result->wait_total, result->wait_cycles / 10, result->wait_cycles % 10);
+    prt(tmp, 11, 0);
+    prt("  Lock released:  yes", 12, 0);
+    prt("The old process was terminated and the savefile lock was released.", 14, 0);
+    prt("Press Enter or Space to continue.", 16, 0);
+    Term_fresh();
+
+    while (TRUE)
+    {
+        char key = inkey();
+
+        if (key == ' ' || key == '\r' || key == '\n') break;
+    }
+}
+
+static bool _savefile_lock_override_confirm(void)
+{
+    char buf[4];
+    int len = 0;
+
+    Term_clear();
+    c_prt(TERM_RED, "WARNING: You are about to continue without terminating the other process.", 2, 0);
+    c_prt(TERM_RED, "The other copy of the game is still running and may keep writing to", 3, 0);
+    c_prt(TERM_RED, "this savefile while you play.", 4, 0);
+    c_prt(TERM_YELLOW, "This has a very high risk of game rollbacks later on, and may cause", 6, 0);
+    c_prt(TERM_YELLOW, "serious corruption or data loss.", 7, 0);
+    prt("Type yes to override and continue, or any other key to return.", 9, 0);
+    prt("", 11, 0);
+    Term_fresh();
+
+    buf[0] = '\0';
+    while (TRUE)
+    {
+        char key = inkey();
+
+        if ((key >= 'a' && key <= 'z') || (key >= 'A' && key <= 'Z'))
+        {
+            if (len < 3)
+            {
+                buf[len++] = key;
+                buf[len] = '\0';
+                prt(">", 11, 0);
+                prt(buf, 11, 2);
+            }
+            continue;
+        }
+
+        if ((key == '\b' || key == 127) && len > 0)
+        {
+            len--;
+            buf[len] = '\0';
+            prt(">", 11, 0);
+            prt(buf, 11, 2);
+            continue;
+        }
+
+        if (len == 3 &&
+            (buf[0] == 'y' || buf[0] == 'Y') &&
+            (buf[1] == 'e' || buf[1] == 'E') &&
+            (buf[2] == 's' || buf[2] == 'S'))
+            return TRUE;
+
+        return FALSE;
+    }
+}
+
+#ifdef SIGKILL
+static bool _savefile_lock_force_confirm(long pid)
+{
+    char buf[160];
+
+    strnfmt(buf, sizeof(buf), "Force-kill PID %ld with SIGKILL? It will not be able to save first. [y/n] ", (long)pid);
+    prt(buf, 0, 0);
+    while (TRUE)
+    {
+        char key = inkey();
+
+        if (key == 'y' || key == 'Y') { prt("", 0, 0); return TRUE; }
+        if (key == 'n' || key == 'N' || key == ESCAPE) { prt("", 0, 0); return FALSE; }
+        bell();
+    }
+}
+#endif
+
+static bool _savefile_session_lock_conflict(int fd, cptr path, bool *overridden)
 {
     _savefile_lock_meta_t meta;
-    cptr msg1 = NULL;
-    cptr msg2 = NULL;
+    _savefile_lock_result_t result;
+    char msg1[256];
+    char msg2[256];
+    bool sigkill_failed = FALSE;
+
+    *overridden = FALSE;
+    msg1[0] = '\0';
+    msg2[0] = '\0';
+    memset(&result, 0, sizeof(result));
 
     (void)_savefile_lock_meta_read(fd, &meta);
 
@@ -2011,7 +2224,7 @@ static bool _savefile_session_lock_conflict(int fd, cptr path)
     {
         char cmd;
 
-        _savefile_lock_quit_screen(msg1, msg2);
+        _savefile_lock_quit_screen(msg1[0] ? msg1 : NULL, msg2[0] ? msg2 : NULL, &result, sigkill_failed);
         cmd = inkey();
 
         if (cmd == '?')
@@ -2026,10 +2239,46 @@ static bool _savefile_session_lock_conflict(int fd, cptr path)
             if (cmd != 't' && cmd != 'T') continue;
         }
 
+        if (cmd == 'o' || cmd == 'O')
+        {
+            if (sigkill_failed && _savefile_lock_override_confirm())
+            {
+                /* Last resort: still try to take the lock, but continue if we cannot */
+                (void)_savefile_session_try_lock(fd);
+                *overridden = TRUE;
+                return TRUE;
+            }
+
+            continue;
+        }
+
+        if (cmd == 'k' || cmd == 'K')
+        {
+#ifdef SIGKILL
+            if (result.show_details && !result.lock_released &&
+                _savefile_lock_force_confirm(result.pid))
+            {
+                if (_savefile_lock_try_terminate(fd, &meta, SIGKILL, &result, msg1, sizeof(msg1), msg2, sizeof(msg2)))
+                {
+                    _savefile_lock_success_screen(&result);
+                    return TRUE;
+                }
+                sigkill_failed = TRUE;
+                (void)_savefile_lock_meta_read(fd, &meta);
+            }
+#else
+            bell();
+#endif
+            continue;
+        }
+
         if (cmd == 't' || cmd == 'T')
         {
-            if (_savefile_lock_try_terminate(fd, &meta, &msg1, &msg2))
+            if (_savefile_lock_try_terminate(fd, &meta, SIGTERM, &result, msg1, sizeof(msg1), msg2, sizeof(msg2)))
+            {
+                _savefile_lock_success_screen(&result);
                 return TRUE;
+            }
 
             (void)_savefile_lock_meta_read(fd, &meta);
             continue;
@@ -2087,6 +2336,16 @@ static void _protected_session_mode_unsupported(void)
     quit(NULL);
 }
 
+static bool _savefile_lock_same_file(int fd1, int fd2)
+{
+    struct stat s1;
+    struct stat s2;
+
+    if (fstat(fd1, &s1) != 0) return FALSE;
+    if (fstat(fd2, &s2) != 0) return FALSE;
+    return (s1.st_dev == s2.st_dev && s1.st_ino == s2.st_ino);
+}
+
 static bool _savefile_session_lock_acquire(void)
 {
     char path[1024];
@@ -2121,11 +2380,45 @@ static bool _savefile_session_lock_acquire(void)
 
     if (_savefile_session_try_lock(fd) != 0)
     {
+        bool overridden = FALSE;
+
         safe_setuid_drop();
-        if (_savefile_session_lock_conflict(fd, path))
-            safe_setuid_grab();
-        else
+        if (!_savefile_session_lock_conflict(fd, path, &overridden))
             quit(NULL);
+        safe_setuid_grab();
+
+        if (!overridden)
+        {
+            /* The old process removed the lock file when it exited, so the
+             * original fd may point at an orphaned inode. Re-create the lock
+             * file and re-acquire before dropping the old lock. */
+            int newfd;
+
+            newfd = fd_open(path, O_RDWR);
+            if (newfd < 0)
+                newfd = fd_make(path, 0644);
+            if (newfd < 0)
+            {
+                safe_setuid_drop();
+                quit("Cannot recreate the savefile lock.");
+            }
+
+            if (_savefile_session_try_lock(newfd) != 0)
+            {
+                if (!_savefile_lock_same_file(fd, newfd))
+                {
+                    (void)fd_close(newfd);
+                    safe_setuid_drop();
+                    quit("The savefile lock was taken by another process before it could be re-acquired.");
+                }
+                (void)fd_close(newfd);
+            }
+            else
+            {
+                (void)fd_close(fd);
+                fd = newfd;
+            }
+        }
     }
 
     strnfmt(meta, sizeof(meta),

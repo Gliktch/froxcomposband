@@ -6393,7 +6393,7 @@ static bool run_test(void)
 /*
  * Take one step along the current "run" path
  */
-static bool _autorun_continue_prompt(void);
+static int _autorun_continue_prompt(void);
 
 void run_step(int dir)
 {
@@ -6455,7 +6455,8 @@ void run_step(int dir)
     {
         if (autorun_max_steps && !dir)
         {
-            if (_autorun_continue_prompt())
+            int prompt_result = _autorun_continue_prompt();
+            if (prompt_result == 1)
                 running = autorun_max_steps;
             else
                 return;
@@ -6573,10 +6574,27 @@ static int travel_cost(point_t pt)
     return travel.cost[pt.y][pt.x];
 }
 
-static bool _autorun_continue_prompt(void)
+static int _autorun_continue_prompt(void)
 {
-    return msg_prompt("Keep running? <color:y>[Y/n]</color>", "nY",
-        PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_RETURN_1 | PROMPT_SPACE_1 | PROMPT_FORCE_CHOICE) == 'Y';
+    msg_boundary();
+    msg_print_for_prompt(TERM_WHITE, "Keep going? <color:y>[Space/Y to continue, Esc/N to stop]</color>");
+    auto_more_state = AUTO_MORE_PROMPT;
+
+    for (;;)
+    {
+        char ch = inkey();
+
+        if (ch == 'y' || ch == 'Y' || ch == ' ' || ch == '\r' || ch == '\n')
+            return 1; /* Continue running */
+        if (ch == 'n' || ch == 'N' || ch == ESCAPE)
+            return 0; /* Stop running */
+
+        /* Any other key cancels the run and falls through to the main
+         * loop, which handles it as a normal command - including prefixed
+         * movement such as ;9 or .4. */
+        Term_key_push(ch);
+        return 0;
+    }
 }
 
 void travel_step(void)
@@ -6669,7 +6687,8 @@ void travel_step(void)
 
         if (!travel.run && autorun_max_steps)
         {
-            if (_autorun_continue_prompt())
+            int prompt_result = _autorun_continue_prompt();
+            if (prompt_result == 1)
                 travel.run = autorun_max_steps;
             else
                 travel_end();

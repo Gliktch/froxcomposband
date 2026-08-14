@@ -34,6 +34,7 @@ extern void msg_add(cptr msg);
 extern void cmsg_add(byte color, cptr msg);
 extern void msg_boundary(void);
 extern void msg_print(cptr msg);
+extern void msg_print_for_prompt(byte color, cptr msg);
 extern void msg_line_clear(void);
 extern void msg_line_redraw(void);
 extern void msg_line_init(rect_t display_rect);

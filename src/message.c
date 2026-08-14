@@ -40,6 +40,11 @@ static void _msg_print_for_prompt(byte color, cptr msg)
         fix_message();
 }
 
+void msg_print_for_prompt(byte color, cptr msg)
+{
+    _msg_print_for_prompt(color, msg);
+}
+
 msg_ptr _msg_alloc(cptr s)
 {
     msg_ptr m = malloc(sizeof(msg_t));

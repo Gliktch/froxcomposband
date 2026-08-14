@@ -1217,7 +1217,7 @@ bool notes_on_new_birth(void)
 
     if (!have_floor_notes) return TRUE;
 
-    c = msg_prompt("Floor notes from a previous run exist for this character. They won't match floors in this new game, so they'll be cleared. Continue? <color:y>[Y/n]</color>", "nY", PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_CASE_SENSITIVE);
+    c = msg_prompt("Floor notes from a previous run exist for this character. They won't match floors in this new game, so they'll be cleared. Continue? <color:y>[Y/n]</color>", "nY", PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_RETURN_1);
     if (c != 'Y') return FALSE;
 
     for (i = _dungeon_note_count - 1; i >= 0; i--)

@@ -2683,6 +2683,7 @@ enum summon_specific_e {
 #define DAMAGE_ATTACK   4
 #define DAMAGE_NOESCAPE 5
 #define DAMAGE_USELIFE  6
+#define DAMAGE_CASTING  7
 
 
 /*

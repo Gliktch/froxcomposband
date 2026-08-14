@@ -6620,7 +6620,7 @@ int take_hit(int damage_type, int damage, cptr hit_from)
     if (check_foresight()) return 0;
     if (statistics_hack) return 0;
 
-    if (damage_type != DAMAGE_USELIFE)
+    if (damage_type != DAMAGE_USELIFE && damage_type != DAMAGE_CASTING)
     {
         /* Disturb */
         disturb(1, 0);
@@ -6628,7 +6628,8 @@ int take_hit(int damage_type, int damage, cptr hit_from)
 
     /* Mega-Hack -- Apply "invulnerability" */
     if ( damage_type != DAMAGE_USELIFE
-      && damage_type != DAMAGE_LOSELIFE )
+      && damage_type != DAMAGE_LOSELIFE
+      && damage_type != DAMAGE_CASTING )
     {
         if (IS_INVULN() && damage < 9000)
         {
@@ -6713,7 +6714,7 @@ int take_hit(int damage_type, int damage, cptr hit_from)
     }
 
     
-    if ((p_ptr->wizard || easy_damage) && (damage > 0))
+    if ((p_ptr->wizard || easy_damage || damage_type == DAMAGE_GENO || damage_type == DAMAGE_CASTING) && (damage > 0))
         msg_format("You take %d damage.", damage);
 
     p_ptr->chp -= damage;

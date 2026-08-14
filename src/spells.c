@@ -1388,13 +1388,13 @@ byte do_cmd_power(void)
         /* Casting costs spill over into hit points */
         if (hp_only)
         {
-            take_hit(DAMAGE_NOESCAPE, spell->cost, "concentrating too hard");
+            take_hit(DAMAGE_CASTING, spell->cost, "concentrating too hard");
         }
         else if (p_ptr->csp < spell->cost)
         {
             int cost = spell->cost - p_ptr->csp;
             p_ptr->csp = 0;
-            take_hit(DAMAGE_USELIFE, cost, "concentrating too hard");
+            take_hit(DAMAGE_CASTING, cost, "concentrating too hard");
         }
         else
             p_ptr->csp -= spell->cost;

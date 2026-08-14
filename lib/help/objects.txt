@@ -418,7 +418,7 @@ Enchanted      <indent>an enchanted item (includes good ego items and artifacts)
   ~Good : ESP good                    (Wi : sustain wisdom
   ~Nolv : ESP non-living              (Dx : sustain dexterity
   ~Lvng : ESP living                  (Cn : sustain constitution
-  ~p : ESP human                      (Cn : sustain charisma
+  ~p : ESP human                      (Ch : sustain charisma
   ~D : ESP dragon
   ~o : ESP orc
   ~T : ESP troll

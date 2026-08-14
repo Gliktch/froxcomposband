@@ -2555,7 +2555,7 @@ F:ANIMAL
 P:Copy:Snotling:Warrior
 P:Life:75
 P:Body:Ant
-D:It is large and has venomous mandibles.
+D:It is large and has vicious mandibles.
 
 N:169:Brodda, the Easterling
 G:p:o
@@ -4425,7 +4425,7 @@ P:Copy:Snotling:Tourist
 P:Life:50
 P:Body:Scrawny
 S:MULTIPLY
-D:A giant buzzing wasp, its stinger drips venom.
+D:A giant buzzing wasp whose stinger drips confusing venom.
 
 N:290:Lizardman
 G:h:R
@@ -4649,7 +4649,7 @@ F:WEIRD_MIND | BASH_DOOR | WILD_ALL | ANIMAL |
 F:DROP_SKELETON | DROP_CORPSE | POS_GAIN_AC |
 P:Copy:Hobbit:Warrior
 P:Body:Scorpion
-D:It is fast and poisonous.
+D:It is fast, and its stinger looks nasty.
 
 N:305:Earth spirit
 G:E:U
@@ -6305,8 +6305,8 @@ F:ANIMAL | RES_ACID |
 F:DROP_CORPSE | POS_GAIN_AC
 P:Copy:Human:Warrior
 P:Body:Giant Worm
-D:A huge wormlike shape dripping acid, twisted by evil sorcery into a foul
-D:monster that breeds on death.
+D:A huge wormlike shape dripping noxious slime, twisted by evil sorcery into
+D:something foul and monstrous.
 
 N:405:Killer crimson beetle
 G:K:p
@@ -6863,11 +6863,10 @@ B:CRUSH:HURT(2d8)
 F:WILD_GRASS | NASTY_GLYPH |
 F:INVISIBLE | OPEN_DOOR | BASH_DOOR |
 F:EVIL | NO_CONF | NO_SLEEP
-D:A creature who lives underground and eats surface
-D:dwellers whom it catches
-D:with its poisonous tentacle, which is the only part of the creature that
-D:is ever seen. Perhaps it is better not to see the part which remains
-D:underground...
+D:A creature who lives underground and eats surface dwellers foolish or unwary
+D:enough to venture too near to its powerful tentacle, which is the only part
+D:of the creature that is ever seen. Perhaps it is better not to see the part
+D:which remains underground...
 
 N:438:Fiend of Slaanesh
 G:S:P
@@ -19410,7 +19409,8 @@ F:ONLY_ITEM | DROP_1D2 | DROP_GOOD | AURA_REVENGE
 P:Copy:Tonberry:Warrior
 D:This sluggish lizard-like being approaches you with a large knife brandished.
 D:You have trouble taking this monster seriously, as it repeatedly seems to trip
-D:over its own feet. Yet you don't remember any tales of heroes who's fought one and lived...
+D:over its own feet. Yet you don't remember any tales of heroes who have fought
+D:one and lived...
 
 N:1088:Ninja Tonberry
 G:h:D

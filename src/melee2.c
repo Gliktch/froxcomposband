@@ -2481,7 +2481,7 @@ static void process_monster(int m_idx)
             if (skip) {} /* Kamikaze pets fight to death */
             else if (is_riding_mon && riding_pinch < 2)
             {
-                msg_format("%^s seems to be in so much pain, and trying to escape from your restriction.", m_name);
+                msg_format("%^s is in terrible pain and tries to break free!", m_name);
                 riding_pinch++;
                 disturb(1, 0);
             }
@@ -2493,7 +2493,7 @@ static void process_monster(int m_idx)
             {
                 if (is_riding_mon)
                 {
-                    msg_format("%^s succeeded to escape from your restriction!", m_name);
+                    msg_format("%^s breaks free!", m_name);
                     if (rakuba(-1, FALSE))
                         msg_print("You have fallen from riding pet.");
                 }

@@ -871,7 +871,7 @@ N:180:of Slaying
 T:AMMO
 W:10:*:2
 
-N:181:(Elemental)
+N:181:of Elements
 T:AMMO
 W:20:*:3
 F:IGNORE_ACID | IGNORE_FIRE | IGNORE_COLD | IGNORE_ELEC
@@ -1134,7 +1134,6 @@ N:268:& Phase Quiver~
 T:QUIVER
 W:50:*:4
 F:FULL_NAME
-
 
 
 

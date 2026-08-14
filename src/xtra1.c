@@ -5942,7 +5942,13 @@ void calc_bonuses(void)
             }
             else if (p_ptr->weapon_info[i].wield_how != WIELD_NONE)
             {
-                if (!icky_lock) msg_print("You feel comfortable with your weapon.");
+                if (!icky_lock)
+                {
+                    if ((p_ptr->pclass == CLASS_MONK) && (!equip_obj(p_ptr->weapon_info[i].slot)))
+                        msg_print("You feel comfortable without a weapon.");
+                    else
+                        msg_print("You feel comfortable with your weapon.");
+                }
                 icky_lock = TRUE;
             }
             else

@@ -1066,7 +1066,7 @@ bool make_attack_normal(int m_idx)
                         msg_format("%^s is <color:w>frozen</color>!", m_name);
 
                         if (mon_take_hit(m_idx, dam, DAM_TYPE_AURA, &fear,
-                            " was frozen."))
+                            " froze to death."))
 
                         {
                             blinked = FALSE;

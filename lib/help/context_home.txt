@@ -15,7 +15,7 @@ When you first enter your home, you will see an empty inventory. To leave items 
  b) <color:U>{</color> <color:U>16 Arrows of Slaying (3d4) (+6,+8) {/pZA}</color>                   0.2 lbs    102
  c) <color:o>{</color> <color:U>9 Sheaf Arrows (4d4) (+4,+2)</color>                                0.4 lbs     28
  d) <color:o>{</color> <color:U>30 Sheaf Arrows (4d4) (+5,+4)</color>                               0.4 lbs     45
- e) <color:o>{</color> <color:U>26 Sheaf Arrows (Elemental) (4d4) (+6,+6) {|P}</color>              0.4 lbs     77
+ e) <color:o>{</color> <color:U>26 Sheaf Arrows of Elements (4d4) (+6,+6) {|P}</color>              0.4 lbs     77
  f) <color:o>{</color> <color:U>31 Sheaf Arrows of Returning (4d4) (+8,+7)</color>                  0.4 lbs    231
  g) <color:o>{</color> <color:U>23 Sheaf Arrows of Endurance (4d4) (+8,+10)</color>                 0.4 lbs    317
  h) <color:o>{</color> <color:U>25 Sheaf Arrows of Exploding (4d4) (+9,+9)</color>                  0.4 lbs    157
@@ -23,14 +23,14 @@ When you first enter your home, you will see an empty inventory. To leave items 
  j) <color:B>{</color> <color:U>18 Mithril Arrows of Slaying (5d4) (+6,+8) {/L}</color>             0.4 lbs    139
  k) <color:B>{</color> <color:U>23 Mithril Arrows of Slaying (5d4) (+6,+10) {/*A}</color>           0.4 lbs    369
  l) <color:B>{</color> <color:U>21 Mithril Arrows of Endurance (5d4) (+9,+7)</color>                0.4 lbs    299
- m) <color:B>{</color> <color:U>35 Mithril Arrows (Elemental) (5d4) (+9,+9) {|ECoP}</color>         0.4 lbs    225
+ m) <color:B>{</color> <color:U>35 Mithril Arrows of Elements (5d4) (+9,+9) {|ECoP}</color>         0.4 lbs    225
  n) <color:G>{</color> <color:U>19 Seeker Arrows of Returning (6d4) (+4,+9)</color>                 0.2 lbs    284
  o) <color:G>{</color> <color:U>15 Seeker Arrows of Slaying (6d4) (+9,+8) {/ULv}</color>            0.2 lbs    399
  p) <color:G>{</color> <color:U>22 Seeker Arrows of Returning (6d4) (+11,+9)</color>                0.2 lbs    308
  q) <color:U>{</color> <color:U>The Black Arrow of Bard (8d4) (+30,+19) {/XD}</color>               0.2 lbs   1660
  r) <color:s>{</color> <color:U>30 Rounded Pebbles (2d3) (+0,+0)</color>                            0.4 lbs      1
  s) <color:s>{</color> <color:U>24 Rounded Pebbles (2d3) (+5,+4)</color>                            0.4 lbs     32
- t) <color:s>{</color> <color:U>26 Rounded Pebbles (Elemental) (2d3) (+7,+6) {|F}</color>           0.4 lbs     54
+ t) <color:s>{</color> <color:U>26 Rounded Pebbles of Elements (2d3) (+7,+6) {|F}</color>           0.4 lbs     54
  <color:B>(Page 33 of 35)</color>                                                                 
  <color:o>g</color> to get an item. <color:o>d</color> to drop an item. <color:o>x</color> to begin examining items.                
  <color:o>r</color> to begin removing (destroying) items.                                         

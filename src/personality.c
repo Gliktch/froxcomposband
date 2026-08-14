@@ -590,7 +590,8 @@ static personality_ptr _get_munchkin_personality(void)
         me.name = "Munchkin";
         me.desc = "The Munchkin personality is for players who love being overpowered. "
                     "It raises all your stats and skills; with this personality, you can "
-                    "win the game easily, but gain no honor in doing so.";
+                    "beat the game easily, but gain no honor in doing so, and your win "
+                    "won't count.";
 
         me.stats[A_STR] = 3;
         me.stats[A_INT] = 3;
@@ -1491,4 +1492,3 @@ personality_ptr get_personality(void)
 {
     return get_personality_aux(p_ptr->personality);
 }
-

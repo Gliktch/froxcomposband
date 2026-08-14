@@ -469,7 +469,7 @@ static int _welcome_ui(void)
             doc_insert(_doc, "  <color:y>=</color>) Options\n");
         doc_insert(_doc, "  <color:y>?</color>) Help\n");
         doc_insert(_doc, "  <color:y>s</color>) View Scores\n");
-        doc_insert(_doc, "<color:y>ESC</color>) <color:v>Quit</color>\n");
+        doc_insert(_doc, "<color:y>Esc</color>) <color:v>Quit</color>\n");
 
 
         doc_newline(_doc);
@@ -673,13 +673,13 @@ static int _race_class_ui(void)
         }
         if (game_mode != GAME_MODE_BEGINNER) doc_insert(cols[0], "  <color:y>g</color>) Change Game Speed\n");
 
-        doc_insert(cols[1], "<color:y>  *</color>) Random Name\n");
-        doc_insert(cols[1], "<color:y>  ?</color>) Help\n");
+        doc_insert(cols[1], "<color:y>    *</color>) Random Name\n");
+        doc_insert(cols[1], "<color:y>    ?</color>) Help\n");
         if (game_mode != GAME_MODE_BEGINNER)
-            doc_insert(cols[1], "<color:y>  =</color>) Options\n");
-        doc_insert(cols[1], "<color:y>TAB</color>) More Info\n");
-        doc_insert(cols[1], "<color:y>RET</color>) Next Screen\n");
-        doc_insert(cols[1], "<color:y>ESC</color>) Prev Screen\n");
+            doc_insert(cols[1], "<color:y>    =</color>) Options\n");
+        doc_insert(cols[1], "<color:y>  Tab</color>) More Info\n");
+        doc_insert(cols[1], "<color:y>Enter</color>) Next Screen\n");
+        doc_insert(cols[1], "<color:y>  Esc</color>) Prev Screen\n");
 
         doc_insert_cols(_doc, cols, 2, 1);
         doc_free(cols[0]);
@@ -856,7 +856,7 @@ static void _split_pers_ui(byte _old)
             );
         }
 
-        doc_insert(_doc, "<color:G>Toggle Personalities (choose 2 or more; ENTER to accept)</color>\n");
+        doc_insert(_doc, "<color:G>Toggle Personalities (choose 2 or more; Enter to accept)</color>\n");
         doc_insert_cols(_doc, cols, 2, 1);
         doc_insert(_doc, "     Use SHIFT+choice to display help topic\n");
 
@@ -2475,15 +2475,15 @@ static int _stats_ui(void)
 
         doc_newline(cols[1]);
         doc_newline(cols[1]);
-        doc_insert(cols[1], "<color:y>  n</color>) Change Name\n");
-        doc_insert(cols[1], "<color:y>  ?</color>) Help\n");
+        doc_insert(cols[1], "<color:y>    n</color>) Change Name\n");
+        doc_insert(cols[1], "<color:y>    ?</color>) Help\n");
         if (game_mode != GAME_MODE_BEGINNER)
-            doc_insert(cols[1], "<color:y>  =</color>) Options\n");
-        doc_insert(cols[1], "<color:y>TAB</color>) More Info\n");
-        doc_printf(cols[1], "<color:%c>RET</color>) <color:%c>Begin Play</color>\n",
+            doc_insert(cols[1], "<color:y>    =</color>) Options\n");
+        doc_insert(cols[1], "<color:y>  Tab</color>) More Info\n");
+        doc_printf(cols[1], "<color:%c>Enter</color>) <color:%c>Begin Play</color>\n",
             score <= _MAX_SCORE ? 'y' : 'D',
             score <= _MAX_SCORE ? 'v' : 'D');
-        doc_insert(cols[1], "<color:y>ESC</color>) Prev Screen\n");
+        doc_insert(cols[1], "<color:y>  Esc</color>) Prev Screen\n");
 
         doc_insert_cols(_doc, cols, 2, 1);
         doc_free(cols[0]);
@@ -3017,7 +3017,7 @@ static void _magic_line(doc_ptr doc)
 
 /* The Info Panel displays Stats and Skills as
    the player builds the character. Since this
-   won't all fit in 80x27, we let the user <TAB>
+   won't all fit in 80x27, we let the user <Tab>
    through the following sections */
 enum {
     _RCP_STATS,
@@ -3027,7 +3027,7 @@ enum {
 };
 static int _rcp_state = _RCP_STATS;
 
-/* <TAB> rotates the state of the Info Panel */
+/* <Tab> rotates the state of the Info Panel */
 static void _inc_rcp_state(void)
 {
     ++_rcp_state;

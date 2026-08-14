@@ -28,7 +28,7 @@ Martial arts proficiency is essentially just weapon proficiency in the special c
 
 <topic:Riding><style:heading>Riding Proficiency</style>
 
-Riding proficiency is the key to everything about riding a monster; it determines which monsters you can ride, how much of your mount's speed you gain, how likely your mount is to throw you off, how rapidly your mount recovers from various status effects, how negatively riding impacts your spellcasting, how much you are penalized for fighting with unsuitable weapons. <color:G>Consequently, your proficiency cap is very important if you plan to ride;</color> for characters with low caps, riding is only viable in the early game, if at all.</color>
+Riding proficiency is the key to everything about riding a monster; it determines which monsters you can ride, how much of your mount's speed you gain, how likely your mount is to throw you off, how rapidly your mount recovers from various status effects, how negatively riding impacts your spellcasting, how much you are penalized for fighting with unsuitable weapons. <color:G>Consequently, your proficiency cap is very important if you plan to ride;</color> for characters with low caps, riding is only viable in the early game, if at all.
 
 Riding proficiency can be improved in several ways: through meleeing sufficiently high-level monsters while riding, through shooting high-level monsters while riding (conditions easy to meet, but improvement very slow), and by experiencing situations where you can be thrown off a challenging mount.
 

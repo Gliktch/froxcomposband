@@ -32,7 +32,7 @@ the options available, simplifying things for new players.
   <color:y>=</color>) Options                                                                    
   <color:y>?</color>) Help                                                                       
   <color:y>s</color>) View Scores                                                                
-<color:y>ESC</color>) <color:v>Quit</color>                                                                       
+<color:y>Esc</color>) <color:v>Quit</color>                                                                       
                                                                                 
 <color:G>Tip:</color> You can often get specific help by entering the uppercase letter           
      for a command. For example, type <color:o>B</color> on this screen to receive help          
@@ -60,9 +60,9 @@ Magic: <color:B>Burglary</color><color:d>           </color><color:R>== +0</colo
   <color:y>n</color>) Change Name<color:d>              </color> <color:y>  *</color>) Random Name                                 
   <color:y>s</color>) Change Sex<color:d>               </color> <color:y>  ?</color>) Help                                        
   <color:y>p</color>) Change Personality<color:d>       </color> <color:y>  =</color>) Options                                     
-  <color:y>r</color>) Change Race<color:d>              </color> <color:y>TAB</color>) More Info                                   
-  <color:y>c</color>) Change Class<color:d>             </color> <color:y>RET</color>) Next Screen                                 
-  <color:y>m</color>) Change Magic<color:d>             </color> <color:y>ESC</color>) Prev Screen                                 
+  <color:y>r</color>) Change Race<color:d>              </color> <color:y>  Tab</color>) More Info                                   
+  <color:y>c</color>) Change Class<color:d>             </color> <color:y>Enter</color>) Next Screen                                 
+  <color:y>m</color>) Change Magic<color:d>             </color> <color:y>  Esc</color>) Prev Screen                                 
   <color:y>g</color>) Change Game Speed<color:d>        </color>
 <color:d>                              </color>                                                  
 <color:G>Tip:</color> You can often get specific help by entering the uppercase letter           
@@ -80,7 +80,7 @@ Other fields in the table include:
   <color:keyword>BHP</color>:  <indent>Short for Base Hit Points, this value is a lump sum added to your starting hit points to make the early game easier.</indent>
   <color:keyword>Exp</color>:  <indent>Short for Experience Factor, this percentage determines how quickly or slowly your character gains new levels. (All players begin at level 1, and may advance up to level 50. Increasing your level gives more hit points, improves your skills, gives access to more powerful spells, and may also provide other effects or bonuses.)</indent>
 
-In addition to stats, your player also has skills (see <link:birth.txt#PrimarySkills> below). For example, your Melee skill determines your ability to hit monsters in hand to hand combat. Like stats, these skills are also affected by your birth options, and are displayed in the information table on this and the next screen; but, since your screen is only so wide, you'll need to use the <color:keypress>TAB</color> key:
+In addition to stats, your player also has skills (see <link:birth.txt#PrimarySkills> below). For example, your Melee skill determines your ability to hit monsters in hand to hand combat. Like stats, these skills are also affected by your birth options, and are displayed in the information table on this and the next screen; but, since your screen is only so wide, you'll need to use the <color:keypress>Tab</color> key:
 <style:screenshot>  <indent>
 Name : <color:B>Fatty Bolger</color>                    <color:o>Game Speed:</color> <color:v>Coffee-Break</color>
 Sex  : <color:B>Male</color><color:d>              </color>    Disarming  Device     Save       Stealth                                                          
@@ -89,7 +89,7 @@ Race : <color:B>Hobbit</color><color:d>            </color>    <color:g>Superb  
 Class: <color:B>Rogue</color><color:d>             </color>    <color:G>Excellent </color> <color:G>Excellent </color> <color:o>Fair      </color> <color:y>Very Good </color>                                                       
 Magic: <color:B>Burglary</color><color:d>          </color> <color:R>== </color><color:g>Superb    </color> <color:g>Superb    </color> <color:y>Good      </color> <color:b>Heroic    </color>                                                       
 </indent></style>
-And <color:keypress>TAB</color> again:
+And <color:keypress>Tab</color> again:
 <style:screenshot>  <indent>
 Name : <color:B>Fatty Bolger</color>                    <color:o>Game Speed:</color> <color:v>Coffee-Break</color>
 Sex  : <color:B>Male</color><color:d>              </color>    Searching  Perception Melee      Archery                                                          
@@ -133,9 +133,9 @@ Magic: <color:B>Burglary</color><color:d>          </color> <color:R>== </color>
   <color:y>n</color>) Change Name<color:d>              </color> <color:y>  *</color>) Random Name                                 
   <color:y>s</color>) Change Sex<color:d>               </color> <color:y>  ?</color>) Help                                        
   <color:y>p</color>) Change Personality<color:d>       </color> <color:y>  =</color>) Options                                     
-  <color:y>r</color>) Change Race<color:d>              </color> <color:y>TAB</color>) More Info                                   
-  <color:y>c</color>) Change Class<color:d>             </color> <color:y>RET</color>) Next Screen                                 
-  <color:y>m</color>) Change Magic<color:d>             </color> <color:y>ESC</color>) Prev Screen                                 
+  <color:y>r</color>) Change Race<color:d>              </color> <color:y>  Tab</color>) More Info                                   
+  <color:y>c</color>) Change Class<color:d>             </color> <color:y>Enter</color>) Next Screen                                 
+  <color:y>m</color>) Change Magic<color:d>             </color> <color:y>  Esc</color>) Prev Screen                                 
   <color:y>g</color>) Change Game Speed<color:d>        </color>
 <color:d>                              </color>                                                  
 <color:G>Tip:</color> You can often get specific help by entering the uppercase letter           
@@ -144,7 +144,7 @@ Magic: <color:B>Burglary</color><color:d>          </color> <color:R>== </color>
 </indent></style>
 Changing the <color:keyword>game speed</color> does not affect your character directly; rather, it selects the type of game you wish to play. The options are <color:keyword>normal</color> (a full game with a wilderness), <color:keyword>coffee-break</color> (an accelerated game with no wilderness) and <color:keyword>instant-coffee</color> (an ultra-accelerated game). Game speed selection is not available in Beginner Mode, where the coffee-break setting is always used.
 
-When you are happy with your character choices, press <color:keypress>RET</color> to move on to the next screen. You can always <color:keypress>ESC</color> to back up and make changes, so experiment as much as you want.
+When you are happy with your character choices, press <color:keypress>Enter</color> to move on to the next screen. You can always <color:keypress>Esc</color> to back up and make changes, so experiment as much as you want.
 
 <topic:Stats><style:heading>The Stats Screen</style>
 On this screen, you enter your starting stats. You do this by allocating points to each stat; you have a total of 30 points to spend, though you can get some more by allocating negative points to stats you really don't care about at all. Very high starting stats are expensive. By default, the game tries to guess a reasonable allocation, and if you are a new player, you might just want to use the defaults.
@@ -163,9 +163,9 @@ Magic: <color:B>Burglary</color><color:d>           </color><color:R>== +0</colo
 <color:y>s</color>/<color:y>S</color>) STR   16   10  <color:R> +0</color>     16<color:d>  </color> <color:y>  n</color>) Change Name                               
 <color:y>i</color>/<color:y>I</color>) INT   16   10  <color:R> +2</color>     18<color:d>  </color> <color:y>  ?</color>) Help                                      
 <color:y>w</color>/<color:y>W</color>) WIS    9   -2  <color:R> +0</color>      9<color:d>  </color> <color:y>  =</color>) Options                                   
-<color:y>d</color>/<color:y>D</color>) DEX   16   10  <color:R> +6</color>  18/40<color:d>  </color> <color:y>TAB</color>) More Info                                 
-<color:y>c</color>/<color:y>C</color>) CON   14    3  <color:R> +3</color>     17<color:d>  </color> <color:y>RET</color>) <color:v>Begin Play</color>                                
-<color:y>r</color>/<color:y>R</color>) CHR   10   -1  <color:R> +2</color>     12<color:d>  </color> <color:y>ESC</color>) Prev Screen                               
+<color:y>d</color>/<color:y>D</color>) DEX   16   10  <color:R> +6</color>  18/40<color:d>  </color> <color:y>  Tab</color>) More Info                                 
+<color:y>c</color>/<color:y>C</color>) CON   14    3  <color:R> +3</color>     17<color:d>  </color> <color:y>Enter</color>) <color:v>Begin Play</color>                                
+<color:y>r</color>/<color:y>R</color>) CHR   10   -1  <color:R> +2</color>     12<color:d>  </color> <color:y>  Esc</color>) Prev Screen                               
                <color:G> 30</color><color:d>              </color>                                                
 <color:d>                                </color>                                                
 <color:G>Note: </color>You may adjust each starting stat using the indicated keys. The           
@@ -175,7 +175,7 @@ Magic: <color:B>Burglary</color><color:d>           </color><color:R>== +0</colo
       have 30 points to spend, so be sure to adjust those stats that
       matter most.                                                              
 </indent></style>
-Follow the instructions to make changes. If your point total exceeds 30, the option to begin playing will be disabled until you decrease your overall score. When you are ready, press <color:keypress>ENTER</color> to begin play!
+Follow the instructions to make changes. If your point total exceeds 30, the option to begin playing will be disabled until you decrease your overall score. When you are ready, press <color:keypress>Enter</color> to begin play!
 
 <topic:WhatsNext><style:heading>Where to Go from Here?</style>
 You can begin playing at this point. Use the help system (<color:keypress>?</color>) to learn the basic commands. You may also wish to read some additional help files, like the <link:general.txt> General Information document or the <link:tang.txt> Newbie Guide; they explain more about what you'll be up against, and contain tips to help get you started. There is much more in the in-game help besides, but you probably don't really want to bury yourself in 500 pages of documentation!

@@ -1392,7 +1392,6 @@ static void _disciples_help(FILE *fp)
     }
     fputs("\n</style>\n", fp);
     yeqrezh_help(fp);
-    fputs("\n</style>\n", fp);
 }
 
 static void _weaponmasters_help(FILE *fp)

@@ -585,7 +585,7 @@ See the <color:o>Special Clauses</color> below for more information about matchi
 
 <color:G>Special</color>      <indent><color:G>Special</color> <color:R>items</color> are objects your race or class needs; objects that are usually considered junk by default. For example, some characters receive scant sustenance from normal food and must consume humanoid corpses (yum!). Daemon casters use corpses for various spells. Archers use skeletons to make their own ammo. Beastmasters and Cavalry actually enjoy wands of Haste Monster. Such special scenarios are handled with this adjective. <color:y>Note that this is a meaning completely distinct from the object feeling {special}, which refers to artifacts.</color></indent>
 
-<color:G>Unusable</color>     <indent>Applies to wearable items you currently have no equipment slots for. Especially handy in Monster Mode - still, use with some care in case you acquire new slots over time...</color>
+<color:G>Unusable</color>     <indent>Applies to wearable items you currently have no equipment slots for. Especially handy in Monster Mode - still, use with some care in case you acquire new slots over time...
 </indent>
 <topic:SpecialClauses><color:B>Table VI: Rules: Special Clauses</color>
   <indent>In the following clauses, N refers to a digit (0-9); the sequence NN means you may type one or two digits, and can therefore enter any number between 0 and 99. Analogously, NNNNNN allows numbers between 0 and 999999. If you enter too many digits, the parser will not recognize your special clause, and you will get unsatisfactory results from your rule.

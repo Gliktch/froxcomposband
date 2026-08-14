@@ -389,7 +389,11 @@ bool teleport_player_aux(int dis, u32b mode)
     }
 
     /* No valid location! */
-    if (0 == total_candidates) return FALSE;
+    if (0 == total_candidates)
+    {
+        msg_print("You feel the world lurch for a moment, but you remain in place.");
+        return FALSE;
+    }
 
     /* Fix the minimum distance */
     for (cur_candidates = 0, min = dis; min >= 0; min--)

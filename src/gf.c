@@ -1905,7 +1905,10 @@ bool gf_affect_m(int who, mon_ptr mon, int type, int dam, int flags)
         if (seen) obvious = TRUE;
         _BABBLE_HACK()
         if (race->flags3 & RF3_NO_STUN)
+        {
+            note = " is immune to stunning.";
             mon_lore_3(mon, RF3_NO_STUN);
+        }
         else if (mon_save_p(mon->r_idx, A_CHR)
               || ((race->flags1 & RF1_UNIQUE) && mon_save_p(mon->r_idx, A_CHR)) )
         {

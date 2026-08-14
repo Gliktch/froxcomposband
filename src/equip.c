@@ -2078,7 +2078,16 @@ void _ring_finger_sanity_check(void)
     }
     if ((tyhja) && (hukattu))
     {
-        if (get_check("Switch ring fingers so combat bonuses can apply to a weapon?")) _ring_finger_swap_aux(o_ptr, tyhja, hukattu);
+        object_type *r1 = equip_obj(tyhja);
+        object_type *r2 = equip_obj(hukattu);
+
+        /* Auto-confirm when a cursed ring blocks the swap so the existing
+         * refusal path runs and reveals the curse without prompting */
+        if (((r1) && object_is_cursed(r1) && !mummy_can_remove(r1)) ||
+            ((r2) && object_is_cursed(r2) && !mummy_can_remove(r2)))
+            _ring_finger_swap_aux(o_ptr, tyhja, hukattu);
+        else if (get_check("Switch ring fingers so combat bonuses can apply to a weapon?"))
+            _ring_finger_swap_aux(o_ptr, tyhja, hukattu);
     }
 }
 

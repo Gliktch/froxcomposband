@@ -2677,7 +2677,6 @@ static bool clear_auto_register(void)
     FILE *tmp_fff;
     int num = 0;
     bool autoregister = FALSE;
-    bool okay = TRUE;
 
     path_build(pref_file, sizeof(pref_file), ANGBAND_DIR_USER, pickpref_filename(PT_WITH_PREFNAME, NULL));
     pref_fff = my_fopen(pref_file, "r");
@@ -2700,89 +2699,102 @@ static bool clear_auto_register(void)
         return TRUE;
     }
 
-    /* Open a new (temporary) file */
-    tmp_fff = my_fopen_temp(tmp_file, sizeof(tmp_file));
-
-    if (!tmp_fff)
+    /* First pass: detect an auto-register block and count the lines that
+     * would be removed, without creating any file */
+    while (!my_fgets(pref_fff, buf, sizeof(buf)))
     {
-        /* Close the preference file */
-        fclose(pref_fff);
-
-        msg_format("Failed to create temporary file %s.", tmp_file);
-        msg_print(NULL);
-        return FALSE;
-    }
-
-
-    /* Loop for every line */
-    while (TRUE)
-    {
-        /* Read a line */
-        if (my_fgets(pref_fff, buf, sizeof(buf))) break;
-
         if (autoregister)
         {
-            /* Delete auto-registered line */
-
             /* Count auto-destroy preference lines */
             if (buf[0] != '#' && buf[0] != '?') num++;
         }
-
-        /* We are looking for auto-registered line */
-        else
+        else if (streq(buf, autoregister_header))
         {
-            if (streq(buf, autoregister_header))
-            {
-                /* Delete all further lines */
-                autoregister = TRUE;
-            }
-            else
-            {
-                /* Copy orginally lines */
-                fprintf(tmp_fff, "%s\n", buf);
-            }
+            autoregister = TRUE;
         }
     }
-
-    /* Close files */
     my_fclose(pref_fff);
-    my_fclose(tmp_fff);
+
+    /* Nothing to remove - leave the preference file untouched */
+    if (!autoregister)
+        return TRUE;
 
     if (num)
     {
         msg_format("Auto registered lines (%d lines) for previous character are remaining.", num);
-        strcpy(buf, "These lines will be deleted. Are you sure? ");
-
-        /* You can cancel it */
-        if (!get_check(buf))
+        if (!get_check("These lines will be deleted. Are you sure? "))
         {
-            okay = FALSE;
-            autoregister = FALSE;
-
             msg_print("Use cut & paste of auto picker editor (_) to keep old prefs.");
+            return FALSE;
         }
     }
 
-
-    /* If there are some changes, overwrite the original file with new one */
-    if (autoregister)
+    /* Second pass: copy the kept lines into a same-directory temporary file,
+     * then replace the original so the rewrite is atomic where the platform
+     * allows it */
+    /* Leave room for the ".tmp" suffix so the temporary file never
+     * aliases the original preference file. */
+    if (strlen(pref_file) + 4 >= sizeof(tmp_file))
     {
-        /* Copy contents of temporary file */
+        msg_print("The preference file path is too long to rewrite safely.");
+        return FALSE;
+    }
+    (void)my_strcpy(tmp_file, pref_file, sizeof(tmp_file));
+    (void)my_strcat(tmp_file, ".tmp", sizeof(tmp_file));
+    pref_fff = my_fopen(pref_file, "r");
+    tmp_fff = my_fopen(tmp_file, "w");
 
+    if (!pref_fff || !tmp_fff)
+    {
+        if (pref_fff) my_fclose(pref_fff);
+        if (tmp_fff) my_fclose(tmp_fff);
+        fd_kill(tmp_file);
+        msg_format("Failed to rewrite %s for auto-register cleanup.", pref_file);
+        msg_print(NULL);
+        return FALSE;
+    }
+
+    autoregister = FALSE;
+    while (!my_fgets(pref_fff, buf, sizeof(buf)))
+    {
+        if (autoregister)
+        {
+            /* Delete auto-registered lines */
+        }
+        else if (streq(buf, autoregister_header))
+        {
+            autoregister = TRUE;
+        }
+        else
+        {
+            fprintf(tmp_fff, "%s\n", buf);
+        }
+    }
+    my_fclose(pref_fff);
+    my_fclose(tmp_fff);
+
+    if (rename(tmp_file, pref_file) != 0)
+    {
+        /* Fall back to copying the filtered content over the original */
         tmp_fff = my_fopen(tmp_file, "r");
         pref_fff = my_fopen(pref_file, "w");
-
+        if (!tmp_fff || !pref_fff)
+        {
+            if (tmp_fff) my_fclose(tmp_fff);
+            if (pref_fff) my_fclose(pref_fff);
+            fd_kill(tmp_file);
+            msg_format("Failed to apply auto-register cleanup to %s.", pref_file);
+            msg_print(NULL);
+            return FALSE;
+        }
         while (!my_fgets(tmp_fff, buf, sizeof(buf)))
             fprintf(pref_fff, "%s\n", buf);
-
         my_fclose(pref_fff);
         my_fclose(tmp_fff);
     }
 
-    /* Kill the temporary file */
     fd_kill(tmp_file);
-
-    return okay;
+    return TRUE;
 }
 
 static bool prepare_default_pickpref(bool silent);

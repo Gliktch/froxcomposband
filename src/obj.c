@@ -1293,7 +1293,7 @@ void obj_destroy_ui(void)
         if (ch == 'n') return;
         if (ch == 'A')
         {
-            if (autopick_autoregister(prompt.obj))
+            if (autopick_autoregister(prompt.obj) || is_autopick(prompt.obj) >= 0)
             {
                 autopick_alter_obj(prompt.obj, TRUE); /* destroyed! */
                 obj_release(prompt.obj, OBJ_RELEASE_QUIET);

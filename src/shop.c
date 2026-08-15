@@ -47,6 +47,7 @@ struct shop_s
     _owner_ptr    owner;
     inv_ptr       inv;
     _last_restock_t last_restock;
+    u32b          last_prune;
 };
 
 /************************************************************************
@@ -1281,11 +1282,25 @@ shop_ptr shop_load(savefile_ptr file)
 
     if ((u32b)shop->last_restock.kills == 0xFEEDFEED)
     {
+        /* Ancient format: the guard lives in the kills field and there
+         * is no last_prune field. Treat the shop as just pruned. */
         guard = 0xFEEDFEED;
         shop->last_restock.kills = 0;
+        shop->last_prune = game_turn;
     }
     else
-        guard = savefile_read_u32b(file);
+    {
+        shop->last_prune = savefile_read_u32b(file);
+        if (shop->last_prune == 0xFEEDFEED)
+        {
+            /* 7.2.6-hotfix2-era save: the field is missing and the
+             * guard follows. Treat the shop as just pruned. */
+            shop->last_prune = game_turn;
+            guard = 0xFEEDFEED;
+        }
+        else
+            guard = savefile_read_u32b(file);
+    }
     assert(guard == 0xFEEDFEED);
 
     return shop;
@@ -1310,6 +1325,7 @@ void shop_reset(shop_ptr shop)
     shop->last_restock.level = 0;
     shop->last_restock.exp = 0;
     shop->last_restock.kills = 0;
+    shop->last_prune = 0;
 }
 
 void shop_save(shop_ptr shop, savefile_ptr file)
@@ -1321,6 +1337,7 @@ void shop_save(shop_ptr shop, savefile_ptr file)
     savefile_write_s16b(file, shop->last_restock.level);
     savefile_write_s32b(file, shop->last_restock.exp);
     savefile_write_s32b(file, shop->last_restock.kills);
+    savefile_write_u32b(file, shop->last_prune);
     savefile_write_u32b(file, 0xFEEDFEED);
 }
 
@@ -2358,6 +2375,7 @@ static void _sellout(shop_ptr shop)
 #define _STOCK_LO   6
 #define _STOCK_BASE 15
 #define _STOCK_HI   24
+#define _PRUNE_GRACE 250
 
 static int _stock_base(shop_ptr shop)
 {
@@ -2413,11 +2431,24 @@ static void _maintain(shop_ptr shop)
     for (i = 0; i < num; i++)
     {
         int ct = inv_count_slots(shop->inv, obj_exists);
+        bool can_prune = (game_turn - shop->last_prune >= _PRUNE_GRACE);
+
         if (ct < _STOCK_LO) _restock(shop, _stock_base(shop), FALSE);
-        else if (ct > _STOCK_HI) _cull(shop, _stock_base(shop));
+        else if (ct > _STOCK_HI)
+        {
+            if (can_prune)
+            {
+                _cull(shop, _stock_base(shop));
+                shop->last_prune = game_turn;
+            }
+        }
         else
         {
-            ct = _cull(shop, isompi(_STOCK_LO, ct - randint1(9)));
+            if (can_prune)
+            {
+                ct = _cull(shop, isompi(_STOCK_LO, ct - randint1(9)));
+                shop->last_prune = game_turn;
+            }
             if (allow_restock)
                 ct = _restock(shop, pienempi(_STOCK_HI, ct + randint1(9)), FALSE);
         }
@@ -2915,6 +2946,10 @@ void towns_on_turn_overflow(int rollback_turns)
                 shop->last_restock.turn -= rollback_turns;
             else
                 shop->last_restock.turn = 0;
+            if (shop->last_prune > (u32b)rollback_turns)
+                shop->last_prune -= rollback_turns;
+            else
+                shop->last_prune = 0;
         }
         int_map_iter_free(iter);
     }

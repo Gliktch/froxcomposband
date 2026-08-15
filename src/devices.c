@@ -1098,6 +1098,7 @@ static cptr _do_potion(int sval, int mode)
             virtue_add(VIRTUE_ENLIGHTENMENT, 1);
             msg_print("An image of your surroundings forms in your mind...");
             wiz_lite(p_ptr->tim_superstealth > 0);
+            p_ptr->window |= PW_OBJECT_LIST;
             device_noticed = TRUE;
         }
         break;
@@ -1110,6 +1111,7 @@ static cptr _do_potion(int sval, int mode)
             virtue_add(VIRTUE_ENLIGHTENMENT, 2);
             msg_print(NULL);
             wiz_lite(p_ptr->tim_superstealth > 0);
+            p_ptr->window |= PW_OBJECT_LIST;
             do_inc_stat(A_INT);
             do_inc_stat(A_WIS);
             detect_traps(DETECT_RAD_DEFAULT, TRUE);
@@ -3541,6 +3543,7 @@ cptr do_effect(effect_t *effect, int mode, int boost)
         if (cast)
         {
             map_area(DETECT_RAD_MAP);
+            p_ptr->window |= PW_OBJECT_LIST;
             device_noticed = TRUE;
         }
         break;
@@ -3554,6 +3557,7 @@ cptr do_effect(effect_t *effect, int mode, int boost)
             virtue_add(VIRTUE_KNOWLEDGE, 1);
             virtue_add(VIRTUE_ENLIGHTENMENT, 1);
             wiz_lite(p_ptr->tim_superstealth > 0);
+            p_ptr->window |= PW_OBJECT_LIST;
             detect_traps(DETECT_RAD_DEFAULT, TRUE);
             detect_doors(DETECT_RAD_DEFAULT);
             detect_stairs(DETECT_RAD_DEFAULT);

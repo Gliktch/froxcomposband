@@ -2469,6 +2469,7 @@ void autopick_sense_floor(point_t loc)
     inv_ptr floor = inv_filter_floor(loc, NULL);
     inv_for_each(floor, _sense_or_identify_floor_obj);
     inv_free(floor);
+    p_ptr->window |= PW_OBJECT_LIST;
 }
 
 /* Automatically identify objects, consuming requisite resources.
@@ -2660,6 +2661,7 @@ void autopick_get_floor(bool allow_identified)
     inv_ptr floor = inv_filter_floor(point(px, py), allow_identified ? NULL : _obj_allows_unid_pickup);
     inv_for_each(floor, _get_obj);
     inv_free(floor);
+    p_ptr->window |= PW_OBJECT_LIST;
 }
 
 
@@ -6950,6 +6952,7 @@ void do_cmd_edit_autopick(void)
                 }
                 autopick_load_pref(ALP_CHECK_NUMERALS);
             }
+            p_ptr->window |= PW_OBJECT_LIST;
             return;
         }
     }
@@ -7141,6 +7144,7 @@ void do_cmd_edit_autopick(void)
 
     /* Reload autopick pref */
     process_autopick_file(buf);
+    p_ptr->window |= PW_OBJECT_LIST;
 
     if (quit == QUIT_DISABLE)
         msg_print("Mogaminator disabled. Press '_' to activate it again.");

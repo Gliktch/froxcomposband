@@ -1101,26 +1101,42 @@ static int _draw_monster_list(_mon_list_ptr list, int top, rect_t rect, int mode
         {
             if (info_ptr->group == _GROUP_LOS)
             {
-                c_put_str(TERM_WHITE,
-                      format("You %s %d monster%s, %d %s awake:",
-                             mode == MON_LIST_PROBING ? "probe" : "see",
-                             info_ptr->ct_los,
-                             info_ptr->ct_los != 1 ? "s" : "",
-                             info_ptr->ct_awake,
-                             info_ptr->ct_awake == 1 ? "is" : "are"),
-                      rect.y + i, rect.x);
+                if (mode == MON_LIST_SUBWINDOW)
+                    c_put_str(TERM_WHITE,
+                          format("%d monster%s seen, %d awake:",
+                                 info_ptr->ct_los,
+                                 info_ptr->ct_los != 1 ? "s" : "",
+                                 info_ptr->ct_awake),
+                          rect.y + i, rect.x);
+                else
+                    c_put_str(TERM_WHITE,
+                          format("You %s %d monster%s, %d %s awake:",
+                                 mode == MON_LIST_PROBING ? "probe" : "see",
+                                 info_ptr->ct_los,
+                                 info_ptr->ct_los != 1 ? "s" : "",
+                                 info_ptr->ct_awake,
+                                 info_ptr->ct_awake == 1 ? "is" : "are"),
+                          rect.y + i, rect.x);
             }
             else if (info_ptr->group == _GROUP_AWARE)
             {
                 char buf[200];
 
-                sprintf(buf, "You are aware of %d %smonster%s, %d %s awake:",
-                    info_ptr->ct_total,
-                    list->ct_los ? "other " : "",
-                    info_ptr->ct_total != 1 ? "s" : "",
-                    info_ptr->ct_awake,
-                    info_ptr->ct_awake == 1 ? "is" : "are"
-                );
+                if (mode == MON_LIST_SUBWINDOW)
+                    sprintf(buf, "%d %smonster%s known, %d awake:",
+                        info_ptr->ct_total,
+                        list->ct_los ? "other " : "",
+                        info_ptr->ct_total != 1 ? "s" : "",
+                        info_ptr->ct_awake
+                    );
+                else
+                    sprintf(buf, "You are aware of %d %smonster%s, %d %s awake:",
+                        info_ptr->ct_total,
+                        list->ct_los ? "other " : "",
+                        info_ptr->ct_total != 1 ? "s" : "",
+                        info_ptr->ct_awake,
+                        info_ptr->ct_awake == 1 ? "is" : "are"
+                    );
                 if (p_ptr->wizard && list->ct_total)
                 {
                     sprintf(buf + strlen(buf), " %d.%02d",
@@ -1160,9 +1176,10 @@ static int _draw_monster_list(_mon_list_ptr list, int top, rect_t rect, int mode
 
             if (info_ptr->ct_total == 1)
             {
-                sprintf(buf, "%s", r_name + r_ptr->name);
-                if ((r_ptr->flags1 & RF1_UNIQUE) && !info_ptr->ct_awake)
-                    strcat(buf, " (asleep)");
+                if (!info_ptr->ct_awake)
+                    sprintf(buf, "(Zzz) %s", r_name + r_ptr->name);
+                else
+                    sprintf(buf, "%s", r_name + r_ptr->name);
                 if (monlist_range_all || (info_ptr->los && monlist_range))
                 {
                     sprintf(loc, "Rng %2d", info_ptr->dis);
@@ -1175,13 +1192,13 @@ static int _draw_monster_list(_mon_list_ptr list, int top, rect_t rect, int mode
                 }
             }
             else if (!info_ptr->ct_awake)
-                sprintf(buf, "%s (%d asleep)", r_name + r_ptr->name, info_ptr->ct_total);
+                sprintf(buf, "(Zzz) %s (%d)", r_name + r_ptr->name, info_ptr->ct_total);
             else if (info_ptr->ct_awake == info_ptr->ct_total)
-                sprintf(buf, "%s (%d awake)", r_name + r_ptr->name, info_ptr->ct_total);
+                sprintf(buf, "%s (%d)", r_name + r_ptr->name, info_ptr->ct_total);
             else
             {
-                sprintf(buf, "%s (%d awake, %d asleep)", r_name + r_ptr->name,
-                    info_ptr->ct_awake, info_ptr->ct_total - info_ptr->ct_awake);
+                sprintf(buf, "%s (%d/%d awake)", r_name + r_ptr->name,
+                    info_ptr->ct_awake, info_ptr->ct_total);
             }
 
             Term_queue_bigchar(rect.x + 1, rect.y + i, r_ptr->x_attr, r_ptr->x_char, 0, 0);
@@ -1784,14 +1801,14 @@ void do_cmd_list_monsters(int mode)
 
 void _fix_monster_list_aux(void)
 {
-    _mon_list_ptr list = _create_monster_list(MON_LIST_NORMAL);
+    _mon_list_ptr list = _create_monster_list(MON_LIST_SUBWINDOW);
     rect_t        display_rect = {0};
     int           ct = 0, i;
 
     Term_get_size(&display_rect.cx, &display_rect.cy);
 
     if ((list->ct_total) && (display_rect.cx >= (use_bigtile ? 3 : 2)/* Hugo broke the game */))
-        ct = _draw_monster_list(list, 0, display_rect, MON_LIST_NORMAL);
+        ct = _draw_monster_list(list, 0, display_rect, MON_LIST_SUBWINDOW);
 
     for (i = ct; i < display_rect.cy; i++)
         Term_erase(display_rect.x, display_rect.y + i, display_rect.cx);

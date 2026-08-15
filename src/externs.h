@@ -944,7 +944,8 @@ extern bool ang_sort_comp_hook(vptr u, vptr v, int a, int b);
 extern void ang_sort_swap_hook(vptr u, vptr v, int a, int b);
 enum {
     MON_LIST_NORMAL = 0,
-    MON_LIST_PROBING
+    MON_LIST_PROBING,
+    MON_LIST_SUBWINDOW
 };
 extern void do_cmd_list_monsters(int mode);
 extern void do_cmd_list_objects(void);

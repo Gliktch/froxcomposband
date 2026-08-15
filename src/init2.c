@@ -176,11 +176,7 @@ void init_file_paths(const char *configpath, const char *libpath, const char *da
 
     private_user_base(private_base, sizeof(private_base));
 
-    /* Build the path to the user specific directory */
-    path_build(buf, sizeof(buf), private_base, VERSION_NAME);
-
-    /* Build a relative path name */
-    ANGBAND_DIR_USER = z_string_make(buf);
+    ANGBAND_DIR_USER = z_string_make(private_base);
 
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, "scores");
     ANGBAND_DIR_APEX = z_string_make(buf);
@@ -271,24 +267,26 @@ bool dir_create(const char *path)
 {
     const char *ptr;
     char buf[512];
+    size_t prefix = 0;
 
     /* If the directory already exists then we're done */
     if (dir_exists(path)) return TRUE;
 
     #ifdef WINDOWS
-    /* If we're on windows, we need to skip past the "C:" part. */
-    if (isalpha(path[0]) && path[1] == ':') path += 2;
+    /* Keep the drive prefix (e.g. "D:") so every parent segment is created
+     * on the intended drive, not the process's current drive. */
+    if (isalpha(path[0]) && path[1] == ':') prefix = 2;
     #endif
 
     /* Iterate through the path looking for path segements. At each step,
      * create the path segment if it doesn't already exist. */
-    for (ptr = path; *ptr; ptr++) {
+    for (ptr = path + prefix; *ptr; ptr++) {
         if (*ptr == PATH_SEPC) {
             /* Find the length of the parent path string */
             size_t len = (size_t)(ptr - path);
 
-            /* Skip the initial slash */
-            if (len == 0) continue;
+            /* Skip the drive root itself (e.g. "D:\" already exists). */
+            if (len <= prefix + 1) continue;
 
             /* If this is a duplicate path separator, continue */
             if (*(ptr - 1) == PATH_SEPC) continue;
@@ -317,19 +315,53 @@ static void private_user_base(char *buf, int max)
 {
     cptr xdg_data_home = getenv("XDG_DATA_HOME");
     cptr home = getenv("HOME");
+#if defined(WINDOWS) || defined(_WIN32)
+    cptr appdata = getenv("APPDATA");
+#endif
 #if defined(HAVE_UNISTD_H) && !defined(WINDOWS)
     struct passwd *pw;
 #endif
 
+#if defined(WINDOWS) || defined(_WIN32)
+    /* The install directory already is the game folder (whatever it is
+     * named), so user data goes straight into <install>\save, <install>
+     * \scores, etc. Fall back to the roaming app-data directory (always
+     * present on Windows). MSYS-style HOME/XDG values would produce
+     * invalid mixed paths. */
+    if (argv0 && argv0[0])
+    {
+        char dir[1024];
+        size_t len;
+
+        my_strcpy(dir, argv0, sizeof(dir));
+        len = strlen(dir);
+        while (len > 0 && dir[len - 1] != '\\' && dir[len - 1] != '/')
+            len--;
+        if (len > 0)
+        {
+            dir[len] = '\0';
+            my_strcpy(buf, dir, max);
+            return;
+        }
+    }
+    if (appdata && appdata[0])
+    {
+        path_build(buf, max, appdata, VERSION_NAME);
+        return;
+    }
+#endif
+
     if (xdg_data_home && xdg_data_home[0])
     {
-        my_strcpy(buf, xdg_data_home, max);
+        path_build(buf, max, xdg_data_home, VERSION_NAME);
         return;
     }
 
     if (home && home[0])
     {
-        path_build(buf, max, home, ".local/share");
+        char base[1024];
+        path_build(base, sizeof(base), home, ".local/share");
+        path_build(buf, max, base, VERSION_NAME);
         return;
     }
 
@@ -337,15 +369,21 @@ static void private_user_base(char *buf, int max)
     pw = getpwuid(getuid());
     if (pw && pw->pw_dir && pw->pw_dir[0])
     {
-        path_build(buf, max, pw->pw_dir, ".local/share");
+        char base[1024];
+        path_build(base, sizeof(base), pw->pw_dir, ".local/share");
+        path_build(buf, max, base, VERSION_NAME);
         return;
     }
 
-    path_build(buf, max, PRIVATE_USER_PATH, format("froxcomposband-%lu", (unsigned long)getuid()));
+    {
+        char base[1024];
+        path_build(base, sizeof(base), PRIVATE_USER_PATH, format("froxcomposband-%lu", (unsigned long)getuid()));
+        path_build(buf, max, base, VERSION_NAME);
+    }
     return;
 #endif
 
-    my_strcpy(buf, PRIVATE_USER_PATH, max);
+    path_build(buf, max, PRIVATE_USER_PATH, VERSION_NAME);
 }
 #endif
 

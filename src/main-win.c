@@ -795,8 +795,8 @@ static void validate_dir(cptr s, bool vital)
             quit_fmt("Cannot find required directory:\n%s", s);
 
         }
-        /* Attempt to create this directory */
-        else if (_mkdir(s))
+        /* Attempt to create this directory (including missing parents) */
+        else if (!dir_create(s))
         {
             quit_fmt("Unable to create directory:\n%s", s);
         }

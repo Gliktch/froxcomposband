@@ -1270,6 +1270,7 @@ extern parse_tbl_ptr summon_type_lookup(int id);
 /* init2.c */
 extern void init_file_paths(const char *configpath, const char *libpath, const char *datapath);
 extern void create_needed_dirs(void);
+extern bool dir_create(const char *path);
 extern bool package_test_parse_arg(cptr arg);
 extern void package_test_parse_cmdline(cptr cmdline);
 extern void package_test_install_hooks(void);

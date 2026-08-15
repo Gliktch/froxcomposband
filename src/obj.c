@@ -97,17 +97,17 @@ void obj_make_pile(obj_ptr obj)
     int          size = 1;
     object_kind *k_ptr = &k_info[obj->k_idx];
 
-    if (object_is_artifact(obj)) return;
-    if (object_is_ego(obj) && !object_is_ammo(obj)) return;
-    if (!k_ptr->stack_chance) return;
-    if (randint1(100) > k_ptr->stack_chance) return;
-    if ((quest_id_current() == 60) && (k_ptr->gen_flags & OFG_NO_SHUFFLE)) return; /* mega-hack - Clear the Tunnels */
+    if (object_is_artifact(obj)) goto done;
+    if (object_is_ego(obj) && !object_is_ammo(obj)) goto done;
+    if (!k_ptr->stack_chance) goto done;
+    if (randint1(100) > k_ptr->stack_chance) goto done;
+    if ((quest_id_current() == 60) && (k_ptr->gen_flags & OFG_NO_SHUFFLE)) goto done; /* mega-hack - Clear the Tunnels */
 
     assert(k_ptr->stack_dice);
     assert(k_ptr->stack_sides);
     size = damroll(k_ptr->stack_dice, k_ptr->stack_sides);
 
-    if (size <= 1) return;
+    if (size <= 1) goto done;
 
     obj->number = size;
     if (!store_hack)
@@ -120,6 +120,10 @@ void obj_make_pile(obj_ptr obj)
     {
         obj->number -= (size * obj->discount / 100);
     }
+
+done:
+    /* Fresh non-artifact ammo piles should never generate below the standard floor */
+    obj_enforce_ammo_pile_floor(obj, 10);
 }
 
 void obj_enforce_ammo_pile_floor(obj_ptr obj, int min_amt)

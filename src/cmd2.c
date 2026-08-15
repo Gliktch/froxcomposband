@@ -2577,27 +2577,14 @@ void do_cmd_get(void)
 }
 void do_cmd_autoget(void)
 {
-    /* Get any objects under foot first ... this is the old
-     * 'g' behavior sans interaction with features (e.g. re-
-     * enter a shop) */
-    if (cave[py][px].o_idx || p_ptr->wizard)
-    {
-        if (!pack_get_floor()) return;
-    }
-    /* Now, auto pickup nearby objects by iterating
-     * the travel command */
+    /* Ctrl-G travels to the next matching object; use g to pick up
+     * whatever is underfoot. */
     if (auto_get_objects)
         _travel_next_obj(TRAVEL_MODE_AUTOPICK);
     else if (auto_get_ammo)
         _travel_next_obj(TRAVEL_MODE_AMMO);
     else
-    {
-        msg_print("<color:B>Warning:</color> You have specified neither the "
-            "<color:keyword>auto_get_ammo</color> nor the <color:keyword>"
-            "auto_get_objects</color> options. With neither option set, "
-            "<color:keypress>^G</color> behaves just like the normal "
-            "<color:keypress>g</color>et command.");
-    }
+        do_cmd_get();
 }
 
 /*

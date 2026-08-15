@@ -2215,7 +2215,10 @@ static void _shooter_info_aux(doc_ptr doc, object_type *bow, object_type *arrow,
 
     real_snipe = shoot_hack;
     if (display_shooter_mode) shoot_hack = display_shooter_mode;
-    doc_printf(cols[0], " %-8.8s: %d%%\n", "Breakage", breakage_chance(arrow));
+    if (arrow->name2 == EGO_AMMO_EXPLODING)
+        doc_printf(cols[0], " %-8.8s: 100%% hit/%d%% miss\n", "Breakage", breakage_chance_miss(arrow));
+    else
+        doc_printf(cols[0], " %-8.8s: %d%%\n", "Breakage", breakage_chance(arrow));
     shoot_hack = real_snipe;
     doc_printf(cols[0], " %-8.8s: %d.%d lbs\n", "Weight", arrow->weight/10, arrow->weight%10);
     doc_printf(cols[0], " %-8.8s: %d + %d = %d\n", "To Hit", to_h, to_h_bow + to_h_xtra, to_h + to_h_bow + to_h_xtra);

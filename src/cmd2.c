@@ -2803,8 +2803,10 @@ void do_cmd_rest(void)
  *
  * Note that artifacts never break, see the "drop_near()" function.
  */
-int breakage_chance(object_type *o_ptr)
+static int breakage_chance_aux(object_type *o_ptr, bool connected)
 {
+    int base;
+
     if (obj_is_art(o_ptr)) return 0;
     if (shoot_hack == SP_KILL_WALL) return 100;
     if (shoot_hack == SP_EXPLODE) return 100;
@@ -2820,7 +2822,6 @@ int breakage_chance(object_type *o_ptr)
     if (o_ptr->name2 == EGO_AMMO_ENDURANCE) return 0;
     if (shoot_hack == SP_EVILNESS) return 40;
     if (shoot_hack == SP_HOLYNESS) return 40;
-    if (o_ptr->name2 == EGO_AMMO_EXPLODING) return 100;
 
     /* Examine the item type */
     switch (o_ptr->tval)
@@ -2831,28 +2832,51 @@ int breakage_chance(object_type *o_ptr)
         case TV_BOTTLE:
         case TV_FOOD:
         case TV_JUNK:
-            return 100;
+            base = 100;
+            break;
 
         /* Often break */
         case TV_LITE:
         case TV_SCROLL:
         case TV_SKELETON:
-            return 50;
+            base = 50;
+            break;
 
         /* Sometimes break */
         case TV_WAND:
         case TV_SPIKE:
-            return 25;
+            base = 25;
+            break;
         case TV_ARROW:
-            return 20 * MAX(0, p_ptr->shooter_info.breakage) / 100;
+            base = 20 * MAX(0, p_ptr->shooter_info.breakage) / 100;
+            break;
 
         /* Rarely break */
         case TV_SHOT:
         case TV_BOLT:
-            return 10 * MAX(0, p_ptr->shooter_info.breakage) / 100;
+            base = 10 * MAX(0, p_ptr->shooter_info.breakage) / 100;
+            break;
         default:
-            return 10;
+            base = 10;
+            break;
     }
+
+    /* Exploding ego ammo breaks for certain on a connected hit, but a missed
+     * shot shatters at double the base rate and detonates where it lands */
+    if (o_ptr->name2 == EGO_AMMO_EXPLODING)
+        return connected ? 100 : MIN(100, base * 2);
+
+    return base;
+}
+
+int breakage_chance(object_type *o_ptr)
+{
+    return breakage_chance_aux(o_ptr, TRUE);
+}
+
+int breakage_chance_miss(object_type *o_ptr)
+{
+    return breakage_chance_aux(o_ptr, FALSE);
 }
 
 
@@ -3059,6 +3083,7 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
     bool no_energy = FALSE;
     int  num_shots = 1;
     bool hit_body = FALSE;
+    bool hit_connected = FALSE;
     bool return_ammo = FALSE;
     char o_name[MAX_NLEN];
     u16b path_g[512];
@@ -3184,6 +3209,9 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
             msg_print("Your ammo has run out. Time to reload!");
             break;
         }
+
+        /* Each shot starts unconnected - a hit marks it later */
+        hit_connected = FALSE;
 
         /* Start at the source */
         y = sy;
@@ -3359,11 +3387,15 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
                   && p_ptr->painted_target_ct >= 3)
                 {
                     if (randint1(100) <= 95)
+                    {
                         hit = TRUE;
+                        hit_connected = TRUE;
+                    }
                 }
                 else if (weaponmaster_is_(WEAPONMASTER_BOWS) && cur_dis == 1)
                 {
                     hit = TRUE;
+                    hit_connected = TRUE;
                 }
                 else
                 {
@@ -3405,6 +3437,9 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
                 }
 
                 if (melee_challenge) hit = FALSE;
+
+                /* Any successful hit connects the shot */
+                if (hit) hit_connected = TRUE;
 
                 if (hit)
                 {
@@ -3770,7 +3805,12 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
         }
 
         /* Chance of breakage (during attacks) */
-        break_chance = (hit_body ? breakage_chance(&arrow) : 0);
+        if (hit_connected)
+            break_chance = breakage_chance(&arrow);
+        else if (arrow.name2 == EGO_AMMO_EXPLODING)
+            break_chance = breakage_chance_miss(&arrow);
+        else
+            break_chance = (hit_body ? breakage_chance(&arrow) : 0);
         if (shoot_hack == SHOOT_DISINTEGRATE) break_chance = 100;
 
         if (return_ammo)
@@ -3806,15 +3846,25 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
             o_ptr->next_o_idx = m_ptr->hold_o_idx;
             m_ptr->hold_o_idx = o_idx;
         }
-        else if (cave_have_flag_bold(y, x, FF_PROJECT))
-        {
-            /* Drop (or break) near that location */
-            drop_near(&arrow, break_chance, y, x);
-        }
         else
         {
-            /* Drop (or break) near that location */
-            drop_near(&arrow, break_chance, prev_y, prev_x);
+            int drop_y = cave_have_flag_bold(y, x, FF_PROJECT) ? y : prev_y;
+            int drop_x = cave_have_flag_bold(y, x, FF_PROJECT) ? x : prev_x;
+            bool exploded = FALSE;
+
+            if ((arrow.name2 == EGO_AMMO_EXPLODING) && (!hit_connected) && (randint1(100) <= break_chance))
+            {
+                /* A missed exploding shot shatters and detonates on the miss square */
+                u16b flg = (PROJECT_STOP | PROJECT_JUMP | PROJECT_KILL | PROJECT_GRID);
+                int dmg = damroll(arrow.dd, arrow.ds) + arrow.to_d + bow->to_d + p_ptr->shooter_info.to_d;
+                sound(SOUND_EXPLODE);
+                project(0, 3, drop_y, drop_x, dmg, GF_MISSILE, flg);
+                exploded = TRUE;
+            }
+
+            /* The miss-break roll above already decided this shot's fate -
+             * do not roll the same chance again on the drop. */
+            drop_near(&arrow, exploded ? 100 : 0, drop_y, drop_x);
         }
 
     /* Sniper - Repeat shooting when double shots */

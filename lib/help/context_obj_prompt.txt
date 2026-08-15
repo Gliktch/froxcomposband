@@ -90,6 +90,7 @@ You'll notice that selecting an object in this case did not dismiss the dialog. 
 <color:keypress>^Q</color>        Switch to Quiver Tab
 <color:keypress>^F</color>        Switch to Floor Tab
 <color:keypress>- </color>        <indent>Switch to Floor Tab. Select Floor Object if there is only one.</indent>
+<color:keypress>*</color>         Quiver Tab: Take Off or Drop All Ammo (with Confirmation)
 
 <color:G>Display Options</color>
 <color:keypress>^W</color>        Toggle Weights (see <link:option.txt#show_weights>)

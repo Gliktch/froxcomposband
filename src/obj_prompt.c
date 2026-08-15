@@ -394,6 +394,69 @@ static int _basic_cmd(obj_prompt_context_ptr context, int cmd)
 {
     switch (cmd)
     {
+    case '*': {
+        /* Bulk action for the quiver tab: move all quiver ammo to the
+         * pack (takeoff) or drop it, after a confirmation prompt. */
+        obj_prompt_tab_ptr tab = vec_get(context->tabs, context->tab);
+        cptr prompt = context->prompt->prompt;
+        int  ct;
+
+        if (inv_loc(tab->inv) != INV_QUIVER) return OP_CMD_SKIPPED;
+        ct = inv_count_slots(tab->inv, obj_exists);
+        if (ct <= 0) return OP_CMD_HANDLED;
+
+        if (prompt && strpos("Take off", prompt))
+        {
+            char msg[120];
+            char ch;
+            slot_t slot;
+
+            sprintf(msg, "Take off all %d item%s from your quiver? <color:y>[y/n]</color>",
+                ct, ct == 1 ? "" : "s");
+            Term_load();
+            doc_sync_menu(context->doc);
+            ch = msg_prompt(msg, "ny", PROMPT_YES_NO);
+            if (ch == 'n') return OP_CMD_HANDLED;
+
+            for (slot = 1; slot <= QUIVER_MAX; slot++)
+            {
+                obj_ptr obj = quiver_obj(slot);
+
+                if (!obj) continue;
+                pack_carry_aux(obj);
+                obj_release(obj, OBJ_RELEASE_QUIET);
+            }
+            energy_use = 50;
+            p_ptr->notice |= PN_OPTIMIZE_PACK | PN_OPTIMIZE_QUIVER;
+            p_ptr->window |= PW_INVEN | PW_EQUIP;
+            return OP_CMD_DISMISS;
+        }
+        else if (prompt && strpos("Drop which", prompt))
+        {
+            char msg[120];
+            char ch;
+            slot_t slot;
+
+            sprintf(msg, "Drop all %d item%s from your quiver? <color:y>[y/n]</color>",
+                ct, ct == 1 ? "" : "s");
+            Term_load();
+            doc_sync_menu(context->doc);
+            ch = msg_prompt(msg, "ny", PROMPT_YES_NO);
+            if (ch == 'n') return OP_CMD_HANDLED;
+
+            for (slot = 1; slot <= QUIVER_MAX; slot++)
+            {
+                obj_ptr obj = quiver_obj(slot);
+
+                if (!obj) continue;
+                obj_drop(obj, obj->number);
+            }
+            energy_use = 50;
+            p_ptr->notice |= PN_OPTIMIZE_QUIVER;
+            p_ptr->window |= PW_INVEN;
+            return OP_CMD_DISMISS;
+        }
+        return OP_CMD_SKIPPED; }
     case '-': {
         /* Legacy: In the olden days, - was used to autopick
          * the floor item. Of course, you had to do it blind

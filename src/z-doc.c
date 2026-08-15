@@ -2796,12 +2796,14 @@ int doc_display_character_sheet(doc_ptr doc)
             break;
         case SKEY_PGUP:
         case '9':
+        case '-':
             top -= page_size;
             top = _cs_clamp_top(active_doc, top, page_size);
             handled = TRUE;
             break;
         case SKEY_PGDOWN:
         case '3':
+        case ' ':
             top += page_size;
             top = _cs_clamp_top(active_doc, top, page_size);
             handled = TRUE;
@@ -3081,11 +3083,13 @@ int doc_display_aux_ex(doc_ptr doc, cptr caption, int top, rect_t display, u32b 
             break;
         case SKEY_PGUP:
         case '9':
+        case '-':
             top -= page_size;
             if (top < 0) top = 0;
             break;
         case SKEY_PGDOWN:
         case '3':
+        case ' ':
             top += page_size;
             if (top > doc->cursor.y - page_size)
                 top = MAX(0, doc->cursor.y - page_size);
@@ -3304,11 +3308,13 @@ int weapon_exp_display(doc_ptr doc, cptr caption, int *top)
             break;
         case SKEY_PGUP:
         case '9':
+        case '-':
             *top -= page_size;
             if (*top < 0) *top = 0;
             break;
         case SKEY_PGDOWN:
         case '3':
+        case ' ':
             *top += page_size;
             if (*top > doc->cursor.y - page_size)
                 *top = MAX(0, doc->cursor.y - page_size);

@@ -6,10 +6,11 @@
 <color:keypress>    !     </color>(Go to the help system's main page)
 
 <color:keypress>   Home   </color>(Go to the top)
-<color:keypress>  PageUp  </color>(Go up 1 page)
+<color:keypress>  PageUp/- </color>(Go up 1 page)
 <color:keypress> Up Arrow </color>(Go up 1 line)
 <color:keypress>Down Arrow</color>(Go down 1 line)
 <color:keypress> PageDown </color>(Go down 1 page)
+<color:keypress> Spacebar </color>(Go down 1 page)
 <color:keypress>   End    </color>(Go to the bottom)
 
 <color:keypress>    >     </color>(Go to next section)

@@ -73,8 +73,8 @@ Another difference between the Museum and your home is that items given to the M
 <color:G>Navigation</color>
 <color:keypress>Page Up</color>   Scroll through long object lists
 <color:keypress>Page Down</color>
-<color:keypress>Space</color>     Same as Page Up
-<color:keypress>-</color>         Same as Page Down
+<color:keypress>Space</color>     Same as Page Down
+<color:keypress>-</color>         Same as Page Up
 
 <color:G>Display Options</color>
 <color:keypress>^W</color>        Toggle weights (see <link:option.txt#show_weights>)

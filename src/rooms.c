@@ -2170,6 +2170,8 @@ static int _obj_cmp_score(obj_ptr left, obj_ptr right)
 
     return 0;
 }
+static void _ensure_room_item_grid(int y, int x);
+
 static void _apply_room_grid_obj(point_t p, room_grid_ptr grid, room_ptr room)
 {
     /* see if tile was trapped in _apply_room_grid_feat */
@@ -2220,6 +2222,7 @@ static void _apply_room_grid_obj(point_t p, room_grid_ptr grid, room_ptr room)
             {
                 a_info[obj->name3].generated = TRUE;
             }
+            _ensure_room_item_grid(p.y, p.x);
             drop_here(obj, p.y, p.x);
         }
 
@@ -2237,9 +2240,26 @@ static void _apply_room_grid_obj(point_t p, room_grid_ptr grid, room_ptr room)
             obj = room_grid_make_obj(grid, object_level);
         if (obj)
         {
-           drop_here(obj, p.y, p.x);
-           obj_free(obj);
+            _ensure_room_item_grid(p.y, p.x);
+            drop_here(obj, p.y, p.x);
+            obj_free(obj);
         }
+    }
+}
+
+/* Item-designated room grids must be holdable - deep water would swallow or
+ * hide the required object. Step deep water down to shallow water (which
+ * holds items and stays legal for aquatic monsters) and leave everything
+ * else untouched; unlike the old floor conversion this also keeps any
+ * monster already placed on the grid. */
+static void _ensure_room_item_grid(int y, int x)
+{
+    cave_type *c_ptr = &cave[y][x];
+
+    if (c_ptr->feat == feat_deep_water)
+    {
+        c_ptr->feat = feat_shallow_water;
+        c_ptr->mimic = 0;
     }
 }
 

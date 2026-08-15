@@ -357,7 +357,7 @@ void vault_objects(int y, int x, int num)
             /* Place gold */
             else
             {
-                place_gold(j, k);
+                place_gold(j, k, UNMINED);
             }
 
             /* Placement accomplished */
@@ -1173,4 +1173,3 @@ bool build_tunnel2(int x1, int y1, int x2, int y2, int type, int cutoff)
         return TRUE;
     }
 }
-

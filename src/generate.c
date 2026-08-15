@@ -375,7 +375,7 @@ static void alloc_object(int set, int typ, int num)
             break;
 
         case ALLOC_TYP_GOLD:
-            place_gold(y, x);
+            place_gold(y, x, UNMINED);
             break;
 
         case ALLOC_TYP_OBJECT:

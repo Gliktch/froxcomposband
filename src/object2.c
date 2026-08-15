@@ -3950,7 +3950,7 @@ void place_object(int y, int x, u32b mode, byte origin)
  *
  * The location must be a legal, clean, floor grid.
  */
-bool make_gold(object_type *j_ptr, bool do_boost)
+bool make_gold(object_type *j_ptr, bool mined)
 {
     int i, au;
 
@@ -3981,8 +3981,14 @@ bool make_gold(object_type *j_ptr, bool do_boost)
     /* Determine how much the treasure is "worth" */
     au = (base + (8 * randint1(base)) + randint1(8));
     au = au * (625 - virtue_current(VIRTUE_SACRIFICE)) / 625;
-    if (do_boost)
-        au += au * object_level / 7;
+
+    /* Level scaling is now the normal behavior for all gold */
+    au += au * object_level / 7;
+
+    /* Mined gold keeps a roughly 1.5x base value regardless of depth */
+    if (mined)
+        au = au * 21 / (2 * (object_level + 7));
+
     if ((no_selling) && ((dungeon_type) || (quests_get_current())) && (dun_level > 0))
     {
         /* Selling players rely less and less on selling, and more and more on drops,
@@ -4008,7 +4014,7 @@ bool make_gold(object_type *j_ptr, bool do_boost)
  *
  * The location must be a legal, clean, floor grid.
  */
-void place_gold(int y, int x)
+void place_gold(int y, int x, bool mined)
 {
     s16b o_idx;
 
@@ -4037,7 +4043,7 @@ void place_gold(int y, int x)
     object_wipe(q_ptr);
 
     /* Make some gold */
-    if (!make_gold(q_ptr, FALSE)) return;
+    if (!make_gold(q_ptr, mined)) return;
 
 
     /* Make an object */

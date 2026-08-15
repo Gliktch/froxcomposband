@@ -1572,8 +1572,10 @@ extern bool kind_is_weapon(int k_idx);
 extern bool kind_is_bow_ammo(int k_idx);
 extern bool kind_is_misc(int k_idx);
 extern void place_object(int y, int x, u32b mode, byte origin);
-extern bool make_gold(object_type *j_ptr, bool do_boost);
-extern void place_gold(int y, int x);
+#define UNMINED 0
+#define MINED   1
+extern bool make_gold(object_type *j_ptr, bool mined);
+extern void place_gold(int y, int x, bool mined);
 extern s16b drop_near(object_type *o_ptr, int chance, int y, int x);
 extern void acquirement(int y1, int x1, int num, bool great, bool known, byte origin);
 extern void init_normal_traps(void);

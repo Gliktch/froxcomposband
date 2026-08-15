@@ -1487,7 +1487,7 @@ static int _buy_offer(shop_ptr shop, obj_ptr obj);
 
 static void _maintain(shop_ptr shop);
 static int  _cull(shop_ptr shop, int target);
-static int  _restock(shop_ptr shop, int target, bool is_shuffle);
+static int  _restock(shop_ptr shop, int target, bool is_shuffle, bool topup_ammo);
 static void _wizard_stock(shop_ptr shop);
 static void _shuffle_stock(shop_ptr shop);
 static int  _stock_base(shop_ptr shop);
@@ -1590,7 +1590,7 @@ static void _loop(_ui_context_ptr context)
             ct = inv_count_slots(context->shop->inv, obj_exists);
             if (!ct)
             {
-                _restock(context->shop, _stock_base(context->shop), TRUE);
+                _restock(context->shop, _stock_base(context->shop), TRUE, TRUE);
                 context->top = 1;
                 if (one_in_(20)) _change_owner(context->shop);
                 msg_format("<color:U>%s</color> brings out some new stock.", context->shop->owner->name);
@@ -2396,7 +2396,7 @@ static void _maintain(shop_ptr shop)
     /* Always initialize an empty shop */
     if (!inv_count_slots(shop->inv, obj_exists))
     {
-        _restock(shop, _stock_base(shop), FALSE);
+        _restock(shop, _stock_base(shop), FALSE, TRUE);
         return;
     }
 
@@ -2433,7 +2433,7 @@ static void _maintain(shop_ptr shop)
         int ct = inv_count_slots(shop->inv, obj_exists);
         bool can_prune = (game_turn - shop->last_prune >= _PRUNE_GRACE);
 
-        if (ct < _STOCK_LO) _restock(shop, _stock_base(shop), FALSE);
+        if (ct < _STOCK_LO) _restock(shop, _stock_base(shop), FALSE, TRUE);
         else if (ct > _STOCK_HI)
         {
             if (can_prune)
@@ -2450,7 +2450,7 @@ static void _maintain(shop_ptr shop)
                 shop->last_prune = game_turn;
             }
             if (allow_restock)
-                ct = _restock(shop, pienempi(_STOCK_HI, ct + randint1(9)), FALSE);
+                ct = _restock(shop, pienempi(_STOCK_HI, ct + randint1(9)), FALSE, TRUE);
         }
     }
 }
@@ -2538,7 +2538,63 @@ static void _wizard_stock(shop_ptr shop)
     Term_clear_rect(ui_shop_msg_rect());
 }
 
-static int _restock(shop_ptr shop, int target, bool is_shuffle)
+static int _ammo_tval_hack = 0;
+
+static bool _stock_ammo_tval_p(int k_idx)
+{
+    if (!_stock_ammo_p(k_idx)) return FALSE;
+    return (k_info[k_idx].tval == _ammo_tval_hack);
+}
+
+/* Add one mundane pile of the given ammo category, generated just like
+ * normal weapon-shop ammo (same random kind/quantity, floored at 10). */
+static void _weapon_ammo_topup_add(shop_ptr shop, int tval, u32b mode)
+{
+    obj_t forge = {0};
+    int k_idx;
+
+    _ammo_tval_hack = tval;
+    k_idx = _get_k_idx(_stock_ammo_tval_p, _mod_lvl(20));
+    _ammo_tval_hack = 0;
+    if (!_create(&forge, k_idx, _mod_lvl(rand_range(1, 15)), mode)) return;
+
+    forge.name2 = 0;
+    forge.to_h = 0;
+    forge.to_d = 0;
+    forge.curse_flags = 0;
+    forge.known_curse_flags = 0;
+    _add_obj(shop, &forge, TRUE);
+}
+
+/* Weapon shops should keep a baseline of each ammo type: after a restock,
+ * count arrows, bolts, and shots separately, and for any type totalling
+ * under 10 add one mundane pile generated like normal shop ammo. */
+static void _weapon_ammo_topup(shop_ptr shop, u32b mode)
+{
+    int total_shot = 0;
+    int total_arrow = 0;
+    int total_bolt = 0;
+    slot_t slot, max = inv_last(shop->inv, obj_exists);
+
+    for (slot = 1; slot <= max; slot++)
+    {
+        obj_ptr obj = inv_obj(shop->inv, slot);
+
+        if (!obj) continue;
+        switch (obj->tval)
+        {
+        case TV_SHOT: total_shot += obj->number; break;
+        case TV_ARROW: total_arrow += obj->number; break;
+        case TV_BOLT: total_bolt += obj->number; break;
+        }
+    }
+
+    if (total_shot < 10) _weapon_ammo_topup_add(shop, TV_SHOT, mode);
+    if (total_arrow < 10) _weapon_ammo_topup_add(shop, TV_ARROW, mode);
+    if (total_bolt < 10) _weapon_ammo_topup_add(shop, TV_BOLT, mode);
+}
+
+static int _restock(shop_ptr shop, int target, bool is_shuffle, bool topup_ammo)
 {
     int ct = inv_count_slots(shop->inv, obj_exists);
     int attempt = 0;
@@ -2565,7 +2621,10 @@ static int _restock(shop_ptr shop, int target, bool is_shuffle)
             ct += _add_obj(shop, &forge, TRUE);
         }
     }
+    if (topup_ammo && (shop->type->id == SHOP_WEAPON))
+        _weapon_ammo_topup(shop, mode);
     inv_sort(shop->inv);
+    ct = inv_count_slots(shop->inv, obj_exists);
     assert(ct == inv_count_slots(shop->inv, obj_exists));
     shop->last_restock.turn = game_turn;
     shop->last_restock.level = p_ptr->max_plv;
@@ -2599,7 +2658,7 @@ static void _shuffle_stock(shop_ptr shop)
             p_ptr->update |= (PU_BONUS | PU_HP | PU_MANA);
     }
     _cull(shop, 0);
-    _restock(shop, _stock_base(shop), TRUE);
+    _restock(shop, _stock_base(shop), TRUE, FALSE);
 }
 
 /************************************************************************
@@ -2960,7 +3019,7 @@ void _town_add_shop_item(town_ptr town, int which, int k_idx, int ct)
     shop_ptr shop = town_get_shop(town, which);
     int i;
     if (!k_idx) return;
-    if (!inv_count_slots(shop->inv, obj_exists)) _restock(shop, _stock_base(shop), TRUE);
+    if (!inv_count_slots(shop->inv, obj_exists)) _restock(shop, _stock_base(shop), TRUE, TRUE);
     for (i = 0; i < ct; i++)
     {
         obj_t forge = {0};

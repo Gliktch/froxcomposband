@@ -3,6 +3,7 @@
 #################
 *.raw
 *.ini
+*.res
 lib/save/*
 lib/user/*.prf
 lib/user/*.txt

@@ -3853,6 +3853,28 @@ bool _melee_attack_not_confirmed(monster_type *m_ptr)
     return FALSE;
 }
 
+/* Bump into an unseen monster and decline to attack: maybe wake it.
+ * A flat 1-in-3 chance first, then the normal per-turn stealth roll run as
+ * if adjacent for one turn with -5 effective stealth (clamped at 0). */
+static void _bump_unseen_wake_check(monster_type *m_ptr)
+{
+    int stl = p_ptr->skills.stl - 5;
+    u32b notice, noise;
+
+    if (stl < 0) stl = 0;
+
+    if (one_in_(3))
+    {
+        (void)set_monster_csleep(m_ptr->id, 0);
+        return;
+    }
+
+    notice = randint0(1024);
+    noise = (1L << (30 - stl));
+    if (notice * notice * notice <= noise)
+        (void)set_monster_csleep(m_ptr->id, 0);
+}
+
 bool _py_attack_exit(void)
 {
     if (travel.mode != TRAVEL_MODE_NORMAL) travel_cancel_fully();
@@ -3940,7 +3962,9 @@ bool py_attack(int y, int x, int mode)
     {
         if (!get_check_strict("There's something there you can't see! Really hit it? ", CHECK_DEFAULT_Y))
         {
-            energy_use = 0;
+            msg_print("You bump into something.");
+            _bump_unseen_wake_check(m_ptr);
+            energy_use = 50;
             return _py_attack_exit();
         }
         m_ptr->mflag2 |= MFLAG2_MON_HIT_OKAY;
@@ -3949,6 +3973,13 @@ bool py_attack(int y, int x, int mode)
     if (_melee_attack_not_confirmed(m_ptr))
     {
         energy_use = 0;
+        if (!m_ptr->ml)
+        {
+            /* Bumping into an unseen monster shouldn't give a free turn. */
+            msg_print("You bump into something.");
+            _bump_unseen_wake_check(m_ptr);
+            energy_use = 50;
+        }
         return _py_attack_exit();
     }
 
@@ -3976,6 +4007,7 @@ bool py_attack(int y, int x, int mode)
             else
             {
                 msg_format("You stop to avoid hitting %s.", m_name);
+                energy_use = 0;
                 return _py_attack_exit();
             }
         }

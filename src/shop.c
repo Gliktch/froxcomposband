@@ -2087,7 +2087,9 @@ static void _not_enough_gold(int cost)
 
 static void _reserve_aux(shop_ptr shop, obj_ptr obj)
 {
-    int        cost = _sell_price(shop, MIN(10000, obj_value(obj) / 2));
+    /* Reserve is a service charge: one quarter of the item's value (not a
+     * deposit), with a 3x higher cap on the value considered. */
+    int        cost = _sell_price(shop, MIN(30000, obj_value(obj) / 4));
     string_ptr s;
     char       c;
     char       name[MAX_NLEN];

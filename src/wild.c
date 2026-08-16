@@ -2199,6 +2199,133 @@ bool py_in_town(void)
     return py_on_surface() && p_ptr->town_num;
 }
 
+/*
+ * Read-only overview of the real global map.
+ *
+ * Generates the exact compact world map (the same wilderness_gen_small()
+ * map used when travelling) into the cave, saving the local cave and
+ * player state around it, and lets the player look around with the normal
+ * look command.  Nothing is committed - no energy, leaving effects,
+ * monster or pet checks, or item deletion - until a direction is pressed,
+ * which runs the normal entry gates (so a hungry player can view but not
+ * travel).
+ */
+void do_cmd_world_map(void)
+{
+    cave_type *saved[MAX_HGT];
+    int        saved_py = py;
+    int        saved_px = px;
+    s16b       saved_hgt = cur_hgt;
+    s16b       saved_wid = cur_wid;
+    int        saved_town = p_ptr->town_num;
+    point_t    saved_view = viewport_origin;
+    int        i, y, x;
+    bool       done = FALSE;
+
+    if (no_wilderness)
+    {
+        msg_print("No global map.");
+        return;
+    }
+
+    /* Save the local cave so the preview can be undone exactly. */
+    for (i = 0; i < MAX_HGT; i++)
+    {
+        saved[i] = malloc(sizeof(cave_type) * MAX_WID);
+        memcpy(saved[i], cave[i], sizeof(cave_type) * MAX_WID);
+    }
+
+    screen_save();
+
+    /* Generate the real compact global map into the cave. */
+    wilderness_gen_small();
+
+    /* Local monsters and objects must not appear on the preview. */
+    for (y = 0; y < MAX_HGT; y++)
+    {
+        for (x = 0; x < MAX_WID; x++)
+        {
+            cave[y][x].m_idx = 0;
+            cave[y][x].o_idx = 0;
+        }
+    }
+
+    /* The whole map fits in one panel; show it from the origin. */
+    viewport_origin.x = 0;
+    viewport_origin.y = 0;
+    p_ptr->redraw |= PR_MAP;
+    handle_stuff();
+
+    prt("Global Map - * or x looks around; a direction travels", 19, 0);
+    prt("ESC returns without travelling.", 20, 0);
+
+    while (!done)
+    {
+        int key = inkey_special(TRUE);
+        int dir = 0;
+
+        if (key == SKEY_UP) dir = 8;
+        else if (key == SKEY_DOWN) dir = 2;
+        else if (key == SKEY_LEFT) dir = 4;
+        else if (key == SKEY_RIGHT) dir = 6;
+        else dir = get_keymap_dir((char)key, FALSE);
+
+        if (dir)
+        {
+            /* Committed travel: the normal entry gates apply. */
+            if (p_ptr->food < PY_FOOD_WEAK)
+            {
+                msg_print("You must eat something here.");
+                continue;
+            }
+            if (change_wild_mode())
+            {
+                Term_key_push(key);
+                done = TRUE;
+            }
+            continue;
+        }
+
+        switch (key)
+        {
+        case ESCAPE:
+            done = TRUE;
+            break;
+        case '*':
+        case 'x':
+        case 'l':
+            do_cmd_look();
+            /* The look cursor may have scrolled the viewport; pin the
+             * small map back to the origin so the overview stays put. */
+            viewport_origin.x = 0;
+            viewport_origin.y = 0;
+            p_ptr->redraw |= PR_MAP;
+            handle_stuff();
+            break;
+        default:
+            bell();
+            break;
+        }
+    }
+
+    screen_load();
+
+    /* Restore the local cave and player state exactly. */
+    for (i = 0; i < MAX_HGT; i++)
+    {
+        memcpy(cave[i], saved[i], sizeof(cave_type) * MAX_WID);
+        free(saved[i]);
+    }
+    py = saved_py;
+    px = saved_px;
+    cur_hgt = saved_hgt;
+    cur_wid = saved_wid;
+    p_ptr->town_num = saved_town;
+    viewport_origin = saved_view;
+    p_ptr->redraw |= PR_MAP;
+    handle_stuff();
+}
+
 bool py_in_dungeon(void)
 {
     return dungeon_type != 0;
@@ -2211,4 +2338,3 @@ bool py_can_recall(void)
 
     return TRUE;
 }
-

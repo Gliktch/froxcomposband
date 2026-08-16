@@ -3780,17 +3780,11 @@ static void _dispatch_command(int old_now_turn)
         /* Go up staircase */
         case '<':
         {
-            if (py_on_surface())
-            {
-                if (no_wilderness) break;
-
-                if (p_ptr->food < PY_FOOD_WEAK)
-                {
-                    msg_print("You must eat something here.");
-                    break;
-                }
-
+            if (p_ptr->wild_mode)
                 change_wild_mode();
+            else if (py_on_surface())
+            {
+                do_cmd_world_map();
             }
             else
                 do_cmd_go_up();

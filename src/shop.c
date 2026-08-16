@@ -2077,6 +2077,14 @@ static void _examine(_ui_context_ptr context)
     }
 }
 
+/* Report an unaffordable purchase or reserve with the gold shortfall. */
+static void _not_enough_gold(int cost)
+{
+    msg_print_for_prompt(TERM_WHITE,
+        format("You don't seem to be able to afford that! You're %d gold short.", cost - p_ptr->au));
+    msg_print(NULL);
+}
+
 static void _reserve_aux(shop_ptr shop, obj_ptr obj)
 {
     int        cost = _sell_price(shop, MIN(10000, obj_value(obj) / 2));
@@ -2084,6 +2092,13 @@ static void _reserve_aux(shop_ptr shop, obj_ptr obj)
     char       c;
     char       name[MAX_NLEN];
     int        amt = 1, maks = -1;
+
+    /* Check 1-unit affordability before prompting */
+    if (cost > p_ptr->au)
+    {
+        _not_enough_gold(cost);
+        return;
+    }
 
     if (obj->number > 1)
     {
@@ -2094,6 +2109,13 @@ static void _reserve_aux(shop_ptr shop, obj_ptr obj)
             amt = maks;
             if (!msg_input_num("Quantity", &amt, 1, maks)) return;
         }
+    }
+
+    /* Check total affordability after the quantity is chosen */
+    if (cost * amt > p_ptr->au)
+    {
+        _not_enough_gold(cost * amt);
+        return;
     }
 
     if (maks > 0)
@@ -2179,7 +2201,7 @@ static bool _sell_aux(shop_ptr shop, obj_ptr obj)
 
     if (price > p_ptr->au)
     {
-        msg_print("You do not have enough gold.");
+        _not_enough_gold(price);
         return FALSE;
     }
     p_ptr->au -= price;
@@ -2245,6 +2267,16 @@ static void _sell(_ui_context_ptr context)
         obj = inv_obj(context->shop->inv, slot);
         if (!obj) continue;
 
+        /* Check 1-unit affordability before prompting */
+        {
+            int price = _sell_price(context->shop, obj_value(obj));
+            if (price > p_ptr->au)
+            {
+                _not_enough_gold(price);
+                return;
+            }
+        }
+
 //        if (obj->number > 1)
         {
             int maks = obj->number;
@@ -2257,7 +2289,17 @@ static void _sell(_ui_context_ptr context)
             if ((maks > 1) && (!msg_input_num("Quantity", &amt, 1, maks))) continue;
             else if (maks < 1)
             {
-                msg_print("You do not have enough gold.");
+                _not_enough_gold(_sell_price(context->shop, obj_value(obj)));
+                return;
+            }
+        }
+
+        /* Check total affordability after the quantity is chosen */
+        {
+            int price = _sell_price(context->shop, obj_value(obj));
+            if (price * amt > p_ptr->au)
+            {
+                _not_enough_gold(price * amt);
                 return;
             }
         }

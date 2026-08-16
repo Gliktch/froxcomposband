@@ -626,7 +626,7 @@ bool msg_input_num(cptr prompt, int *num, int min, int max)
     result = askfor_aux(buf, 11, FALSE);
     if (result)
     {
-        if (isalpha(buf[0]))
+        if (isalpha(buf[0]) || buf[0] == '*')
             *num = max;
         else
             *num = atoi(buf);

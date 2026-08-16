@@ -2169,10 +2169,10 @@ option_type option_info[] =
     { &auto_map_area,               FALSE, OPT_PAGE_INPUT, 6, 10,
     "auto_map_area",                "Automatically map area while running" },
 
-    { &auto_get_ammo,               FALSE, OPT_PAGE_INPUT, 6, 5,
+    { &auto_get_ammo,               FALSE,  OPT_PAGE_INPUT, 6, 5,
     "auto_get_ammo",                "Ctrl-G automatically gets nearby ammo" },
 
-    { &auto_get_objects,            FALSE, OPT_PAGE_INPUT, 6, 7,
+    { &auto_get_objects,            FALSE,  OPT_PAGE_INPUT, 6, 7,
     "auto_get_objects",             "Ctrl-G automatically gets nearby wanted objects" },
 
     { &limit_shop_prompts,          TRUE, OPT_PAGE_INPUT, 6, 0,
@@ -2195,7 +2195,7 @@ option_type option_info[] =
     "center_stair_tele",           "Center map after stairs and long teleports" },
 
     { &map_edge_center_dummy,       TRUE,  OPT_PAGE_MAPSCREEN, 5, 14,
-    "map_edge_center",             "Center map when this close to viewport edge" },
+    "map_edge_center",             "Center map when x/2x squares from NS/EW edges" },
 
     { &view_yellow_lite,            TRUE,  OPT_PAGE_MAPSCREEN, 1, 28,
     "view_yellow_lite",             "Use special colors for torch-lit grids" },
@@ -2266,7 +2266,7 @@ option_type option_info[] =
     "display_upkeep_bar",           "Display remaining pet control status" },
 
     { &display_percentages,         FALSE, OPT_PAGE_TEXT, 7, 18,
-    "display_percentages",          "Display percentages rather than status bars" },
+    "display_percentages",          "Display percentages rather than star bars" },
 
     { &decimal_stats,               FALSE,  OPT_PAGE_TEXT, 2, 25,
     "decimal_stats",                "Display stats as decimals" },
@@ -2422,7 +2422,7 @@ option_type option_info[] =
     { &alert_item_minor,            FALSE, OPT_PAGE_DISTURBANCE, 3, 0,
     "alert_item_minor",             "Alert: Equipped item damaged or cursed" },
 
-    { &alert_item_major,            FALSE, OPT_PAGE_DISTURBANCE, 3, 1,
+    { &alert_item_major,            FALSE,  OPT_PAGE_DISTURBANCE, 3, 1,
     "alert_item_major",             "Alert: Item permanently damaged/lost" },
 
     { &alert_insc_gone,             TRUE,  OPT_PAGE_DISTURBANCE, 0, 2,
@@ -2434,7 +2434,7 @@ option_type option_info[] =
     { &alert_trap_detect,           FALSE, OPT_PAGE_DISTURBANCE, 0, 25,
     "alert_trap_detect",            "Alert: Left a trap-detected area" },
 
-    { &alert_wanted_kill,           FALSE,  OPT_PAGE_DISTURBANCE, 0, 30,
+    { &alert_wanted_kill,           FALSE,   OPT_PAGE_DISTURBANCE, 0, 30,
     "alert_wanted_kill",            "Alert: Wanted unique monster killed" },
 
     { &alert_poison,                TRUE,  OPT_PAGE_DISTURBANCE, 2, 2,
@@ -2609,7 +2609,7 @@ option_type option_info[] =
     "leave_junk",                   "Auto-destroyer leaves junk" },
 
     { &leave_special,               TRUE,  OPT_PAGE_AUTODESTROY, 7, 1,
-    "leave_special",                "Auto-destroyer leaves items your race/class needs" },
+    "leave_special",                "Auto-destroyer leaves items for your race/class" },
 
     /* List Options */
 
@@ -2640,7 +2640,7 @@ option_type option_info[] =
     { &black_curses,                TRUE,  OPT_PAGE_LIST, 4, 23,
     "black_curses",                 "Show cursed items as black in unwield menu" },
 
-    { &monlist_range,               FALSE,  OPT_PAGE_LIST, 1, 4,
+    { &monlist_range,               FALSE,   OPT_PAGE_LIST, 1, 4,
     "monlist_range",                "Show range, not coords, for line-of-sight mobs" },
 
     { &monlist_range_all,           FALSE,  OPT_PAGE_LIST, 7, 17,
@@ -2658,7 +2658,7 @@ option_type option_info[] =
     { &monlist_ungroup,             FALSE,  OPT_PAGE_LIST, 7, 16,
     "monlist_ungroup",              "List each monster separately in monster lists" },
 
-    { &list_stairs,                 FALSE,  OPT_PAGE_LIST, 1, 10,
+    { &list_stairs,                 FALSE,   OPT_PAGE_LIST, 1, 10,
     "list_stairs",                  "Display stairs in object list" },
 
     { &show_future_powers,          TRUE,  OPT_PAGE_LIST, 1, 0,

@@ -22,7 +22,7 @@ With this option enabled, the player will be born with complete knowledge of mon
 <topic:easy_damage><color:U>Easy monster health and damage information</color> <color:D>(easy_damage)</color>
 Also known as "Fnord-mode", this option allows the player to see the exact damage delivered by each attack, along with various other pieces of exact combat information that would otherwise be hidden. If percentage status bars are enabled, <color:U>Easy monster health and damage information</color> also upgrades them to show exact monster and player percentages together with fuller monster status indicators. This is a powerful easy-mode, and using it gives a score penalty.
 
-<topic:display_percentages><color:U>Display percentages rather than status bars</color> <color:D>(display_percentages)</color>
+<topic:display_percentages><color:U>Display percentages rather than star bars</color> <color:D>(display_percentages)</color>
 Replaces the usual star-based player and monster status bars with percentage-style displays. Without <color:U>Easy monster health and damage information</color>, the displayed health percentages are deliberately coarse and the monster status indicators remain more limited than in the full easy-damage view.
 
 <topic:allow_spoilers><color:U>Allow spoilers</color> <color:D>(allow_spoilers)</color>
@@ -230,8 +230,8 @@ If this option is off, the game waits until the player is finished running or tr
 <topic:center_stair_tele><color:U>Center map after stairs and long teleports</color> <color:D>(center_stair_tele)</color>
 If this option is on, the map recenters after stair travel, random floor placement, and teleports that move the player a substantial distance. Ordinary walking and short teleports are unaffected.
 
-<topic:map_edge_center><color:U>Center map when this close to viewport edge</color> <color:D>(map_edge_center)</color>
-Controls how close you can move to the edge of the visible map before the view recenters on the affected axis. The <color:keyword>default</color> setting keeps the old asymmetric edge-scroll behavior. Values from 1 to 20 use the same distance in all directions.
+<topic:map_edge_center><color:U>Center map when x/2x squares from NS/EW edges</color> <color:D>(map_edge_center)</color>
+Controls how close you can move to the edge of the visible map before the view recenters on the affected axis. The configured value applies at 1x to the north/south edges and at 2x to the east/west edges, so a setting of 10 recenters 10 squares from the north/south edges and 20 from the east/west edges. The <color:keyword>default</color> setting keeps the old asymmetric edge-scroll behavior, and each direction is capped by the viewport size.
 
 <topic:view_yellow_lite><color:U>Use special colors for torch-lit grids</color> <color:D>(view_yellow_lite)</color>
 If this option is enabled, visible floor or wall grids illuminated by a torch or other moving light source will be drawn in <color:y>yellow</color>. Keeping this option turned off may slightly improve game speed. This option has no effect if both <color:keyword>view_granite_lite</color> and <color:keyword>view_special_lite</color> are off.
@@ -608,8 +608,8 @@ These settings determine when the game is automatically saved. An automatic save
 <topic:autosave_l><color:U>Autosave when entering new levels</color> <color:D>(autosave_l)</color>
 If this option is set, the program will attempt to save your character every time before creating a new dungeon level.
 
-<topic:autosave_t><color:U>Timed autosave</color> <color:D>(autosave_t)</color>
-If this option is set, the program will attempt to save your character every <color:B>n</color> game turns, where <color:B>n</color> is the "frequency". To modify the frequency, press <color:keypress>F</color>; this will increase the frequency to the next category (and from 25000 to 0), the categories being every 50, 100, 250, 500, 1000, 2500, 5000, 10000 and 25000 turns. Note that the frequency must be higher than 0, and "Timed autosave" set to "yes", for timed autosaves to take place.
+<topic:autosave_t><color:U>Timed autosave frequency</color> <color:D>(autosave_t)</color>
+The frequency at which the program attempts to save your character: <color:keyword>off</color> disables timed autosaves, or set a value from 50 to 250 in steps of 50, from 500 to 2500 in steps of 250, and from 5000 to 25000 in steps of 2500. Use the arrow or keypad keys to step through the values.
 </indent>
 <topic:Window><style:heading>Window Flags</style>
 

@@ -291,6 +291,14 @@ static void rd_options(savefile_ptr file)
     autosave_t = savefile_read_byte(file);
     autosave_freq = savefile_read_s16b(file);
 
+    /* Convert legacy timed-autosave settings: off clears any stored
+     * frequency, on keeps the stored value snapped to the ladder */
+    if (!autosave_t)
+        autosave_freq = 0;
+    else
+        autosave_freq = autosave_freq_normalize(autosave_freq);
+    autosave_t = (autosave_freq > 0);
+
 
     /*** Normal Options ***/
     for (n = 0; n < 8; n++) flag[n] = savefile_read_u32b(file);

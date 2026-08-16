@@ -1390,11 +1390,11 @@ static void do_cmd_options_cheat(cptr info)
                 (*cheat_info[i].o_var ? "yes" : "no "),
 
                 cheat_info[i].o_text);
-            c_prt(a, buf, i + 2, 0);
+            c_prt(a, buf, i + 3, 1);
         }
 
         /* Hilite current option */
-        move_cursor(k + 2, 50);
+        move_cursor(k + 3, 51);
 
         autopick_inkey_hack = 1;
 
@@ -1495,26 +1495,50 @@ static option_type autosave_info[2] =
 
 
     { &autosave_t,      FALSE, 255, 0x02, 0x00,
-        "autosave_t",   "Timed autosave" },
+        "autosave_t",   "Timed autosave frequency" },
 
 };
 
 
-static s16b toggle_frequency(s16b current)
+/* Autosave frequency ladder: off, 50-250 in 50s, 500-2500 in 250s, then
+ * 5000-25000 in 2500s. Every legacy frequency value is on this ladder. */
+static const s16b _autosave_freq_ladder[] =
 {
-    switch (current)
+    0, 50, 100, 150, 200, 250,
+    500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500,
+    5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000
+};
+
+s16b autosave_freq_normalize(s16b freq)
+{
+    int i, best = 0, best_d = abs(freq - _autosave_freq_ladder[0]);
+    int n = sizeof(_autosave_freq_ladder) / sizeof(_autosave_freq_ladder[0]);
+
+    for (i = 1; i < n; i++)
     {
-    case 0: return 50;
-    case 50: return 100;
-    case 100: return 250;
-    case 250: return 500;
-    case 500: return 1000;
-    case 1000: return 2500;
-    case 2500: return 5000;
-    case 5000: return 10000;
-    case 10000: return 25000;
-    default: return 0;
+        int d = abs(freq - _autosave_freq_ladder[i]);
+        if (d < best_d)
+        {
+            best_d = d;
+            best = _autosave_freq_ladder[i];
+        }
     }
+    return (s16b)best;
+}
+
+static void _autosave_freq_step(int delta)
+{
+    int i, pos = 0;
+    int n = sizeof(_autosave_freq_ladder) / sizeof(_autosave_freq_ladder[0]);
+
+    autosave_freq = autosave_freq_normalize(autosave_freq);
+    for (i = 0; i < n; i++)
+    {
+        if (_autosave_freq_ladder[i] == autosave_freq) { pos = i; break; }
+    }
+    pos = (pos + delta + n) % n;
+    autosave_freq = _autosave_freq_ladder[pos];
+    autosave_t = (autosave_freq > 0);
 }
 
 byte message_pane_wrap_width_normalize(byte width)
@@ -1567,9 +1591,9 @@ static cptr _temp_file_policy_desc(void)
     switch (temp_file_policy)
     {
     case TEMP_FILE_POLICY_PROMPT:
-        return "prompt";
+        return "ask";
     case TEMP_FILE_POLICY_FORCE:
-        return "auto-clean";
+        return "wipe";
     default:
         return "auto";
     }
@@ -1583,6 +1607,13 @@ static void _temp_file_policy_cycle(int delta)
         temp_file_policy = 2;
     else
         temp_file_policy--;
+}
+
+/* Append an option value left-justified in a 4-character minimum field,
+ * followed by a separator space, so all option rows align. */
+static void _option_value_append(char *buf, size_t bufsize, cptr value)
+{
+    strnfmt(buf + strlen(buf), bufsize - strlen(buf), "%-4s ", value);
 }
 
 static byte _inc_message_pane_wrap_width(byte width)
@@ -1857,7 +1888,7 @@ static bool _special_option_handle_direction(bool *o_var, int delta)
  */
 static void do_cmd_options_autosave(cptr info)
 {
-    char    ch;
+    int     ch;
 
     int     i, k = 0, n = 2;
 
@@ -1870,8 +1901,10 @@ static void do_cmd_options_autosave(cptr info)
     /* Interact with the player */
     while (TRUE)
     {
+        int dir;
+
         /* Prompt XXX XXX XXX */
-        sprintf(buf, "%s (RET to advance, y/n to set, 'F' for frequency, ESC to accept) ", info);
+        sprintf(buf, "%s (RET to advance, y/n or arrows to set, ESC to accept) ", info);
 
         prt(buf, 0, 0);
 
@@ -1884,23 +1917,35 @@ static void do_cmd_options_autosave(cptr info)
             if (i == k) a = TERM_L_BLUE;
 
             /* Display the option text */
-            sprintf(buf, "%-48s: %s (%s)",
-                autosave_info[i].o_desc,
-                (*autosave_info[i].o_var ? "yes" : "no "),
-
-                autosave_info[i].o_text);
-            c_prt(a, buf, i + 2, 0);
+            if (i == 1)
+                sprintf(buf, "%-48s: %-4s (%s)",
+                    autosave_info[i].o_desc,
+                    autosave_freq ? format("%d", autosave_freq) : "off",
+                    autosave_info[i].o_text);
+            else
+                sprintf(buf, "%-48s: %-4s (%s)",
+                    autosave_info[i].o_desc,
+                    (*autosave_info[i].o_var ? "yes" : "no"),
+                    autosave_info[i].o_text);
+            c_prt(a, buf, i + 3, 1);
         }
 
-        prt(format("Timed autosave frequency: every %d turns",  autosave_freq), 5, 0);
-
-
-
         /* Hilite current option */
-        move_cursor(k + 2, 50);
+        move_cursor(k + 3, 51);
 
         /* Get a key */
-        ch = inkey();
+        ch = inkey_special(TRUE);
+
+        /*
+         * HACK - Try to translate the key into a direction
+         * to allow using the roguelike keys for navigation.
+         */
+        if (ch < 256)
+        {
+            dir = get_keymap_dir(ch, FALSE);
+            if ((dir == 2) || (dir == 4) || (dir == 6) || (dir == 8) || (dir == 9) || (dir == 1))
+                ch = I2D(dir);
+        }
 
         /* Analyze */
         switch (ch)
@@ -1912,6 +1957,7 @@ static void do_cmd_options_autosave(cptr info)
 
             case '-':
             case '8':
+            case SKEY_UP:
             {
                 k = (n + k - 1) % n;
                 break;
@@ -1921,6 +1967,7 @@ static void do_cmd_options_autosave(cptr info)
             case '\n':
             case '\r':
             case '2':
+            case SKEY_DOWN:
             {
                 k = (k + 1) % n;
                 break;
@@ -1929,9 +1976,12 @@ static void do_cmd_options_autosave(cptr info)
             case 'y':
             case 'Y':
             case '6':
+            case SKEY_RIGHT:
             {
-
-                (*autosave_info[k].o_var) = TRUE;
+                if (k == 1)
+                    _autosave_freq_step(1);
+                else
+                    (*autosave_info[k].o_var) = TRUE;
                 k = (k + 1) % n;
                 break;
             }
@@ -1939,18 +1989,13 @@ static void do_cmd_options_autosave(cptr info)
             case 'n':
             case 'N':
             case '4':
+            case SKEY_LEFT:
             {
-                (*autosave_info[k].o_var) = FALSE;
+                if (k == 1)
+                    _autosave_freq_step(-1);
+                else
+                    (*autosave_info[k].o_var) = FALSE;
                 k = (k + 1) % n;
-                break;
-            }
-
-            case 'f':
-            case 'F':
-            {
-                autosave_freq = toggle_frequency(autosave_freq);
-                prt(format("Timed autosave frequency: every %d turns",
-                       autosave_freq), 5, 0);
                 break;
             }
 
@@ -2013,7 +2058,7 @@ void do_cmd_options_aux(int page, cptr info)
                           (!p_ptr->wizard || !allow_debug_opts);
     bool    scroll_mode;
     byte    option_offset = 0;
-    byte    bottom_opt = Term->hgt - ((page == OPT_PAGE_AUTODESTROY) ? 5 : 2);
+    byte    bottom_opt = Term->hgt - ((page == OPT_PAGE_AUTODESTROY) ? 6 : 3);
 
 /*    browse_only = FALSE; */
 
@@ -2046,7 +2091,7 @@ void do_cmd_options_aux(int page, cptr info)
 
 
         /* HACK -- description for easy-auto-destroy options */
-        if (page == OPT_PAGE_AUTODESTROY) c_prt(TERM_YELLOW, "Following options will protect items from easy auto-destroyer.", 11, 3);
+        if (page == OPT_PAGE_AUTODESTROY) c_prt(TERM_YELLOW, "Following options will protect items from easy auto-destroyer.", 12, 4);
 
         /* Display the options */
         for (i = option_offset; i < n; i++)
@@ -2061,10 +2106,8 @@ void do_cmd_options_aux(int page, cptr info)
             if (option_info[opt[i]].o_var == &random_artifacts)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
-                if (random_artifacts)
-                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%d%% ", random_artifact_pct);
-                else
-                    my_strcat(buf, "no  ", sizeof(buf));
+                _option_value_append(buf, sizeof(buf),
+                    random_artifacts ? format("%d%%", random_artifact_pct) : "no");
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &ironman_empty_levels)
@@ -2074,67 +2117,55 @@ void do_cmd_options_aux(int page, cptr info)
             else if (option_info[opt[i]].o_var == &reduce_uniques)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
-                if (reduce_uniques)
-                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%d%% ", reduce_uniques_pct);
-                else
-                    my_strcat(buf, "no  ", sizeof(buf));
+                _option_value_append(buf, sizeof(buf),
+                    reduce_uniques ? format("%d%%", reduce_uniques_pct) : "no");
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &obj_list_width)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
-                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", object_list_width);
+                _option_value_append(buf, sizeof(buf), format("%d", object_list_width));
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &mon_list_width)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
-                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", monster_list_width);
+                _option_value_append(buf, sizeof(buf), format("%d", monster_list_width));
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &msg_pane_wrap_width)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
-                if (message_pane_wrap_width > 150)
-                    my_strcat(buf, "off ", sizeof(buf));
-                else
-                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", message_pane_wrap_width);
+                _option_value_append(buf, sizeof(buf),
+                    (message_pane_wrap_width > 150) ? "off" : format("%d", message_pane_wrap_width));
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &autorun_max_steps_dummy)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
-                if (!autorun_max_steps)
-                    my_strcat(buf, "off ", sizeof(buf));
-                else
-                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", autorun_max_steps);
+                _option_value_append(buf, sizeof(buf),
+                    !autorun_max_steps ? "off" : format("%d", autorun_max_steps));
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &map_edge_center_dummy)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
-                if (!map_edge_center_distance)
-                    my_strcat(buf, "default ", sizeof(buf));
-                else
-                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", map_edge_center_distance);
+                _option_value_append(buf, sizeof(buf),
+                    !map_edge_center_distance ? "old" : format("%d", map_edge_center_distance));
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &always_repeat)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
-                if (!always_repeat_count)
-                    my_strcat(buf, "off ", sizeof(buf));
-                else
-                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", always_repeat_count);
+                _option_value_append(buf, sizeof(buf),
+                    !always_repeat_count ? "off" : format("%d", always_repeat_count));
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &failed_item_retry_count_dummy)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
-                if (!failed_item_retry_count)
-                    my_strcat(buf, "off ", sizeof(buf));
-                else
-                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%-3d ", failed_item_retry_count);
+                _option_value_append(buf, sizeof(buf),
+                    !failed_item_retry_count ? "off" : format("%d", failed_item_retry_count));
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &single_pantheon)
@@ -2150,7 +2181,7 @@ void do_cmd_options_aux(int page, cptr info)
                 }
                 else if ((game_pantheon) && (game_pantheon < PANTHEON_MAX))
                 {
-                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%.3s ", pant_list[game_pantheon].short_name);
+                    strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "%s ", pant_list[game_pantheon].name);
                 }
                 else
                     my_strcat(buf, "None", sizeof(buf));
@@ -2161,30 +2192,28 @@ void do_cmd_options_aux(int page, cptr info)
             }
             else if (option_info[opt[i]].o_var == &temp_file_policy_dummy)
             {
-                strnfmt(buf, sizeof(buf), "%-48s: %s (%.19s)",
-                    option_info[opt[i]].o_desc,
-                    _temp_file_policy_desc(),
-                    option_info[opt[i]].o_text);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
+                _option_value_append(buf, sizeof(buf), _temp_file_policy_desc());
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else
             {
-                strnfmt(buf, sizeof(buf), "%-48s: %s (%.19s)",
-                    option_info[opt[i]].o_desc,
-                    (*option_info[opt[i]].o_var ? "yes" : "no "),
-                    option_info[opt[i]].o_text);
+                strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
+                _option_value_append(buf, sizeof(buf), (*option_info[opt[i]].o_var ? "yes" : "no"));
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
-            if ((page == OPT_PAGE_AUTODESTROY) && i > 7) rivi = i + 5 - option_offset;
-            else rivi = i + 2 - option_offset;
-            if ((scroll_mode) && (rivi == Term->hgt - 1) && (i < n - 1)) c_prt(TERM_YELLOW, " (scroll down for more options)", rivi, 0);
-            else if ((scroll_mode) && (rivi == 2) && (i > 0)) c_prt(TERM_YELLOW, " (scroll up for more options)", rivi, 0);
-            else if (((rivi >= 2) && (rivi < Term->hgt - 1)) || ((rivi == Term->hgt - 1) && ((i == n - 1) || (!scroll_mode)))) c_prt(a, buf, rivi, 0);
+            if ((page == OPT_PAGE_AUTODESTROY) && i > 7) rivi = i + 6 - option_offset;
+            else rivi = i + 3 - option_offset;
+            if ((scroll_mode) && (rivi == Term->hgt - 1) && (i < n - 1)) c_prt(TERM_YELLOW, " (scroll down for more options)", rivi, 1);
+            else if ((scroll_mode) && (rivi == 3) && (i > 0)) c_prt(TERM_YELLOW, " (scroll up for more options)", rivi, 1);
+            else if (((rivi >= 3) && (rivi < Term->hgt - 1)) || ((rivi == Term->hgt - 1) && ((i == n - 1) || (!scroll_mode)))) c_prt(a, buf, rivi, 1);
         }
 
         if ((page == OPT_PAGE_AUTODESTROY) && (k > 7)) l = 3;
         else l = 0;
 
         /* Hilite current option */
-        move_cursor(k + 2 + l - option_offset, 50);
+        move_cursor(k + 3 + l - option_offset, 51);
 
         autopick_inkey_hack = 1;
 
@@ -2377,7 +2406,7 @@ static void do_cmd_options_win(void)
     int y = 0;
     int x = 0;
     int flag_rows = 11;
-    int flag_col = 20;
+    int flag_col = 22;
     int flag_step = 4;
 
     char ch;
@@ -2406,7 +2435,7 @@ static void do_cmd_options_win(void)
 
 
         /* Display the windows */
-        Term_putstr(0, 2, -1, TERM_WHITE, "Show on Terminal: ");
+        Term_putstr(2, 4, -1, TERM_WHITE, "Show on Terminal: ");
         for (j = 0; j < 8; j++)
         {
             byte a = TERM_WHITE;
@@ -2419,7 +2448,7 @@ static void do_cmd_options_win(void)
             if (j == x) a = TERM_L_BLUE;
 
             /* Window name, centered */
-            Term_putstr(flag_col + j * flag_step - strlen(s) / 2, 2, -1, a, s);
+            Term_putstr(flag_col + j * flag_step - strlen(s) / 2, 4, -1, a, s);
         }
 
         /* Display the options */
@@ -2437,7 +2466,7 @@ static void do_cmd_options_win(void)
 
 
             /* Flag name */
-            Term_putstr(0, i + 4, -1, a, str);
+            Term_putstr(2, i + 6, -1, a, str);
 
             /* Display the windows */
             for (j = 0; j < 8; j++)
@@ -2453,12 +2482,12 @@ static void do_cmd_options_win(void)
                 if (window_flag_desc[i] && (window_flag[j] & (1L << i))) c = 'X';
 
                 /* Flag value */
-                Term_putch(flag_col + j * flag_step, i + 4, a, c);
+                Term_putch(flag_col + j * flag_step, i + 6, a, c);
             }
         }
 
         /* Place Cursor */
-        Term_gotoxy(flag_col + x * flag_step, y + 4);
+        Term_gotoxy(flag_col + x * flag_step, y + 6);
 
         /* Get key */
         ch = inkey();
@@ -2472,6 +2501,7 @@ static void do_cmd_options_win(void)
                 break;
             }
 
+            case '5':
             case 'T':
             case 't':
             {
@@ -2654,7 +2684,7 @@ void do_cmd_options(void)
         Term_clear();
 
         /* Why are we here */
-        prt("FroxComposband Options", 1, 0);
+        prt("FroxComposband Options", 1, 1);
 
         while(1)
         {
@@ -2666,7 +2696,7 @@ void do_cmd_options(void)
 #ifndef ALLOW_WIZARD
                 if (option_fields[i].key == 'c') continue;
 #endif
-                Term_putstr(5, option_fields[i].row, -1, a,
+                Term_putstr(6, option_fields[i].row, -1, a,
                     format("(%c) %s", toupper(option_fields[i].key), option_fields[i].name));
             }
 
@@ -2770,6 +2800,7 @@ void do_cmd_options(void)
 
             /* Cheating Options */
             case 'C':
+            case 'c':
             {
 #ifdef ALLOW_WIZARD
                 if (!p_ptr->noscore && !allow_debug_opts)

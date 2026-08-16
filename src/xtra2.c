@@ -3590,11 +3590,14 @@ void viewport_verify_aux(u32b options)
     {
         if (map_edge_center_distance)
         {
-            int max_edge = MIN(MAX(1, r.cy/2 - 1), MAX(1, r.cx/2 - 1));
-            int edge = MIN(map_edge_center_distance_normalize(map_edge_center_distance), max_edge);
+            int distance = map_edge_center_distance_normalize(map_edge_center_distance);
             bool center_y = FALSE;
             bool center_x = FALSE;
-            edge_y = edge_x = edge;
+
+            /* The configured distance applies at 1x to the north/south edges
+             * and at 2x to the east/west edges, capped by the viewport size. */
+            edge_y = MIN(distance, MAX(1, r.cy/2 - 1));
+            edge_x = MIN(distance * 2, MAX(1, r.cx/2 - 1));
 
             if (p.y >= r.y + r.cy - edge_y)
                 center_y = TRUE;

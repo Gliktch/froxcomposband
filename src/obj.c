@@ -1012,7 +1012,15 @@ static void _prompt_add_standard_special_packs(obj_prompt_ptr prompt)
         _prompt_add_where(prompt, inv_loc(class_ptr->bonus_pack));
 }
 
-void obj_inventory_ui(void)
+/*
+ * Shared item screen for i / e / I and pack browsing.
+ *
+ * Tab order is inventory, equipment, quiver, floor, then the special
+ * race/class packs.  The inspect variant (I) always offers the special
+ * packs; the ordinary variants only offer them when the
+ * show_special_inventories option is on.
+ */
+static void _item_screen(int top_loc, bool inspect)
 {
     obj_prompt_t prompt = {0};
     string_ptr   s = _inventory_prompt();
@@ -1020,37 +1028,17 @@ void obj_inventory_ui(void)
     prompt.prompt = string_buffer(s);
     prompt.error = "You have nothing to examine.";
     prompt.filter = obj_exists;
-    prompt.where[0] = INV_EQUIP;
-    prompt.where[1] = INV_PACK;
+    prompt.where[0] = INV_PACK;
+    prompt.where[1] = INV_EQUIP;
     prompt.where[2] = INV_QUIVER;
-    prompt.where[3] = INV_FLOOR;
-    prompt.top_loc = INV_PACK;
+    /* Shops and buildings are doorways: there are never floor objects, so
+     * suppress the always-empty floor tab there. */
+    if (!store_hack)
+        prompt.where[3] = INV_FLOOR;
+    prompt.top_loc = top_loc;
     prompt.cmd_handler = _inspector;
-    if (show_special_inventories)
+    if (inspect || show_special_inventories)
         _prompt_add_standard_special_packs(&prompt);
-
-    obj_prompt(&prompt);
-    string_free(s);
-
-    if (prompt.obj)
-        obj_display(prompt.obj);
-}
-
-void obj_inspect_ui(void)
-{
-    obj_prompt_t prompt = {0};
-    string_ptr   s = _inventory_prompt();
-
-    prompt.prompt = string_buffer(s);
-    prompt.error = "You have nothing to examine.";
-    prompt.filter = obj_exists;
-    prompt.where[0] = INV_EQUIP;
-    prompt.where[1] = INV_PACK;
-    prompt.where[2] = INV_QUIVER;
-    prompt.where[3] = INV_FLOOR;
-    prompt.top_loc = INV_PACK;
-    prompt.cmd_handler = _inspector;
-    _prompt_add_standard_special_packs(&prompt);
 
     obj_prompt(&prompt);
     string_free(s);
@@ -1060,22 +1048,22 @@ void obj_inspect_ui(void)
         obj_display(prompt.obj);
 }
 
+
+void obj_inventory_ui(void)
+{
+    _item_screen(INV_PACK, FALSE);
+}
+
+
+void obj_inspect_ui(void)
+{
+    _item_screen(INV_PACK, TRUE);
+}
+
+
 void gear_ui(int which)
 {
-    obj_prompt_t prompt = {0};
-    string_ptr   s = _inventory_prompt();
-
-    prompt.prompt = string_buffer(s);
-    prompt.where[0] = INV_EQUIP;
-    _prompt_add_standard_special_packs(&prompt);
-    _prompt_add_where(&prompt, INV_PACK);
-    _prompt_add_where(&prompt, INV_QUIVER);
-    prompt.top_loc = which;
-
-    prompt.cmd_handler = _inspector;
-
-    obj_prompt(&prompt);
-    string_free(s);
+    _item_screen(which, FALSE);
 }
 
 static int _inscriber(obj_prompt_context_ptr context, int cmd)

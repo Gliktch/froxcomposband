@@ -531,16 +531,21 @@ static void _remove(_ui_context_ptr context)
         obj = inv_obj(context->inv, slot);
         if (!obj) continue;
 
-        object_desc(name, obj, OD_COLOR_CODED);
-        cmd = msg_prompt(format("<color:y>Really remove %s?</color> <color:v>It will "
-            "be permanently destroyed!</color> <color:y>[Y,n]</color>", name), "ny", PROMPT_YES_NO);
-        if (cmd == 'n') continue;
         if (!can_player_destroy_object(obj))
         {
             object_desc(name, obj, OD_COLOR_CODED);
-            msg_format("You cannot destroy %s.", name);
+            msg_print_for_prompt(TERM_WHITE, format("You cannot destroy %s.", name));
+            msg_print(NULL);
             continue;
         }
+        object_desc(name, obj, OD_COLOR_CODED);
+        if (obj->number > 1)
+            cmd = msg_prompt(format("<color:y>Really remove %s?</color> <color:v>The entire stack will "
+                "be permanently destroyed!</color> <color:y>[Y,n]</color>", name), "ny", PROMPT_YES_NO);
+        else
+            cmd = msg_prompt(format("<color:y>Really remove %s?</color> <color:v>It will "
+                "be permanently destroyed!</color> <color:y>[Y,n]</color>", name), "ny", PROMPT_YES_NO);
+        if (cmd == 'n') continue;
         inv_remove(context->inv, slot);
         inv_sort(context->inv);
         _display(context);

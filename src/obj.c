@@ -1277,6 +1277,15 @@ void obj_destroy_ui(void)
     obj_prompt(&prompt);
     if (!prompt.obj) return;
 
+    /* Artifacts cannot be destroyed - check before asking for confirmation */
+    if (!can_player_destroy_object(prompt.obj))
+    {
+        object_desc(name, prompt.obj, OD_COLOR_CODED);
+        msg_print_for_prompt(TERM_WHITE, format("You cannot destroy %s.", name));
+        msg_print(NULL);
+        return;
+    }
+
     /* Verify unless quantity given beforehand */
     if (!force && (confirm_destroy || (obj_value(prompt.obj) > 0) || ((prompt.obj->tval == TV_CORPSE) && (prace_is_(RACE_IGOR)) && (prompt.obj->sval != SV_SKELETON))))
     {
@@ -1309,13 +1318,6 @@ void obj_destroy_ui(void)
         if (amt <= 0) return;
     }
 
-    /* Artifacts cannot be destroyed */
-    if (!can_player_destroy_object(prompt.obj)) /* side effect: obj->sense = FEEL_SPECIAL */
-    {
-        object_desc(name, prompt.obj, OD_COLOR_CODED);
-        msg_format("You cannot destroy %s.", name);
-        return;
-    }
     obj_destroy(prompt.obj, amt);
 }
 

@@ -782,6 +782,9 @@ extern errr process_autopick_file_command(char *buf);
 #define AUTOPICK_COLOR_CODED 0x01
 extern string_ptr autopick_line_from_entry(autopick_type *entry, int options);
 extern int is_autopick(object_type *o_ptr);
+extern bool autopick_is_unwanted(int autopick_idx);
+extern bool autopick_wipe_candidate(object_type *o_ptr);
+extern void do_cmd_wipe_unwanted(void);
 extern void autopick_alter_obj(obj_ptr o_ptr, bool allow_destroy);
 extern void autopick_get_floor(bool allow_identified);
 extern void autopick_sense_floor(point_t loc);
@@ -953,6 +956,7 @@ enum {
 };
 extern void do_cmd_list_monsters(int mode);
 extern void do_cmd_list_objects(void);
+extern void obj_list_display_wipe_preview(void);
 extern void object_list_reset_mog_filter(void);
 extern void fix_monster_list(void);
 extern void fix_object_list(void);

@@ -1903,6 +1903,7 @@ typedef struct {
     bool show_unsensed;
     bool show_unwanted;
     bool show_stairs;
+    bool only_unwanted; /* wipe preview: show exactly the wipe candidates */
 } _obj_list_filter_t, *_obj_list_filter_ptr;
 
 static bool _obj_list_session_filter_initialized = FALSE;
@@ -1910,7 +1911,7 @@ static _obj_list_filter_t _obj_list_session_filter;
 
 static _obj_list_filter_t _obj_list_filter_default(void)
 {
-    _obj_list_filter_t filter = { TRUE, TRUE, TRUE, TRUE, no_mogaminator, list_stairs };
+    _obj_list_filter_t filter = { TRUE, TRUE, TRUE, TRUE, no_mogaminator, list_stairs, FALSE };
     return filter;
 }
 
@@ -1960,9 +1961,7 @@ static bool _obj_list_object_matches_filter(object_type *o_ptr, _obj_list_filter
 
 static bool _obj_list_autopick_is_unwanted(int auto_pick_idx)
 {
-    if (auto_pick_idx < 0) return FALSE;
-    return (autopick_list[auto_pick_idx].action & DO_AUTODESTROY)
-        || !(autopick_list[auto_pick_idx].action & DO_DISPLAY);
+    return autopick_is_unwanted(auto_pick_idx);
 }
 
 static int _obj_list_comp(_obj_list_info_ptr left, _obj_list_info_ptr right)
@@ -2010,11 +2009,11 @@ static _obj_list_ptr _create_obj_list(_obj_list_filter_ptr filter)
 {
     _obj_list_ptr list = _obj_list_alloc();
     int i, y, x;
-    list->filtered = _obj_list_filter_is_active(filter);
+    list->filtered = _obj_list_filter_is_active(filter) && !filter->only_unwanted;
 
     /* The object list now includes features, at least on the surface. This permits
        easy town traveling to the various shops */
-    if ((!dun_level || filter->show_stairs) && !p_ptr->wild_mode)
+    if ((!dun_level || filter->show_stairs) && !p_ptr->wild_mode && !filter->only_unwanted)
     {
         for (y = 0; y < cur_hgt - 1; y++)
         {
@@ -2066,13 +2065,22 @@ static _obj_list_ptr _create_obj_list(_obj_list_filter_ptr filter)
         if (auto_pick)
             list->ct_autopick_total += ct;
 
-        if ( !filter->show_unwanted
-          && _obj_list_autopick_is_unwanted(auto_pick_idx) )
+        if (filter->only_unwanted)
         {
-            continue;
+            /* Wipe preview: show exactly the wipe candidates, overriding
+             * the browsing filters so the preview matches the destruction. */
+            if (!autopick_wipe_candidate(o_ptr)) continue;
         }
+        else
+        {
+            if ( !filter->show_unwanted
+              && _obj_list_autopick_is_unwanted(auto_pick_idx) )
+            {
+                continue;
+            }
 
-        if (!_obj_list_object_matches_filter(o_ptr, filter)) continue;
+            if (!_obj_list_object_matches_filter(o_ptr, filter)) continue;
+        }
 
         info = _obj_list_info_alloc();
         info->subgroup = _SUBGROUP_DATA;
@@ -2763,6 +2771,138 @@ void do_cmd_list_objects(void)
         screen_load();
     }
 
+    _obj_list_free(list);
+}
+
+/*
+ * Read-only preview of exactly the items the wipe command would destroy.
+ * Shows the full Unwanted set regardless of the browsing filters, so the
+ * preview always matches the destruction.
+ */
+void obj_list_display_wipe_preview(void)
+{
+    _obj_list_filter_t filter = _obj_list_filter_default();
+    _obj_list_ptr list;
+    rect_t display_rect = ui_menu_rect();
+    rect_t list_rect;
+    int top = 0, page_size, pos = 0;
+    int ct_types;
+    bool done = FALSE;
+    bool redraw = TRUE;
+
+    filter.only_unwanted = TRUE;
+
+    _apply_list_width(&display_rect, object_list_width);
+    list_rect = _obj_list_rect(display_rect);
+
+    list = _create_obj_list(&filter);
+    ct_types = vec_length(list->list);
+    page_size = list_rect.cy;
+    if (page_size > ct_types) page_size = ct_types;
+    if (page_size < 1) page_size = 1;
+    _obj_list_position_selectable(list, &top, page_size, &pos);
+
+    msg_line_clear();
+    screen_save();
+
+    while (!done)
+    {
+        int cmd;
+        int i, ct;
+
+        if (redraw)
+        {
+            Term_erase(display_rect.x, display_rect.y, display_rect.cx);
+            Term_erase(display_rect.x, display_rect.y + 1, display_rect.cx);
+            c_put_str(TERM_L_BLUE, "Unwanted items on this floor:", display_rect.y, display_rect.x);
+            c_put_str(TERM_WHITE, "Esc returns to the confirmation.", display_rect.y + 1, display_rect.x);
+            ct = _draw_obj_list(list, top, list_rect);
+            for (i = ct; i < list_rect.cy; i++)
+                Term_erase(list_rect.x, list_rect.y + i, list_rect.cx);
+            redraw = FALSE;
+        }
+        Term_gotoxy(list_rect.x, list_rect.y + pos);
+
+        cmd = inkey_special(TRUE);
+
+        if (rogue_like_commands)
+        {
+            if (cmd == 'j') cmd = SKEY_DOWN;
+            else if (cmd == 'k') cmd = SKEY_UP;
+        }
+
+        switch (cmd)
+        {
+        case ESCAPE:
+        case 'Q':
+            done = TRUE;
+            break;
+        case SKEY_TOP:
+        case '7':
+            top = 0;
+            pos = 0;
+            redraw = TRUE;
+            break;
+        case SKEY_BOTTOM:
+        case '1':
+            top = MAX(0, ct_types - page_size);
+            pos = 0;
+            redraw = TRUE;
+            break;
+        case SKEY_PGUP:
+        case '9':
+            top -= page_size;
+            if (top < 0)
+            {
+                top = 0;
+                pos = 0;
+            }
+            redraw = TRUE;
+            break;
+        case SKEY_PGDOWN:
+        case '3':
+            top += page_size;
+            if (top > ct_types - page_size)
+                top = MAX(0, ct_types - page_size);
+            redraw = TRUE;
+            break;
+        case SKEY_DOWN:
+        case '2':
+            if (top + pos < ct_types - 1)
+                pos++;
+            else
+            {
+                pos = 0;
+                top = 0;
+                redraw = TRUE;
+            }
+            if (pos == page_size)
+            {
+                pos--;
+                top++;
+                redraw = TRUE;
+            }
+            break;
+        case SKEY_UP:
+        case '8':
+            if (pos > 0) pos--;
+            if (pos == 0)
+            {
+                if (top > 0) top--;
+                else
+                {
+                    top = MAX(0, ct_types - page_size);
+                    pos = MIN(page_size - 1, (ct_types - 1) - top);
+                }
+                redraw = TRUE;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    screen_load();
     _obj_list_free(list);
 }
 

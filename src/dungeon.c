@@ -3613,6 +3613,13 @@ static void _dispatch_command(int old_now_turn)
             break;
         }
 
+        /* Wipe unwanted floor items */
+        case 'y':
+        {
+            do_cmd_wipe_unwanted();
+            break;
+        }
+
         /* Equipment list */
         case 'e':
         {

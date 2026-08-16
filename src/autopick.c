@@ -2347,6 +2347,7 @@ bool autopick_wipe_candidate(object_type *o_ptr)
 
     if (!o_ptr->k_idx) return FALSE;
     if (o_ptr->held_m_idx) return FALSE;
+    if (!(o_ptr->marked & OM_FOUND)) return FALSE; /* never destroy unseen items */
     if (o_ptr->tval == TV_GOLD) return FALSE;
     if (o_ptr->insured) return FALSE;
     if (o_ptr->origin_type == ORIGIN_MUNDANITY) return FALSE;

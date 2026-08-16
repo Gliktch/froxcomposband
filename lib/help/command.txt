@@ -43,7 +43,7 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
    v  Throw an item                        V  Version info
    <color:y>w  Wear/wield equipment</color>                 W  Switch ring fingers
    <color:D>x  (unused)</color>                             <color:D>X  (unused)</color>
-   <color:D>y  (unused)</color>                             <color:y>Y  Display monster list</color>
+   y  Wipe unwanted items                  <color:y>Y  Display monster list</color>
    <color:y>z  Zap a rod</color>                            Z  Edit item inscription
    !  Enter a user pref command           ^A  (special - wizard command)
    @  Interact with macros                <color:D>^B  (unused)</color>

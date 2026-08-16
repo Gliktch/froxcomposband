@@ -415,7 +415,7 @@ void possessor_attack(point_t where, bool *fear, bool *mdeath, int mode)
         skill += blow->power;
         if (p_ptr->stun)
             skill -= skill * MIN(100, p_ptr->stun) / 150;
-        if (test_hit_norm(skill, ac, foe->ml))
+        if (test_hit_norm(skill, ac, foe->ml, NULL))
         {
             msg_format("You %s %s.", _hit_msg(blow), m_name_object);
             for (j = 0; j < MAX_MON_BLOW_EFFECTS; j++)

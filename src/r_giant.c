@@ -192,7 +192,7 @@ bool monster_toss(int m_idx)
         return TRUE;
     }
     chance = p_ptr->skills.thn + ((p_ptr->lev + p_ptr->to_h_m) * BTH_PLUS_ADJ);
-    if (!test_hit_norm(chance, mon_ac(m_ptr), TRUE))
+    if (!test_hit_norm(chance, mon_ac(m_ptr), TRUE, NULL))
     {
         msg_format("You lose hold of %s.", m_name);
         return TRUE;
@@ -1188,4 +1188,3 @@ race_t *mon_giant_get_race(int psubrace)
 
     return result;
 }
-

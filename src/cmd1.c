@@ -14,6 +14,9 @@
 #include "equip.h"
 #include <assert.h>
 
+/* Bump-into-unseen wake roll, also used for non-hidden complete whiffs. */
+static void _bump_unseen_wake_check(monster_type *m_ptr);
+
 static int _max_vampiric_drain(void)
 {
     if (prace_is_(RACE_MON_VAMPIRE) || prace_is_(MIMIC_BAT))
@@ -415,12 +418,18 @@ bool test_hit_fire(int chance, int ac, int vis)
  *
  * Note -- Always miss 5%, always hit 5%, otherwise random.
  */
-bool test_hit_norm(int chance, int ac, int vis)
+bool test_hit_norm(int chance, int ac, int vis, bool *complete_whiff)
 {
     int k;
 
+    if (complete_whiff) *complete_whiff = FALSE;
+
     /* Wimpy attack never hits */
-    if (chance <= 0) return (FALSE);
+    if (chance <= 0)
+    {
+        if (complete_whiff) *complete_whiff = TRUE;
+        return (FALSE);
+    }
 
     /* Penalize invisible targets */
     if (!vis) chance = (chance + 1) / 2;
@@ -429,11 +438,27 @@ bool test_hit_norm(int chance, int ac, int vis)
     k = randint0(100);
 
     /* Hack -- Instant miss or hit */
-    if (k < 10) return (k < 5);
+    if (k < 10)
+    {
+        if (k < 5)
+        {
+            if (complete_whiff) *complete_whiff = TRUE;
+            return (FALSE);
+        }
+        return (TRUE);
+    }
 
     /* Punish lazy characters */
-    if ((personality_is_(PERS_LAZY)) && (one_in_(20))) return (FALSE);
-    if ((mut_present(MUT_HUMAN_CHR)) && (one_in_(20))) return (FALSE);
+    if ((personality_is_(PERS_LAZY)) && (one_in_(20)))
+    {
+        if (complete_whiff) *complete_whiff = TRUE;
+        return (FALSE);
+    }
+    if ((mut_present(MUT_HUMAN_CHR)) && (one_in_(20)))
+    {
+        if (complete_whiff) *complete_whiff = TRUE;
+        return (FALSE);
+    }
 
     /* Power must defeat armor */
     if (randint0(chance) < (ac * 3 / 4)) return (FALSE);
@@ -1443,8 +1468,6 @@ static void innate_attacks(s16b m_idx, bool *fear, bool *mdeath, int mode)
         }
     }
 
-    set_monster_csleep(m_idx, 0);
-
     /* Flavor ... Allow Ninjas and Rogues to backstab after metamorphosis */
     if (mut_present(MUT_DRACONIAN_METAMORPHOSIS))
     {
@@ -1519,6 +1542,8 @@ static void innate_attacks(s16b m_idx, bool *fear, bool *mdeath, int mode)
         for (j = 0; j < blows; j++)
         {
             int ac = mon_ac(m_ptr);
+            bool complete_whiff = FALSE;
+            bool hit;
 
             if (m_ptr->fy != old_fy || m_ptr->fx != old_fx) break; /* Teleport Effect? */
             if (p_ptr->is_dead) break;
@@ -1533,7 +1558,24 @@ static void innate_attacks(s16b m_idx, bool *fear, bool *mdeath, int mode)
 
             p_inc_fatigue(MUT_EASY_TIRING, 50);
 
-            if ((fuiuchi) || ((sleep_hit) && (j == 0) && (personality_is_(PERS_SNEAKY))) || (test_hit_norm(chance, ac, m_ptr->ml)))
+            hit = (fuiuchi) || ((sleep_hit) && (j == 0) && (personality_is_(PERS_SNEAKY)));
+            if (!hit) hit = test_hit_norm(chance, ac, m_ptr->ml, &complete_whiff);
+
+            /* Sleeping targets wake on any contact.  A completely whiffed
+             * attack (one that ignores AC) makes no contact: while hidden
+             * in shadows it stays silent, and otherwise it only wakes the
+             * target on the unseen-bump wake roll. */
+            if (!hit && complete_whiff)
+            {
+                if (!(p_ptr->special_defense & NINJA_S_STEALTH))
+                    _bump_unseen_wake_check(m_ptr);
+            }
+            else
+            {
+                set_monster_csleep(m_idx, 0);
+            }
+
+            if (hit)
             {
                 int dd = a->dd + p_ptr->innate_attack_info.to_dd;
 
@@ -2062,6 +2104,7 @@ static bool py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
     char            m_name_subject[MAX_NLEN];
     char            m_name_object[MAX_NLEN];
     bool            success_hit = FALSE;
+    bool            complete_whiff = FALSE;
     bool            backstab = FALSE;
     bool            vorpal_cut = FALSE;
     int             chaos_effect = 0;
@@ -2336,14 +2379,13 @@ static bool py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
             }
         }
 
-        set_monster_csleep(c_ptr->m_idx, 0);
-
 		/* If we just challenged we don't attack */
 		if (duelist_challenge)
 		{
 			int m_idx = c_ptr->m_idx;
 			p_ptr->duelist_target_idx = c_ptr->m_idx;
 			msg_format("You challenge %s to a duel!", duelist_current_challenge_name());
+			set_monster_csleep(m_idx, 0);
 			set_hostile(&m_list[m_idx]);
 			p_ptr->redraw |= PR_STATUS;
 			break;
@@ -2371,6 +2413,8 @@ static bool py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
                 do_whirlwind = TRUE;
         }
 
+        complete_whiff = FALSE;
+
         if (poison_needle || mode == HISSATSU_KYUSHO || mode == MYSTIC_KILL)
         {
             int n = p_ptr->weapon_ct;
@@ -2393,12 +2437,26 @@ static bool py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
             success_hit = TRUE;
         }
         else if (weaponmaster_get_toggle() == TOGGLE_BURNING_BLADE) success_hit = TRUE;
-        else success_hit = test_hit_norm(chance, mon_ac(m_ptr), m_ptr->ml);
+        else success_hit = test_hit_norm(chance, mon_ac(m_ptr), m_ptr->ml, &complete_whiff);
 
         if (mode == HISSATSU_MAJIN)
         {
             if (one_in_(2))
                 success_hit = FALSE;
+        }
+
+        /* Sleeping targets wake on any contact.  A completely whiffed
+         * attack (one that ignores AC) makes no contact: while hidden in
+         * shadows it stays silent, and otherwise it only wakes the target
+         * on the unseen-bump wake roll. */
+        if (!success_hit && complete_whiff)
+        {
+            if (!(p_ptr->special_defense & NINJA_S_STEALTH))
+                _bump_unseen_wake_check(m_ptr);
+        }
+        else
+        {
+            set_monster_csleep(c_ptr->m_idx, 0);
         }
 
         if (success_hit)
@@ -3657,7 +3715,7 @@ weaponmaster_reap:
 
     if (success_hit && weaponmaster_get_toggle() == TOGGLE_TRIP && mode == 0 && !(*mdeath) && !fear_stop)
     {
-        if (test_hit_norm(chance, mon_ac(m_ptr), m_ptr->ml))
+        if (test_hit_norm(chance, mon_ac(m_ptr), m_ptr->ml, NULL))
         {
             if (m_ptr->mflag2 & MFLAG2_TRIPPED)
                 msg_format("%^s is already tripped up.", m_name_subject);

@@ -880,7 +880,7 @@ extern bool attack_mode_allows_innate(int mode);
 extern void touch_zap_player(int m_idx);
 extern bool test_hit_fire(int chance, int ac, int vis);
 extern bool random_opponent(int *y, int *x);
-extern bool test_hit_norm(int chance, int ac, int vis);
+extern bool test_hit_norm(int chance, int ac, int vis, bool *complete_whiff);
 
 typedef struct critical_s {
     int mul; /* Scaled by 100 */

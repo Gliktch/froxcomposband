@@ -772,7 +772,7 @@ s16b get_obj_num(int level)
 
 bool object_is_aware(object_type *o_ptr)
 {
-    return k_info[o_ptr->k_idx].aware;
+    return character_dump_hack || k_info[o_ptr->k_idx].aware;
 }
 
 /*

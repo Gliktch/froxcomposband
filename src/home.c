@@ -72,7 +72,8 @@ void home_display(doc_ptr doc, obj_p p, int flags)
     {
         obj_ptr obj = inv_obj(inv, slot);
         if (!obj) continue; /* bug */
-        object_desc(name, obj, OD_COLOR_CODED | (show_item_markers ? OD_ITEM_MARKERS : 0));
+        object_desc(name, obj, OD_COLOR_CODED | (show_item_markers ? OD_ITEM_MARKERS : 0) |
+                   (character_dump_hack ? OD_SHOW_DEVICE_INFO : 0));
         if (!obj->scratch) obj->scratch = obj_value(obj);
         doc_printf(doc, "<color:R>%6d</color> <indent><style:indent>%s</style></indent>\n", obj->scratch, name);
     }
@@ -99,7 +100,8 @@ void museum_display(doc_ptr doc, obj_p p, int flags)
     {
         obj_ptr obj = inv_obj(_museum, slot);
         if (!obj) continue; /* bug */
-        object_desc(name, obj, OD_COLOR_CODED | (show_item_markers ? OD_ITEM_MARKERS : 0));
+        object_desc(name, obj, OD_COLOR_CODED | (show_item_markers ? OD_ITEM_MARKERS : 0) |
+                   (character_dump_hack ? OD_SHOW_DEVICE_INFO : 0));
         doc_printf(doc, "<indent><style:indent>%s</style></indent>\n", name);
     }
 }

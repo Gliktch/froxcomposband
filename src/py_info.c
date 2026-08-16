@@ -35,6 +35,14 @@ static void _build_messages(doc_ptr doc);
 static void _build_options(doc_ptr doc);
 static cptr _character_dump_html_footer(void);
 
+/* Final character dumps describe items as fully identified and show
+ * device power; the identification layer is forced via character_dump_hack,
+ * and this adds the device-info detail to the item descriptions. */
+static int _dump_desc_options(void)
+{
+    return OD_COLOR_CODED | (character_dump_hack ? OD_SHOW_DEVICE_INFO : 0);
+}
+
 /********************************** Page 1 ************************************/
 static void _build_general1(doc_ptr doc)
 {
@@ -1054,7 +1062,7 @@ static void _build_equipment(doc_ptr doc)
             object_type *o_ptr = equip_obj(slot);
             if (!o_ptr) continue;
 
-            object_desc(o_name, o_ptr, OD_COLOR_CODED);
+            object_desc(o_name, o_ptr, _dump_desc_options());
             doc_printf(doc, " %c) <indent><style:indent>%s</style></indent>\n", slot - 1 + 'a', o_name);
             if (((always_dump_origins) || ((final_dump_origins) && ((p_ptr->total_winner) || (p_ptr->is_dead))))
               && (o_ptr->origin_type != ORIGIN_NONE) && (o_ptr->origin_type != ORIGIN_MIXED)
@@ -1625,7 +1633,7 @@ static void _build_inventory(doc_ptr doc)
     {
         obj_ptr obj = pack_obj(slot);
         if (!obj) continue;
-        object_desc(o_name, obj, OD_COLOR_CODED);
+        object_desc(o_name, obj, _dump_desc_options());
         doc_printf(doc, "<indent><style:indent>%s</style></indent>\n", o_name);
     }
 
@@ -1645,7 +1653,7 @@ static void _build_quiver(doc_ptr doc)
         {
             obj_ptr obj = quiver_obj(slot);
             if (!obj) continue;
-            object_desc(o_name, obj, OD_COLOR_CODED);
+            object_desc(o_name, obj, _dump_desc_options());
             doc_printf(doc, "<indent><style:indent>%s</style></indent>\n", o_name);
         }
 

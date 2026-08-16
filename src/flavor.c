@@ -1058,7 +1058,10 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
 
     /* Extract some flags */
     obj_flags(o_ptr, flgs); /* TR_FULL_NAME and TR_SHOW_MODS should never really be hidden ... */
-    obj_flags_known(o_ptr, known_flgs); /* ... but please don't leak  Activations, Spell Power, etc! */
+    if (character_dump_hack)
+        obj_flags(o_ptr, known_flgs); /* final dump: full flag knowledge */
+    else
+        obj_flags_known(o_ptr, known_flgs); /* ... but please don't leak  Activations, Spell Power, etc! */
 
     /* See if the object is "aware" */
     if (object_is_aware(o_ptr)) aware = TRUE;

@@ -394,7 +394,9 @@ void scores_update(void)
     if (fp)
     {
         doc_ptr doc = doc_alloc(80);
+        character_dump_hack = TRUE;
         py_display_character_sheet(doc);
+        character_dump_hack = FALSE;
         doc_write_file(doc, fp, DOC_FORMAT_DOC);
         doc_free(doc);
         fclose(fp);

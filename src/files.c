@@ -1884,7 +1884,9 @@ static errr file_character(cptr name, bool no_msgs)
         else if (cb > 4 && strcmp(name + cb - 4, ".htm") == 0)
             format = DOC_FORMAT_HTML;
 
+        character_dump_hack = TRUE;
         py_display_character_sheet(doc);
+        character_dump_hack = FALSE;
         doc_write_file(doc, fff, format);
         doc_free(doc);
     }

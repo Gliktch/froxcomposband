@@ -2368,6 +2368,9 @@ option_type option_info[] =
     { &find_cut,                    FALSE, OPT_PAGE_DISTURBANCE, 0, 18,
     "find_cut",                     "Run past known corners" },
 
+    { &find_ignore_side,            FALSE, OPT_PAGE_DISTURBANCE, 3, 12,
+    "find_ignore_side",             "Run past side terrain changes" },
+
     { &travel_ignore_items,         TRUE, OPT_PAGE_DISTURBANCE, 2, 30,
     "travel_ignore_items",          "Ignore identified items while travelling" },
 

@@ -399,6 +399,9 @@ Toggles whether treasure veins are ignored while running.
 <topic:find_cut><color:U>Run past known corners</color> <color:D>(find_cut)</color>
 If this option is on, the player cuts sharply around known corners while running. This will result in faster running, but increases the chance of blundering into a lurking monster.
 
+<topic:find_ignore_side><color:U>Run past side terrain changes</color> <color:D>(find_ignore_side)</color>
+If this option is on, running is not interrupted solely because the terrain beside the path changes (for example, a wall opening up into a room, or an open area closing into a corridor). Running still stops for monsters, objects, traps, stairs, closed doors, and anything directly in the path.
+
 <topic:travel_ignore_items><color:U>Ignore identified items while travelling</color> <color:D>(travel_ignore_items)</color>
 With this option on, all identified items (except some extremely valuable objects, and objects that add to a stack of already carried items) are ignored by the Mogaminator while travelling. With the option off, the Mogaminator may try to pick up already identified items walked over during the travel, which is sometimes good but often disturbs the travel annoyingly.
 

@@ -6224,6 +6224,14 @@ static bool run_test(void)
                 /* Nothing */
             }
 
+            /* In a corridor, a side opening (for example a wall giving way
+             * to a room) is a terrain change beside the path, not a route
+             * choice - skip it so the run continues straight. */
+            else if (find_ignore_side && (new_dir != cycle[chome[prev_dir]]))
+            {
+                /* Nothing */
+            }
+
             /* The first new direction. */
             else if (!option)
             {
@@ -6281,50 +6289,54 @@ static bool run_test(void)
     /* Looking for open area */
     if (find_openarea)
     {
-        /* Hack -- look again */
-        for (i = -max; i < 0; i++)
+        /* Option -- do not stop for terrain changes beside the path */
+        if (!find_ignore_side)
         {
-            /* Unknown grid or non-wall */
-            if (!see_wall(cycle[chome[prev_dir] + i], py, px))
+            /* Hack -- look again */
+            for (i = -max; i < 0; i++)
             {
-                /* Looking to break right */
-                if (find_breakright)
+                /* Unknown grid or non-wall */
+                if (!see_wall(cycle[chome[prev_dir] + i], py, px))
                 {
-                    return (TRUE);
+                    /* Looking to break right */
+                    if (find_breakright)
+                    {
+                        return (TRUE);
+                    }
+                }
+
+                /* Obstacle */
+                else
+                {
+                    /* Looking to break left */
+                    if (find_breakleft)
+                    {
+                        return (TRUE);
+                    }
                 }
             }
 
-            /* Obstacle */
-            else
+            /* Hack -- look again */
+            for (i = max; i > 0; i--)
             {
-                /* Looking to break left */
-                if (find_breakleft)
+                /* Unknown grid or non-wall */
+                if (!see_wall(cycle[chome[prev_dir] + i], py, px))
                 {
-                    return (TRUE);
+                    /* Looking to break left */
+                    if (find_breakleft)
+                    {
+                        return (TRUE);
+                    }
                 }
-            }
-        }
 
-        /* Hack -- look again */
-        for (i = max; i > 0; i--)
-        {
-            /* Unknown grid or non-wall */
-            if (!see_wall(cycle[chome[prev_dir] + i], py, px))
-            {
-                /* Looking to break left */
-                if (find_breakleft)
+                /* Obstacle */
+                else
                 {
-                    return (TRUE);
-                }
-            }
-
-            /* Obstacle */
-            else
-            {
-                /* Looking to break right */
-                if (find_breakright)
-                {
-                    return (TRUE);
+                    /* Looking to break right */
+                    if (find_breakright)
+                    {
+                        return (TRUE);
+                    }
                 }
             }
         }

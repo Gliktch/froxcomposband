@@ -2723,7 +2723,7 @@ static bool clear_auto_register(void)
 
     if (num)
     {
-        msg_format("Auto registered lines (%d lines) for previous character are remaining.", num);
+        msg_print_for_prompt(TERM_WHITE, format("Auto registered lines (%d lines) for previous character are remaining.", num));
         if (!get_check("These lines will be deleted. Are you sure? "))
         {
             msg_print("Use cut & paste of auto picker editor (_) to keep old prefs.");

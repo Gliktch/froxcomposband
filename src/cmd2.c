@@ -179,9 +179,9 @@ void do_cmd_go_down(void)
             if (!max_dlv[target_dungeon])
             {
                 if (d_info[target_dungeon].flags1 & DF1_RANDOM)
-                    msg_format("This is the entrance of %s (Danger level: ?)", d_name+d_info[target_dungeon].name);
+                    msg_print_for_prompt(TERM_WHITE, format("This is the entrance of %s (Danger level: ?)", d_name+d_info[target_dungeon].name));
                 else
-                    msg_format("This is the entrance of %s (Danger level: %d)", d_name+d_info[target_dungeon].name, d_info[target_dungeon].mindepth);
+                    msg_print_for_prompt(TERM_WHITE, format("This is the entrance of %s (Danger level: %d)", d_name+d_info[target_dungeon].name, d_info[target_dungeon].mindepth));
                 if (!get_check("Do you really go into this dungeon? ")) return;
             }
 
@@ -2446,14 +2446,14 @@ void do_cmd_run(void)
 
     if ((!online_macros) && ((++run_count) == 4) && (!rogue_like_commands))
     {
-        msg_print("The game has detected multiple calls to the 'Run' command");
-        msg_print("without any calls to the 'Walk' command, a possible sign");
-        msg_print("of undesired autorunning. If you are playing on the angband.live");
-        msg_print("online server, you can turn on the online_macros option to");
-        msg_print("disable autorunning. (If your keyboard has a Num Lock key,");
-        msg_print("you should toggle it instead of online_macros.)\n\n");
-        msg_print("This message will not appear again, but you can toggle online_macros");
-        msg_print("at any time in the Input Options menu.");
+        msg_print_for_prompt(TERM_WHITE, "The game has detected multiple calls to the 'Run' command");
+        msg_print_for_prompt(TERM_WHITE, "without any calls to the 'Walk' command, a possible sign");
+        msg_print_for_prompt(TERM_WHITE, "of undesired autorunning. If you are playing on the angband.live");
+        msg_print_for_prompt(TERM_WHITE, "online server, you can turn on the online_macros option to");
+        msg_print_for_prompt(TERM_WHITE, "disable autorunning. (If your keyboard has a Num Lock key,");
+        msg_print_for_prompt(TERM_WHITE, "you should toggle it instead of online_macros.)\n\n");
+        msg_print_for_prompt(TERM_WHITE, "This message will not appear again, but you can toggle online_macros");
+        msg_print_for_prompt(TERM_WHITE, "at any time in the Input Options menu.");
         msg_print(NULL);
         if (msg_prompt("Turn on the online_macros option? <color:y>[y/n]</color>", "ny", PROMPT_DEFAULT) == 'y')
             online_macros = TRUE;
@@ -4107,7 +4107,7 @@ void travel_begin(int mode, int x, int y)
         than from the top level. It turns out that the Museum in Outpost is located on a scroll
         boundary, and the scroll fires on the last move of the travel flow, but is processed
         before travel_step checks that we are finished. */
-        msg_print("You are already there!!");
+        msg_print_for_prompt(TERM_WHITE, "You are already there!!");
         travel_cancel();
         return;
     }
@@ -4119,7 +4119,7 @@ void travel_begin(int mode, int x, int y)
             have_flag(f_ptr->flags, FF_CAN_DIG) ||
             (have_flag(f_ptr->flags, FF_DOOR) && cave[y][x].mimic)))
     {
-        msg_print("You cannot travel there!");
+        msg_print_for_prompt(TERM_WHITE, "You cannot travel there!");
         travel_cancel();
         return;
     }

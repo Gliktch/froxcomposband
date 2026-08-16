@@ -6241,7 +6241,7 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
         n = 0;
     }
 
-    msg_print("Select a point and press <color:y>space</color>. < and > cycle through stairs, * cycles through monsters, x looks under monsters");
+    msg_print_for_prompt(TERM_WHITE, "Select a point and press <color:y>space</color>. < and > cycle through stairs, * cycles through monsters, x looks under monsters");
 
     while ((ch != ESCAPE) && !success)
     {

@@ -3066,13 +3066,13 @@ static char _frox_import_conflict_prompt(cptr src, cptr dst, cptr dst_dir, cptr 
     _frox_file_desc(dst_desc, sizeof(dst_desc), dst, is_save);
 
     msg_boundary();
-    msg_format("Import conflict for %s.", name);
-    msg_format("Frog source: %s", src);
-    msg_format("  %s", src_desc);
-    msg_format("Frox target: %s", dst);
-    msg_format("  %s", dst_desc);
+    msg_print_for_prompt(TERM_WHITE, format("Import conflict for %s.", name));
+    msg_print_for_prompt(TERM_WHITE, format("Frog source: %s", src));
+    msg_print_for_prompt(TERM_WHITE, format("  %s", src_desc));
+    msg_print_for_prompt(TERM_WHITE, format("Frox target: %s", dst));
+    msg_print_for_prompt(TERM_WHITE, format("  %s", dst_desc));
     if (can_rename)
-        msg_format("Rename option: %s", renamed);
+        msg_print_for_prompt(TERM_WHITE, format("Rename option: %s", renamed));
 
     if (can_rename)
         return msg_prompt(

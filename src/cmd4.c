@@ -4615,7 +4615,8 @@ static void _macro_ui_customize_key(macro_ui_context_t *ui)
             {
                 _macro_snapshot_free(&current_macros);
                 _keymap_snapshot_free(&current_keymaps);
-                msg_print("Only single-byte triggers can use keymaps.");
+            msg_print_for_prompt(TERM_WHITE, "Only standard keys can use keymaps (not multibyte or special ones like the Function keys)");
+            msg_print(NULL);
                 continue;
             }
 
@@ -8191,7 +8192,7 @@ static void _pet_rename(monster_type *m_ptr)
     }
 
     monster_desc(m_name, m_ptr, 0);
-    msg_format("Name %s.", m_name);
+    msg_print_for_prompt(TERM_WHITE, format("Name %s.", m_name));
     msg_print(NULL);
 
     if (m_ptr->nickname)

@@ -1727,51 +1727,63 @@ static void _list_monsters_aux(_mon_list_ptr list, rect_t display_rect, int mode
         {
             int  search = cmd;
             int  i;
+            int  found_idx = -1;
             bool found = FALSE;
 
-            for (i = pos + 1; i != pos; )
+            /* Search the whole list (wrapping), not just the visible page. */
+            if (ct_types > 0)
             {
-                int idx = top + i;
-                _mon_list_info_ptr info_ptr = NULL;
-
-                if (idx >= ct_types)
+                /* Visit every entry exactly once, wrapping back to the
+                 * current position, so a letter with a single match can
+                 * still be re-selected. */
+                int n;
+                for (n = 0, i = (top + pos + 1) % ct_types;
+                     n < ct_types;
+                     n++, i = (i + 1) % ct_types)
                 {
-                    i = 0;
-                    continue;
-                }
+                    int idx = i;
+                    _mon_list_info_ptr info_ptr = NULL;
 
-                info_ptr = vec_get(list->list, idx);
-                assert(info_ptr);
-                if (info_ptr->m_idx)
-                {
-                    monster_type *m_ptr = &m_list[info_ptr->m_idx];
-                    monster_race *r_ptr = &r_info[m_ptr->r_idx];
-                    cptr          name = r_name + r_ptr->name;
-                    int           c;
-
-                    if (strstr(name, "The ") == name)
-                        name += 4;
-
-                    c = name[0];
-                    if (isalpha(c))
-                        c = tolower(c);
-
-                    if (c == search)
+                    info_ptr = vec_get(list->list, idx);
+                    assert(info_ptr);
+                    if (info_ptr->m_idx)
                     {
-                        pos = i;
-                        found = TRUE;
-                        handled = TRUE;
-                        break;
+                        monster_type *m_ptr = &m_list[info_ptr->m_idx];
+                        monster_race *r_ptr = &r_info[m_ptr->r_idx];
+                        cptr          name = r_name + r_ptr->name;
+                        int           c;
+
+                        if (strstr(name, "The ") == name)
+                            name += 4;
+
+                        c = name[0];
+                        if (isalpha(c))
+                            c = tolower(c);
+
+                        if (c == search)
+                        {
+                            found_idx = idx;
+                            found = TRUE;
+                            break;
+                        }
                     }
                 }
-                i++;
-                if (i >= page_size)
-                    i = 0;
             }
 
             if (!found)
             {
                 pos = 0;
+                redraw = TRUE;
+                handled = TRUE;
+            }
+            else
+            {
+                /* Bring the found entry into view. */
+                if (found_idx < top)
+                    top = found_idx;
+                else if (found_idx >= top + page_size)
+                    top = MAX(0, found_idx - page_size + 1);
+                pos = found_idx - top;
                 redraw = TRUE;
                 handled = TRUE;
             }
@@ -2186,6 +2198,27 @@ static _obj_list_ptr _create_obj_list(_obj_list_filter_ptr filter)
     return list;
 }
 
+/* The displayed name of a feature-list entry - buildings show their proper
+ * name (e.g. "Casino") rather than the generic "Building" feature name.
+ * Shared by the draw and letter-jump paths so the jump key matches what the
+ * player sees. */
+static bool _obj_list_feature_is_building(int feat)
+{
+    return have_flag(f_info[feat].flags, FF_BLDG) && !dun_level;
+}
+
+static cptr _obj_list_feature_display_name(int feat)
+{
+    feature_type *f_ptr = &f_info[feat];
+
+    if (_obj_list_feature_is_building(feat))
+    {
+        cptr name = building[f_ptr->subtype].name;
+        if (name && name[0]) return name;
+    }
+    return f_name + f_ptr->name;
+}
+
 static int _draw_obj_list(_obj_list_ptr list, int top, rect_t rect)
 {
     int     i;
@@ -2270,11 +2303,7 @@ static int _draw_obj_list(_obj_list_ptr list, int top, rect_t rect)
                     (info_ptr->dy > 0) ? 'S' : 'N', abs(info_ptr->dy),
                     (info_ptr->dx > 0) ? 'E' : 'W', abs(info_ptr->dx));
 
-            if (have_flag(f_ptr->flags, FF_BLDG) && !dun_level)
-            {
-                sprintf(name, "%s", building[f_ptr->subtype].name);
-            }
-            else sprintf(name, "%s", f_name + f_ptr->name);
+            sprintf(name, "%s", _obj_list_feature_display_name(info_ptr->idx));
             if (have_flag(f_ptr->flags, FF_QUEST_ENTER))
             {
                 int quest_id = cave[info_ptr->y][info_ptr->x].special;
@@ -2696,63 +2725,78 @@ void do_cmd_list_objects(void)
             default: /* Attempt to locate next element in list beginning with pressed key */
             {
                 bool found = FALSE;
+                int  found_idx = -1;
                 if (islower(cmd))
                 {
                     int search = cmd;
-                    int i = pos + 1;
-                    for (i = pos + 1; i != pos; )
+                    int i;
+
+                    /* Search the whole list (wrapping), not just the
+                     * visible page. */
+                    if (ct_types > 0)
                     {
-                        int idx = top + i;
-                        _obj_list_info_ptr info_ptr = NULL;
-
-                        if (idx >= ct_types)
+                        /* Visit every entry exactly once, wrapping back to
+                         * the current position, so a letter with a single
+                         * match (e.g. only one inn) can still be
+                         * re-selected. */
+                        int n;
+                        for (n = 0, i = (top + pos + 1) % ct_types;
+                             n < ct_types;
+                             n++, i = (i + 1) % ct_types)
                         {
-                            i = 0;
-                            continue;
-                        }
+                            int idx = i;
+                            _obj_list_info_ptr info_ptr = NULL;
 
-                        info_ptr = vec_get(list->list, idx);
-                        assert(info_ptr);
-                        if (info_ptr->idx)
-                        {
-                            if (info_ptr->group == _GROUP_FEATURE)
+                            info_ptr = vec_get(list->list, idx);
+                            assert(info_ptr);
+                            if (info_ptr->idx)
                             {
-                                feature_type *f_ptr = &f_info[info_ptr->idx];
-                                cptr          name = f_name + f_ptr->name;
-                                int           c = name[0];
-
-                                if (isalpha(c))
-                                    c = tolower(c);
-
-                                if (c == search)
+                                if (info_ptr->group == _GROUP_FEATURE)
                                 {
-                                    pos = i;
-                                    found = TRUE;
-                                    break;
+                                    int  feat = info_ptr->idx;
+                                    cptr name = _obj_list_feature_display_name(feat);
+                                    int  c = name[0];
+
+                                    if (isalpha(c))
+                                        c = tolower(c);
+
+                                    /* `b` keeps cycling every surface
+                                     * building, not just those whose
+                                     * displayed name starts with b, and `i`
+                                     * also finds the inns (the journey key)
+                                     * even though they display as "The White
+                                     * Horse Inn". */
+                                    if ((c == search) ||
+                                        (search == 'b' && _obj_list_feature_is_building(feat)) ||
+                                        ((search == 'i') &&
+                                         (streq(name, "Inn") ||
+                                          streq(name, "The White Horse Inn"))))
+                                    {
+                                        found_idx = idx;
+                                        found = TRUE;
+                                        break;
+                                    }
+                                }
+                                else
+                                {
+                                    object_type *o_ptr = &o_list[info_ptr->idx];
+                                    char         name[MAX_NLEN];
+                                    char         c;
+
+                                    object_desc(name, o_ptr, OD_NAME_ONLY | OD_OMIT_PREFIX | OD_OMIT_INSCRIPTION | OD_NO_FLAVOR | OD_NO_PLURAL);
+                                    c = name[0];
+                                    if (isalpha(c))
+                                        c = tolower(c);
+
+                                    if (c == search)
+                                    {
+                                        found_idx = idx;
+                                        found = TRUE;
+                                        break;
+                                    }
                                 }
                             }
-                            else
-                            {
-                                object_type *o_ptr = &o_list[info_ptr->idx];
-                                char         name[MAX_NLEN];
-                                char         c;
-
-                                object_desc(name, o_ptr, OD_NAME_ONLY | OD_OMIT_PREFIX | OD_OMIT_INSCRIPTION | OD_NO_FLAVOR | OD_NO_PLURAL);
-                                c = name[0];
-                                if (isalpha(c))
-                                    c = tolower(c);
-
-                                if (c == search)
-                                {
-                                    pos = i;
-                                    found = TRUE;
-                                    break;
-                                }
-                            }
                         }
-                        i++;
-                        if (i >= page_size)
-                            i = 0;
                     }
                 }
 
@@ -2761,6 +2805,16 @@ void do_cmd_list_objects(void)
                     if (!found)
                     {
                         pos = 0;
+                        redraw = TRUE;
+                    }
+                    else
+                    {
+                        /* Bring the found entry into view. */
+                        if (found_idx < top)
+                            top = found_idx;
+                        else if (found_idx >= top + page_size)
+                            top = MAX(0, found_idx - page_size + 1);
+                        pos = found_idx - top;
                         redraw = TRUE;
                     }
                 }

@@ -286,6 +286,26 @@ As with dungeons, you only need to really take these wilderness trips once. A te
 
 Once you have enough money to afford it comfortably, you will find yourself teleporting between the towns regularly. All have quests to complete, and shops to visit - and somehow, your home has its full inventory in every town, so that's handy!
 
+<topic:TownJourney><style:heading>Travelling Within a Town</style>
+
+You can auto-travel to any building or shop in the current town with the journey shortcuts. In the original keyset, press <color:keypress>j</color> and then the letter of the place you want; pressing a direction instead still jams a door with spikes, as <color:keypress>j</color> always did. The <color:keypress>`</color> travel command also accepts the same journey letters while you are choosing a destination; in the roguelike keyset, where lowercase letters move the cursor, use the capital form of the letter instead.
+
+Journey shortcuts are content-driven: only places that actually exist in the current town are offered, and a letter with no matching place simply falls through to the normal handling of that key. If an interrupted journey is resumed with <color:keypress>J</color> (or <color:keypress>(</color> in the roguelike keyset), travel continues to the same place.
+
+<style:table>
+<color:U>  Key  Destination                       Key  Destination</color>
+  h, j Home                              i    Inn
+  g    General Store                     s    Mushroom Store
+  a    Armoury                           c    Casino
+  w    Weapon Smiths                     l    Temple of Life / Mammon
+  t    Temple                            r    Fighters' Hall
+  y    Alchemy Shop                      p    Trump Tower
+  m    Magic Shop                        q    Nearest quest target
+  b    Black Market
+  o    Bookstore
+  u    Museum
+</style>
+
 <topic:NoWilderness><style:heading>The No Wilderness Option</style>
 
 Diverse dungeons are fun, multiple towns are fun, and the wilderness is fun; but sometimes you might want to just forget about them all and select the <color:keyword>No Wilderness</color> option. Maybe you are new to FrogComposband, and want to learn the basics in a simplified version of the game before moving on to the full version. (<color:keyword>Beginner Mode</color> automatically turns on coffee-break mode, which turns off the wilderness - though sometimes, enthusiastic new players jump straight to the Normal Mode!) Or maybe you are a long-term player who has already been everywhere, seen everything, and wants a quicker and more streamlined game experience for a change. Maybe you just really like coffee-break mode.

@@ -2235,75 +2235,81 @@ void do_cmd_alter(void)
  *
  * This command may NOT be repeated
  */
-void do_cmd_spike(void)
+void do_cmd_spike_dir(int dir)
 {
-    int dir;
+    int y, x;
+    cave_type *c_ptr;
+    s16b feat;
 
     if (p_ptr->special_defense & KATA_MUSOU)
     {
         set_action(ACTION_NONE);
     }
 
+    /* Get location */
+    y = py + ddy[dir];
+    x = px + ddx[dir];
+
+    /* Get grid and contents */
+    c_ptr = &cave[y][x];
+
+    /* Feature code (applying "mimic" field) */
+    feat = get_feat_mimic(c_ptr);
+
+    /* Require closed door */
+    if (!have_flag(f_info[feat].flags, FF_SPIKE))
+    {
+        /* Message */
+        msg_print("You see nothing there to spike.");
+
+    }
+    /* Is a monster in the way? */
+    else if (c_ptr->m_idx)
+    {
+        /* Take a turn */
+        energy_use = 100;
+
+        /* Message */
+        msg_print("There is a monster in the way!");
+
+        /* Attack */
+        py_attack(y, x, 0);
+    }
+
+    /* Go for it */
+    else
+    {
+        slot_t slot = pack_find_obj(TV_SPIKE, SV_ANY);
+        obj_ptr spike;
+        if (!slot)
+        {
+            msg_print("You have no spikes.");
+            return;
+        }
+
+        /* Take a turn */
+        energy_use = 100;
+
+        /* Successful jamming */
+        msg_format("You jam the %s with a spike.", f_name + f_info[feat].name);
+
+        cave_alter_feat(y, x, FF_SPIKE);
+
+        spike = pack_obj(slot);
+        spike->number--;
+        obj_release(spike, 0);
+    }
+}
+
+
+void do_cmd_spike(void)
+{
+    int dir;
+
     /* Get a "repeated" direction */
     if (get_rep_dir(&dir,FALSE))
     {
-        int y, x;
-        cave_type *c_ptr;
-        s16b feat;
-
-        /* Get location */
-        y = py + ddy[dir];
-        x = px + ddx[dir];
-
-        /* Get grid and contents */
-        c_ptr = &cave[y][x];
-
-        /* Feature code (applying "mimic" field) */
-        feat = get_feat_mimic(c_ptr);
-
-        /* Require closed door */
-        if (!have_flag(f_info[feat].flags, FF_SPIKE))
-        {
-            /* Message */
-            msg_print("You see nothing there to spike.");
-
-        }
-        /* Is a monster in the way? */
-        else if (c_ptr->m_idx)
-        {
-            /* Take a turn */
-            energy_use = 100;
-
-            /* Message */
-            msg_print("There is a monster in the way!");
-
-            /* Attack */
-            py_attack(y, x, 0);
-        }
-
-        /* Go for it */
-        else
-        {
-            slot_t slot = pack_find_obj(TV_SPIKE, SV_ANY);
-            obj_ptr spike;
-            if (!slot)
-            {
-                msg_print("You have no spikes.");
-                return;
-            }
-
-            /* Take a turn */
-            energy_use = 100;
-
-            /* Successful jamming */
-            msg_format("You jam the %s with a spike.", f_name + f_info[feat].name);
-
-            cave_alter_feat(y, x, FF_SPIKE);
-
-            spike = pack_obj(slot);
-            spike->number--;
-            obj_release(spike, 0);
-        }
+        do_cmd_spike_dir(dir);
     }
 }
 
@@ -4227,7 +4233,7 @@ void travel_end(void)
 void do_cmd_travel(void)
 {
     int x, y;
-    if (!tgt_pt(&x, &y, -1)) return;
+    if (!tgt_pt_travel(&x, &y)) return;
     travel_begin(TRAVEL_MODE_NORMAL, x, y);
 }
 
@@ -4296,4 +4302,203 @@ void do_cmd_get_nearest(void)
         if (!_itms) msg_print("You are not aware of any interesting unidentified items.");
         else if (best >= TRAVEL_UNABLE) msg_print("You cannot find a route to any interesting object.");
     }
+}
+
+
+/* Journey shortcuts.
+ *
+ * Resolve a journey shortcut key against the current map and return the
+ * reachable grid (chosen by travel-flow cost) that best matches the key.
+ * The keys are content-driven: a key only resolves when the current map
+ * actually shows the matching feature, so there is no location gating and
+ * callers can fall through to their normal handling of a key whenever this
+ * returns FALSE.
+ *
+ * The roguelike keyset uses lowercase letters for movement, so its journey
+ * shortcuts are the uppercase forms; the original keyset accepts either case.
+ *
+ * Key map:
+ *   h/j home, g general store, a armoury, w weapon smiths, t temple,
+ *   y alchemy shop, m magic shop, b black market, o bookstore, u museum,
+ *   i inn, s mushroom store, c casino, l temple of life/mammon,
+ *   r fighters' hall, p trump tower, q nearest quest target.
+ */
+static bool _journey_building_match(int letter, feature_type *f_ptr)
+{
+    cptr name = building[f_ptr->subtype].name;
+
+    if (!name || !name[0]) return FALSE;
+
+    switch (letter)
+    {
+        case 'i':
+            return (streq(name, "Inn") || streq(name, "The White Horse Inn"));
+        case 'c':
+            return streq(name, "Casino");
+        case 'l':
+            return (streq(name, "Inner Temple") || streq(name, "Temple of Life") ||
+                    streq(name, "Temple of Mammon"));
+        case 'r':
+            return streq(name, "Fighters' Hall");
+        case 'p':
+            return streq(name, "Trump Tower");
+    }
+
+    return FALSE;
+}
+
+
+static bool _journey_quest_ok(quest_ptr q, bool entrance)
+{
+    if (!q) return FALSE;
+
+    /* Entrances are only actionable while the quest is in progress. */
+    if (entrance)
+        return (q->status == QS_TAKEN) || (q->status == QS_IN_PROGRESS);
+
+    /* Quest-giving buildings cover taking, entering (some towns keep the
+     * building visible while taken), claiming rewards, and failed shame. */
+    return (q->status == QS_UNTAKEN) || (q->status == QS_TAKEN) ||
+           (q->status == QS_IN_PROGRESS) || (q->status == QS_COMPLETED) ||
+           (q->status == QS_FAILED);
+}
+
+
+bool journey_find(char key, int *x_ptr, int *y_ptr)
+{
+    static int last_qy = -1;
+    static int last_qx = -1;
+    int letter;
+    int shop_type = -1;
+    bool want_quest = FALSE;
+    int best_y = 0, best_x = 0;
+    int best = TRAVEL_UNABLE;
+    int y, x;
+
+    /* Roguelike keyset: lowercase letters are movement, so journey keys
+     * must be uppercase there.  Original keyset accepts either case. */
+    if (rogue_like_commands && !isupper((unsigned char)key)) return FALSE;
+    letter = tolower((unsigned char)key);
+
+    switch (letter)
+    {
+        case 'h':
+        case 'j':
+            shop_type = SHOP_HOME;
+            break;
+        case 'g':
+            shop_type = SHOP_GENERAL;
+            break;
+        case 'a':
+            shop_type = SHOP_ARMORY;
+            break;
+        case 'w':
+            shop_type = SHOP_WEAPON;
+            break;
+        case 't':
+            shop_type = SHOP_TEMPLE;
+            break;
+        case 'y':
+            shop_type = SHOP_ALCHEMIST;
+            break;
+        case 'm':
+            shop_type = SHOP_MAGIC;
+            break;
+        case 'b':
+            shop_type = SHOP_BLACK_MARKET;
+            break;
+        case 'o':
+            shop_type = SHOP_BOOK;
+            break;
+        case 'u':
+            shop_type = SHOP_MUSEUM;
+            break;
+        case 's':
+            shop_type = SHOP_SHROOMERY;
+            break;
+        case 'q':
+            want_quest = TRUE;
+            break;
+        case 'i':
+        case 'c':
+        case 'l':
+        case 'r':
+        case 'p':
+            break;
+        default:
+            return FALSE;
+    }
+
+    /* The previous quest-jump target is only skipped while it still shows an
+     * actionable quest, so cycling survives map changes. */
+    if (want_quest && (!in_bounds(last_qy, last_qx)))
+    {
+        last_qy = -1;
+        last_qx = -1;
+    }
+
+    for (y = 0; y < cur_hgt; y++)
+    {
+        for (x = 0; x < cur_wid; x++)
+        {
+            cave_type *c_ptr = &cave[y][x];
+            feature_type *f_ptr = &f_info[c_ptr->feat];
+            bool match = FALSE;
+            int tulos;
+
+            if (want_quest)
+            {
+                if (cave_have_flag_grid(c_ptr, FF_QUEST_ENTER))
+                {
+                    match = _journey_quest_ok(quests_get(c_ptr->special), TRUE);
+                }
+                else if (have_flag(f_ptr->flags, FF_BLDG))
+                {
+                    match = _journey_quest_ok(quests_get(c_ptr->special), FALSE);
+                }
+
+                /* Skip the square underfoot and the previous jump target so
+                 * repeated presses hop between quests. */
+                if (match && (((y == py) && (x == px)) ||
+                              ((y == last_qy) && (x == last_qx))))
+                {
+                    continue;
+                }
+            }
+            else if (shop_type >= 0)
+            {
+                match = (have_flag(f_ptr->flags, FF_STORE) &&
+                         (f_ptr->subtype == shop_type));
+            }
+            else
+            {
+                match = (have_flag(f_ptr->flags, FF_BLDG) &&
+                         _journey_building_match(letter, f_ptr));
+            }
+
+            if (!match) continue;
+
+            forget_travel_flow();
+            travel_flow(y, x);
+            tulos = travel.cost[py][px];
+            if (tulos < best)
+            {
+                best = tulos;
+                best_y = y;
+                best_x = x;
+            }
+        }
+    }
+    forget_travel_flow();
+
+    if (best >= TRAVEL_UNABLE) return FALSE;
+
+    *x_ptr = best_x;
+    *y_ptr = best_y;
+    if (want_quest)
+    {
+        last_qy = best_y;
+        last_qx = best_x;
+    }
+    return TRUE;
 }

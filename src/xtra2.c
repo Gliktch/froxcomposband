@@ -6206,6 +6206,22 @@ static void tgt_pt_prepare(void)
 /*
  * old -- from PsiAngband.
  */
+/* Set only while choosing a travel destination with the ` command, so the
+ * journey shortcuts never affect spell, attack or racial targeting. */
+static bool tgt_travel_mode = FALSE;
+
+
+bool tgt_pt_travel(int *x_ptr, int *y_ptr)
+{
+    bool result;
+
+    tgt_travel_mode = TRUE;
+    result = tgt_pt(x_ptr, y_ptr, -1);
+    tgt_travel_mode = FALSE;
+    return result;
+}
+
+
 bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
 {
     char ch = 0;
@@ -6230,6 +6246,23 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
 
         move_cursor_relative(y, x);
         ch = inkey();
+
+        /* Journey shortcuts: travel straight to a matching town feature.
+         * Content-driven, so keys without a matching feature on the current
+         * map fall through to their normal targeting meaning below. */
+        if (tgt_travel_mode && !p_ptr->wild_mode)
+        {
+            int jy, jx;
+
+            if (journey_find(ch, &jy, &jx))
+            {
+                y = jy;
+                x = jx;
+                success = TRUE;
+                break;
+            }
+        }
+
         switch (ch)
         {
         case ESCAPE:

@@ -3815,10 +3815,28 @@ static void _dispatch_command(int old_now_turn)
             break;
         }
 
-        /* Jam a door with spikes */
+        /* Jam a door with spikes, or use journey shortcuts */
         case 'j':
         {
-            if (!p_ptr->wild_mode) do_cmd_spike();
+            if (!p_ptr->wild_mode)
+            {
+                char ch = inkey();
+                int y, x;
+
+                /* A journey letter travels to the matching feature on the
+                 * current map (content-driven; see journey_find()). */
+                if (journey_find(ch, &y, &x))
+                {
+                    travel_begin(TRAVEL_MODE_NORMAL, x, y);
+                }
+                /* A direction still jams a door, as before. */
+                else
+                {
+                    int dir = get_keymap_dir(ch, FALSE);
+                    if (dir) do_cmd_spike_dir(dir);
+                    else bell();
+                }
+            }
             break;
         }
 

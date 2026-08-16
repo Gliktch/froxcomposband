@@ -28,7 +28,7 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
    <color:y>g  Pick up objects (Get)</color>                <color:y>G  Gain new spells/prayers</color>
    <color:D>h  (unused)</color>                             H  Travel to interesting item
    <color:y>i  Inventory list</color>                       <color:y>I  Inspect an item</color>
-   j  Jam a door                           J  Resume travelling
+   j  Jam a door / journey                 J  Resume travelling
    k  Destroy an item                      <color:D>K  (unused)</color>
    <color:y>l  Look around</color>                          L  Locate player on map
    <color:y>m  Cast a spell / use mental power</color>      M  Full dungeon map
@@ -72,7 +72,7 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
    <color:y>.  Run</color>                                 ^Y  (special - wizard mode)
    <color:y>>  Go down staircase/Enter normal map </color> ^Z  (special - borg command)
    \  (special - bypass keymap)            <color:D>|  (unused)</color>
-   `  Travel to location                   ~  Knowledge menu
+   `  Travel / journey shortcuts           ~  Knowledge menu
    /  Identify symbol                      <color:y>?  Help</color>
 </style>
 
@@ -136,7 +136,7 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
    .  Stay still                          ^Y  (tunnel - north west)
    <color:y>>  Go down staircase/Enter normal map</color>  <color:D>^Z  (unused)</color>
    \  (special - bypass keymap)            <color:D>|  (unused)</color>
-   `  Travel to location                   ~  Knowledge menu
+   `  Travel / journey shortcuts           ~  Knowledge menu
    /  Identify symbol                      <color:y>?  Help</color>
 </style>
 

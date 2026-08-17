@@ -3469,6 +3469,12 @@ void do_cmd_suicide(void)
  */
 void do_cmd_save_game(int is_autosave)
 {
+    /* Never save while the world-map overview is showing: the cave is
+     * temporarily the compact world map, so restore the local surface state
+     * first (viewing makes no game progress, so this loses nothing). */
+    if (world_map_overview_active)
+        world_map_overview_restore_local();
+
     if (!is_autosave)
         disturb(1, 0);
 

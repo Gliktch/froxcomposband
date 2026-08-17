@@ -100,6 +100,7 @@ bool character_loaded;        /* The character was loaded from a savefile */
 bool character_saved;        /* The character was just saved to a savefile */
 
 bool character_icky;        /* The game is in an icky full screen mode */
+bool world_map_overview_active; /* The surface world-map overview is showing */
 bool character_xtra;        /* The game is in an icky startup mode */
 
 bool creating_savefile;        /* New savefile is currently created */

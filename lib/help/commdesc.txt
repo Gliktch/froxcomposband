@@ -82,7 +82,7 @@ This is also the command for deliberately walking into a trap.</indent>
 This command will move in the given direction, following any bends in the corridor, until you either have to make a "choice" between two directions or you are disturbed. You can configure what will disturb you by setting the disturbance options. Run requires a direction. By default <color:keypress>Shift+DIR</color> is keymapped to <color:keypress>.DIR</color>, although with the original keyset this may run into technical limitations on some platforms. If the Mogaminator or the easy auto-destroyer is active, specified objects will be picked up or destroyed.</indent>
 
   <indent><color:U>Go Up Staircase (<color:keypress><</color>)</color>
-Climbs up if you are standing on an up staircase or shaft. In the wilderness, toggles global map mode unless there are alert monsters nearby.
+Climbs up if you are standing on an up staircase or shaft. In the wilderness, opens the global map for viewing; you can look around freely, but travel is blocked while alert monsters are nearby.
 
 Unless you are playing in <color:keyword>coffee-break mode</color> or have activated the ironman_downward option, there is always at least one up staircase on every level. Going up a staircase will take you to either the surface or a new dungeon level. Note that levels are semi-persistent; they can be returned to while you remain in the dungeon (supposing up staircases exist), but are lost forever when you return to surface.</indent>
 

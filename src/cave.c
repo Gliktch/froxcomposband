@@ -1768,6 +1768,11 @@ void prt_map(void)
     /* Display player */
     lite_spot(py, px);
 
+    /* The world-map overview re-paints its permawall frame over the map
+     * edges (the normal path leaves the outermost columns unpainted). */
+    if (world_map_overview_active)
+        world_map_overview_draw_border();
+
     /* Restore the cursor */
     (void)Term_set_cursor(v);
 }

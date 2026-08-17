@@ -3538,12 +3538,22 @@ bool viewport_scroll(int dy, int dx)
     x = viewport_origin.x + dx * r.cx / 2;
 
     /* Verify the row */
-    if (y > cur_hgt - r.cy) y = cur_hgt - r.cy;
-    if (y < 0) y = 0;
+    if (cur_hgt <= r.cy)
+        y = (cur_hgt - r.cy) / 2; /* whole map fits: keep the centred anchor */
+    else
+    {
+        if (y > cur_hgt - r.cy) y = cur_hgt - r.cy;
+        if (y < 0) y = 0;
+    }
 
     /* Verify the col */
-    if (x > cur_wid - r.cx) x = cur_wid - r.cx;
-    if (x < 0) x = 0;
+    if (cur_wid <= r.cx)
+        x = (cur_wid - r.cx) / 2; /* whole map fits: keep the centred anchor */
+    else
+    {
+        if (x > cur_wid - r.cx) x = cur_wid - r.cx;
+        if (x < 0) x = 0;
+    }
 
     /* Handle "changes" */
     if ((y != viewport_origin.y) || (x != viewport_origin.x))
@@ -4280,6 +4290,34 @@ static bool target_set_accept(int y, int x)
  *
  * Return the number of target_able monsters in the set.
  */
+static void _target_set_add(int y, int x, int mode)
+{
+    cave_type *c_ptr;
+
+    if (!target_set_accept(y, x)) return;
+
+    c_ptr = &cave[y][x];
+
+    /* Require target_able monsters for monster-targeting modes */
+    if ((mode & (TARGET_KILL | TARGET_MONS | TARGET_BUFF | TARGET_CAPTURE)) && !target_able(c_ptr->m_idx)) return;
+
+    if ((mode & (TARGET_KILL | TARGET_MARK)) && !target_pet && is_pet(&m_list[c_ptr->m_idx])) return;
+
+    if ((mode & TARGET_BUFF) && !_buff_cycle_candidate(&m_list[c_ptr->m_idx])) return;
+
+    /* Duelist is attempting to mark a target ... only visible monsters, please! */
+    if ( ((mode & TARGET_MARK) || (mode & TARGET_DISI) || (mode & TARGET_MONS) || (mode & TARGET_BUFF) || (mode & TARGET_CAPTURE))
+      && (!c_ptr->m_idx || !m_list[c_ptr->m_idx].ml) )
+    {
+        return;
+    }
+
+    /* Save the location */
+    temp_x[temp_n] = x;
+    temp_y[temp_n] = y;
+    temp_n++;
+}
+
 static void target_set_prepare(int mode)
 {
     rect_t map_rect = ui_map_rect();
@@ -4289,36 +4327,27 @@ static void target_set_prepare(int mode)
     temp_n = 0;
     _target_sort_mode = mode;
 
-    /* Scan the current panel */
-    for (uip.y = map_rect.y; uip.y < map_rect.y + map_rect.cy; uip.y++)
+    if (world_map_overview_active)
     {
-        for (uip.x = map_rect.x; uip.x < map_rect.x + map_rect.cx; uip.x++)
+        /* The world-map overview can target any landmark on the whole map,
+         * not just those in the current panel. */
+        int y, x;
+
+        for (y = 0; y < cur_hgt; y++)
+            for (x = 0; x < cur_wid; x++)
+                _target_set_add(y, x, mode);
+    }
+    else
+    {
+        /* Scan the current panel */
+        for (uip.y = map_rect.y; uip.y < map_rect.y + map_rect.cy; uip.y++)
         {
-            point_t cp = ui_pt_to_cave_pt(uip);
-            cave_type *c_ptr;
-
-            if (!target_set_accept(cp.y, cp.x)) continue;
-
-            c_ptr = &cave[cp.y][cp.x];
-
-            /* Require target_able monsters for monster-targeting modes */
-            if ((mode & (TARGET_KILL | TARGET_MONS | TARGET_BUFF | TARGET_CAPTURE)) && !target_able(c_ptr->m_idx)) continue;
-
-            if ((mode & (TARGET_KILL | TARGET_MARK)) && !target_pet && is_pet(&m_list[c_ptr->m_idx])) continue;
-
-            if ((mode & TARGET_BUFF) && !_buff_cycle_candidate(&m_list[c_ptr->m_idx])) continue;
-
-            /* Duelist is attempting to mark a target ... only visible monsters, please! */
-            if ( ((mode & TARGET_MARK) || (mode & TARGET_DISI) || (mode & TARGET_MONS) || (mode & TARGET_BUFF) || (mode & TARGET_CAPTURE))
-              && (!c_ptr->m_idx || !m_list[c_ptr->m_idx].ml) )
+            for (uip.x = map_rect.x; uip.x < map_rect.x + map_rect.cx; uip.x++)
             {
-                continue;
-            }
+                point_t cp = ui_pt_to_cave_pt(uip);
 
-            /* Save the location */
-            temp_x[temp_n] = cp.x;
-            temp_y[temp_n] = cp.y;
-            temp_n++;
+                _target_set_add(cp.y, cp.x, mode);
+            }
         }
     }
 
@@ -5315,6 +5344,32 @@ bool target_set(int mode)
 
                 /* Use that grid */
                 m = i;
+
+                /* Whole-map jumps can land beyond the current panel - scroll
+                 * the view to bring the selected landmark into view. */
+                {
+                    int ty = temp_y[m];
+                    int tx = temp_x[m];
+
+                    while (!cave_xy_is_visible(tx, ty))
+                    {
+                        int dx = 0;
+                        int dy = 0;
+
+                        if (tx < viewport_origin.x)
+                            dx = -1;
+                        else if (tx >= viewport_origin.x + map_rect.cx)
+                            dx = 1;
+
+                        if (ty < viewport_origin.y)
+                            dy = -1;
+                        else if (ty >= viewport_origin.y + map_rect.cy)
+                            dy = 1;
+
+                        if (!(dy || dx)) break;
+                        if (!viewport_scroll(dy, dx)) break;
+                    }
+                }
             }
         }
 

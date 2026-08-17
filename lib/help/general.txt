@@ -56,7 +56,7 @@ If your intent is to journey to another town, or to locate a dungeon entrance, y
 
 <style:note>Press <color:keypress><</color> to enter the global map, and <color:keypress>></color> to leave it.</style>
 
-Watch out, though: you cannot enter the global map if alert foes are nearby. Also, you can be <color:keyword>ambushed</color> even on the global map; this is more likely at night and away from the relative safety of the well-traveled roads. Ambushes can be very deadly if you do not have some means of teleportation to escape with.
+Watch out, though: you can view the global map, but you cannot travel on it while alert foes are hunting you. Also, you can be <color:keyword>ambushed</color> even on the global map; this is more likely at night and away from the relative safety of the well-traveled roads. Ambushes can be very deadly if you do not have some means of teleportation to escape with.
 
 On the overworld map, you may look about with the <color:keypress>*</color> command to inspect towns and dungeon entrances. Pay attention to the danger level of the various dungeons and wilderness tiles; this is displayed on the top row as you use look around, and indicates safe (or dangerous) areas of travel. For dungeons, the shallowest depth is indicated.
 

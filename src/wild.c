@@ -2135,7 +2135,7 @@ bool change_wild_mode(void)
         /* Monster Awareness of the player is a TODO concept, not yet correctly implemented.
            At the moment, only the Ring player race uses this and there is a slight bug as well!
         if (!is_aware(m_ptr)) continue;*/
-        msg_print("You cannot enter the global map since there are some monsters nearby!");
+        msg_print("You cannot travel on the world map while monsters are hunting you!");
         energy_use = 0;
         return FALSE;
     }
@@ -2148,9 +2148,9 @@ bool change_wild_mode(void)
 
     if (p_ptr->word_recall)
     {
-        char c, buf[255] = "You cannot enter the global map with Word of Recall active! Cancel recall? <color:y>[y/n]</color>\n";
-        c = msg_prompt(buf, "ny", PROMPT_ESCAPE_DEFAULT | PROMPT_FORCE_CHOICE);
+        char c, buf[255] = "You cannot travel on the world map with Word of Recall active! Cancel recall? <color:y>[y/n]</color>\n";
         sound(SOUND_WARN);
+        c = msg_prompt(buf, "ny", PROMPT_ESCAPE_DEFAULT | PROMPT_FORCE_CHOICE);
         if (c == 'n')
         {
             energy_use = 0;
@@ -2210,15 +2210,83 @@ bool py_in_town(void)
  * which runs the normal entry gates (so a hungry player can view but not
  * travel).
  */
+
+static void _world_map_overview_refresh(void)
+{
+    rect_t map_rect = ui_map_rect();
+
+    /* Keep the horizontal anchor fixed for the session when the whole world
+     * fits the panel - viewport_scroll() clamps negative origins to 0 and
+     * viewport_verify() re-centers on the player, both of which would shove
+     * the map sideways. */
+    if (cur_wid <= map_rect.cx)
+        viewport_origin.x = (cur_wid - map_rect.cx) / 2;
+    prt_map();
+    Term_fresh();
+}
+
+/* Draw the world map's permawall border cells over whatever prt_map left at
+ * the map edges, so the N/S/W frame shows even where the normal paint path
+ * does not cover the outermost columns. */
+void world_map_overview_draw_border(void)
+{
+    rect_t map_rect = ui_map_rect();
+    feature_type *f_ptr = &f_info[feat_permanent];
+    byte a = f_ptr->x_attr[F_LIT_STANDARD];
+    char c = f_ptr->x_char[F_LIT_STANDARD];
+    int x0 = 0 - viewport_origin.x;
+    int x1 = (cur_wid - 1) - viewport_origin.x;
+    int y0 = 1 - viewport_origin.y;
+    int y1 = cur_hgt - viewport_origin.y;
+    int i, x;
+
+    for (i = MAX(map_rect.y, y0); i <= MIN(map_rect.y + map_rect.cy - 1, y1); i++)
+    {
+        if (map_rect.x <= x0 && x0 < map_rect.x + map_rect.cx)
+            Term_queue_char(x0, i, a, c, 0, 0);
+        if (map_rect.x <= x1 && x1 < map_rect.x + map_rect.cx)
+            Term_queue_char(x1, i, a, c, 0, 0);
+    }
+
+    for (x = MAX(map_rect.x, x0); x <= MIN(map_rect.x + map_rect.cx - 1, x1); x++)
+    {
+        if (map_rect.y <= y0 && y0 < map_rect.y + map_rect.cy)
+            Term_queue_char(x, y0, a, c, 0, 0);
+        if (map_rect.y <= y1 && y1 < map_rect.y + map_rect.cy)
+            Term_queue_char(x, y1, a, c, 0, 0);
+    }
+}
+
+/* Snapshot of the local cave and player state while the world-map overview
+ * is showing - the cave is temporarily replaced by the compact world map,
+ * so a save must restore this first. */
+static cave_type *_overview_saved_cave[MAX_HGT];
+static int        _overview_saved_py;
+static int        _overview_saved_px;
+static s16b       _overview_saved_hgt;
+static s16b       _overview_saved_wid;
+static int        _overview_saved_town;
+static point_t    _overview_saved_view;
+
+/* Restore the local cave and player state from the overview snapshot. */
+void world_map_overview_restore_local(void)
+{
+    int i;
+
+    for (i = 0; i < MAX_HGT; i++)
+        memcpy(cave[i], _overview_saved_cave[i], sizeof(cave_type) * MAX_WID);
+
+    py = _overview_saved_py;
+    px = _overview_saved_px;
+    cur_hgt = _overview_saved_hgt;
+    cur_wid = _overview_saved_wid;
+    p_ptr->town_num = _overview_saved_town;
+    viewport_origin = _overview_saved_view;
+    world_map_overview_active = FALSE;
+}
+
 void do_cmd_world_map(void)
 {
-    cave_type *saved[MAX_HGT];
-    int        saved_py = py;
-    int        saved_px = px;
-    s16b       saved_hgt = cur_hgt;
-    s16b       saved_wid = cur_wid;
-    int        saved_town = p_ptr->town_num;
-    point_t    saved_view = viewport_origin;
     int        i, y, x;
     bool       done = FALSE;
 
@@ -2231,11 +2299,27 @@ void do_cmd_world_map(void)
     /* Save the local cave so the preview can be undone exactly. */
     for (i = 0; i < MAX_HGT; i++)
     {
-        saved[i] = malloc(sizeof(cave_type) * MAX_WID);
-        memcpy(saved[i], cave[i], sizeof(cave_type) * MAX_WID);
+        _overview_saved_cave[i] = malloc(sizeof(cave_type) * MAX_WID);
+        memcpy(_overview_saved_cave[i], cave[i], sizeof(cave_type) * MAX_WID);
     }
+    _overview_saved_py = py;
+    _overview_saved_px = px;
+    _overview_saved_hgt = cur_hgt;
+    _overview_saved_wid = cur_wid;
+    _overview_saved_town = p_ptr->town_num;
+    _overview_saved_view = viewport_origin;
 
-    screen_save();
+    /* Save the screen without raising character_icky (screen_save() would),
+     * so redraw_stuff() keeps working during the overview - the look cursor's
+     * viewport scrolls need their PR_MAP redraws to actually paint. */
+    Term_save();
+
+    /* The compact map replaces the local cave, so clear every grid first -
+     * otherwise local metadata (mirror mimics, darkness flags, monster/object
+     * indices) survives and renders at the wrong world coordinates. */
+    for (y = 0; y < MAX_HGT; y++)
+        for (x = 0; x < MAX_WID; x++)
+            WIPE(&cave[y][x], cave_type);
 
     /* Generate the real compact global map into the cave. */
     wilderness_gen_small();
@@ -2250,14 +2334,45 @@ void do_cmd_world_map(void)
         }
     }
 
-    /* The whole map fits in one panel; show it from the origin. */
-    viewport_origin.x = 0;
-    viewport_origin.y = 0;
-    p_ptr->redraw |= PR_MAP;
-    handle_stuff();
+    /* Let the shared draw/target code know the overview is active. */
+    world_map_overview_active = TRUE;
 
-    prt("Global Map - * or x looks around; a direction travels", 19, 0);
-    prt("ESC returns without travelling.", 20, 0);
+    /* Show the whole world width (it fits the panel), and center vertically
+     * on the player so both side borders are visible and the player is on
+     * screen. */
+    {
+        rect_t map_rect = ui_map_rect();
+        /* Center horizontally when the whole world fits; otherwise centre on
+         * the player and let horizontal scrolling work as usual. */
+        viewport_origin.x = (cur_wid <= map_rect.cx) ?
+            (cur_wid - map_rect.cx) / 2 : px - map_rect.cx / 2;
+        viewport_origin.y = py - map_rect.cy / 2;
+        if (!(cur_wid <= map_rect.cx) && viewport_origin.x < 0)
+            viewport_origin.x = 0;
+        if (viewport_origin.y < 0) viewport_origin.y = 0;
+        if (viewport_origin.y > cur_hgt - map_rect.cy)
+            viewport_origin.y = cur_hgt - map_rect.cy;
+    }
+    prt_map();
+    Term_fresh();
+
+    /* One-line guide: white title, intense-green description, orange command
+     * keys. */
+    c_put_str(TERM_WHITE, "World Map:", Term->hgt - 1, 0);
+    c_put_str(TERM_L_GREEN, " [", Term->hgt - 1, 10);
+    c_put_str(TERM_ORANGE, "*", Term->hgt - 1, 12);
+    c_put_str(TERM_L_GREEN, "/", Term->hgt - 1, 13);
+    c_put_str(TERM_ORANGE, "x", Term->hgt - 1, 14);
+    c_put_str(TERM_L_GREEN, "/", Term->hgt - 1, 15);
+    c_put_str(TERM_ORANGE, "l", Term->hgt - 1, 16);
+    c_put_str(TERM_L_GREEN, "] Look around  [", Term->hgt - 1, 17);
+    c_put_str(TERM_ORANGE, "direction", Term->hgt - 1, 33);
+    c_put_str(TERM_L_GREEN, "] Travel  [", Term->hgt - 1, 42);
+    c_put_str(TERM_ORANGE, ">", Term->hgt - 1, 53);
+    c_put_str(TERM_L_GREEN, "/", Term->hgt - 1, 54);
+    c_put_str(TERM_ORANGE, "Esc", Term->hgt - 1, 55);
+    c_put_str(TERM_L_GREEN, "] Exit to local map", Term->hgt - 1, 58);
+    Term_fresh();
 
     while (!done)
     {
@@ -2275,7 +2390,7 @@ void do_cmd_world_map(void)
             /* Committed travel: the normal entry gates apply. */
             if (p_ptr->food < PY_FOOD_WEAK)
             {
-                msg_print("You must eat something here.");
+                msg_print("You must eat something before you can travel.");
                 continue;
             }
             if (change_wild_mode())
@@ -2289,7 +2404,22 @@ void do_cmd_world_map(void)
         switch (key)
         {
         case ESCAPE:
+        {
+            char ch2;
+            /* A bare Esc exits. Esc starting an Alt-modified key (Esc + char)
+             * should not cancel the overview; consume the rest and refresh. */
+            if (Term_inkey(&ch2, FALSE, TRUE) != 0)
+                done = TRUE;
+            else
+                _world_map_overview_refresh();
+            break;
+        }
+        case '>':
             done = TRUE;
+            break;
+        case KTRL('R'):
+            /* Screen refresh keeps the overview visible. */
+            _world_map_overview_refresh();
             break;
         case '*':
         case 'x':
@@ -2297,10 +2427,7 @@ void do_cmd_world_map(void)
             do_cmd_look();
             /* The look cursor may have scrolled the viewport; pin the
              * small map back to the origin so the overview stays put. */
-            viewport_origin.x = 0;
-            viewport_origin.y = 0;
-            p_ptr->redraw |= PR_MAP;
-            handle_stuff();
+            _world_map_overview_refresh();
             break;
         default:
             bell();
@@ -2308,22 +2435,15 @@ void do_cmd_world_map(void)
         }
     }
 
-    screen_load();
-
-    /* Restore the local cave and player state exactly. */
+    world_map_overview_restore_local();
     for (i = 0; i < MAX_HGT; i++)
-    {
-        memcpy(cave[i], saved[i], sizeof(cave_type) * MAX_WID);
-        free(saved[i]);
-    }
-    py = saved_py;
-    px = saved_px;
-    cur_hgt = saved_hgt;
-    cur_wid = saved_wid;
-    p_ptr->town_num = saved_town;
-    viewport_origin = saved_view;
-    p_ptr->redraw |= PR_MAP;
-    handle_stuff();
+        free(_overview_saved_cave[i]);
+    Term_load();
+    msg_line_redraw();
+
+    /* Full mainview refresh so no overview guide/top-line bits remain. */
+    Term_clear();
+    do_cmd_redraw();
 }
 
 bool py_in_dungeon(void)

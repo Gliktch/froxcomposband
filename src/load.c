@@ -850,7 +850,17 @@ static void rd_extra(savefile_ptr file)
         temp_file_policy = TEMP_FILE_POLICY_FORCE;
     map_edge_center_distance = map_edge_center_distance_normalize(savefile_read_s32b(file));
     sync_retry_options();
-    for (i = 0; i < 9; i++) (void)savefile_read_s32b(file);
+    for (i = 0; i < 9; i++)
+    {
+        int res = savefile_read_s32b(file);
+        if (i == 1)
+        {
+            if (res >= 1 && res <= 3)
+                inscriptions_first = (byte)(res - 1);
+            else
+                inscriptions_first = INSCRIPTIONS_FIRST_OFF;
+        }
+    }
     wipe_labels();
     if (!savefile_is_older_than(file, 7, 1, 0, 4))
     {

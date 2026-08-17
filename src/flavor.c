@@ -1044,6 +1044,7 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
     char            tmp_val[MAX_NLEN+160];
     char            tmp_val2[MAX_NLEN+10];
     char            fake_insc_buf[30];
+    char            real_insc_buf[1024] = "";
 
     u32b            flgs[OF_ARRAY_SIZE];
     u32b            known_flgs[OF_ARRAY_SIZE];
@@ -2355,13 +2356,22 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
     {
         char buff[1024];
 
-        if (tmp_val2[0]) strcat(tmp_val2, ", ");
-
         /* Get inscription and convert {%} */
         get_inscription(buff, o_ptr);
 
-        /* strcat with correct treating of kanji */
-        my_strcat(tmp_val2, buff, sizeof(tmp_val2));
+        if (inscriptions_first != INSCRIPTIONS_FIRST_OFF)
+        {
+            /* Keep the player inscription separate so it can be shown
+             * before the item name; pseudo-inscriptions stay at the end. */
+            my_strcpy(real_insc_buf, buff, sizeof(real_insc_buf));
+        }
+        else
+        {
+            if (tmp_val2[0]) strcat(tmp_val2, ", ");
+
+            /* strcat with correct treating of kanji */
+            my_strcat(tmp_val2, buff, sizeof(tmp_val2));
+        }
     }
 
 
@@ -2447,36 +2457,58 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
     }
 
 
-    /* Append the inscription, if any */
-    if (fake_insc_buf[0] || tmp_val2[0])
+    /* Append the inscription, if any.  In On mode the pseudo-inscriptions
+     * move to the front with the player inscription, so only attributes
+     * remain in this end block. */
     {
-        /* Append the inscription */
-        t = object_desc_chr(t, ' ');
-        t = object_desc_chr(t, c1);
+        cptr fake = (inscriptions_first == INSCRIPTIONS_FIRST_ON) ? "" : fake_insc_buf;
 
-        /* Append fake inscriptions */
-        if (fake_insc_buf[0])
+        if (fake[0] || tmp_val2[0])
         {
-            t = object_desc_str(t, fake_insc_buf);
-        }
-
-        /* Append a separater */
-        if (fake_insc_buf[0] && tmp_val2[0])
-        {
-            t = object_desc_chr(t, ',');
             t = object_desc_chr(t, ' ');
-        }
+            t = object_desc_chr(t, c1);
 
-        /* Append real inscriptions */
-        if (tmp_val2[0])
-        {
-            t = object_desc_str(t, tmp_val2);
-        }
+            /* Append fake inscriptions */
+            if (fake[0])
+            {
+                t = object_desc_str(t, fake);
+            }
 
-        t = object_desc_chr(t, c2);
+            /* Append a separater */
+            if (fake[0] && tmp_val2[0])
+            {
+                t = object_desc_chr(t, ',');
+                t = object_desc_chr(t, ' ');
+            }
+
+            /* Append real inscriptions */
+            if (tmp_val2[0])
+            {
+                t = object_desc_str(t, tmp_val2);
+            }
+
+            t = object_desc_chr(t, c2);
+        }
     }
 
 object_desc_done:
+    if (inscriptions_first != INSCRIPTIONS_FIRST_OFF)
+    {
+        char front[MAX_NLEN + 1024 + 200];
+        cptr fake = (inscriptions_first == INSCRIPTIONS_FIRST_ON) ? fake_insc_buf : "";
+
+        if (real_insc_buf[0] && fake[0])
+            strnfmt(front, sizeof(front), "{%s, %s} %s", real_insc_buf, fake, tmp_val);
+        else if (real_insc_buf[0])
+            strnfmt(front, sizeof(front), "{%s} %s", real_insc_buf, tmp_val);
+        else if (fake[0])
+            strnfmt(front, sizeof(front), "{%s} %s", fake, tmp_val);
+        else
+            my_strcpy(front, tmp_val, sizeof(front));
+
+        my_strcpy(tmp_val, front, sizeof(tmp_val));
+    }
+
     if (mode & OD_COLOR_CODED)
     {
         char attr = ((mode & OD_BLACK_CURSES) && (object_is_cursed(o_ptr))) ? 'D' : tval_to_attr_char(o_ptr->tval);

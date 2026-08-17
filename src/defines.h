@@ -460,6 +460,11 @@
 #define PY_FOOD_FAINT      500   /* Food value (Fainting) */
 #define PY_FOOD_STARVE     100   /* Food value (Starving) */
 
+/* Inscription placement modes (inscriptions_first) */
+#define INSCRIPTIONS_FIRST_OFF   0 /* inscription at the end (default) */
+#define INSCRIPTIONS_FIRST_USER  1 /* player inscription first, pseudo at end */
+#define INSCRIPTIONS_FIRST_ON    2 /* player and pseudo inscriptions first */
+
 /*
  * Player regeneration constants
  */

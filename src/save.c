@@ -895,7 +895,8 @@ static void wr_extra(savefile_ptr file)
     savefile_write_s32b(file, temp_file_policy);
     savefile_write_s32b(file, map_edge_center_distance_normalize(map_edge_center_distance));
     for (i = 0; i < 9; i++)
-        savefile_write_s32b(file, 0); /* Future use */
+        /* Future use; slot 1 stores the inscription mode + 1 */
+        savefile_write_s32b(file, (i == 1) ? (inscriptions_first + 1) : 0);
 
     for (i = 0; i < MAX_POWER_LABEL; i++)
     {

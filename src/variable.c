@@ -303,6 +303,8 @@ bool show_weights;    /* Show weights in object listings */
 bool show_discounts;
 bool show_item_graph;    /* Show items graphics */
 bool show_item_markers; /* Show item-state markers in object listings */
+bool inscriptions_first_dummy = FALSE; /* Option-page anchor for inscriptions_first */
+byte inscriptions_first = INSCRIPTIONS_FIRST_OFF; /* Put inscriptions before item names */
 bool show_special_inventories; /* Show race/class special inventories in standard inventory lists */
 bool shops_mark_unseen;    /* Indicate unseen flavors in shop inventories */
 bool equippy_chars;    /* Display 'equippy' chars */

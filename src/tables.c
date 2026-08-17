@@ -2634,6 +2634,9 @@ option_type option_info[] =
     { &show_item_markers,           TRUE, OPT_PAGE_LIST, 3, 10,
     "show_item_markers",            "Show item-state markers in object listings" },
 
+    { &inscriptions_first_dummy,    FALSE, OPT_PAGE_LIST, 3, 13,
+    "inscriptions_first",           "Put inscriptions before item names" },
+
     { &show_special_inventories,    FALSE, OPT_PAGE_LIST, 3, 7,
     "show_special_bags",            "Include special pack tabs in inventory lists" },
 

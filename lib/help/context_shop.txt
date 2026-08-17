@@ -26,11 +26,13 @@ When you enter a shop, you will see a screen describing the shop's owner and the
                                                                                                                                                                                                                                                
 Gold Remaining: <color:y>1.94k</color>                                                           
                                                                                 
-<color:o>b</color> to buy. <color:o>s</color> to sell. <color:o>x</color> to begin examining items.                                
-<color:o>B</color> to buyout inventory. <color:o>S</color> to shuffle stock. <color:o>R</color> to reserve an item.                
-<color:o>Esc</color> to exit. <color:o>?</color> for help.                                                        
+<color:G>[<color:o>b/p/g</color>] Buy  [<color:o>s/d</color>] Sell  [<color:o>x</color>] Examine  [<color:o>?</color>] Help  [<color:o>q/Esc</color>] Exit</color>
+<color:G>[<color:o>R</color>] Reserve Item  [<color:o>S</color>] Shuffle Stock  [<color:o>B</color>] Buy Everything</color>
+<color:G>[<color:o>Space/PgDn</color>] Next  [<color:o>-/PgUp</color>] Previous  [<color:o>U</color>] Hide Unwanted</color>
 </indent></style>
 A quick list of available commands is displayed on the bottom of the screen. Simply choose the appropriate command and follow the instructions. Use <color:keypress>Page Up</color> and <color:keypress>Page Down</color> if the shop inventory extends to multiple pages.
+
+Press <color:keypress>u</color> or <color:keypress>U</color> to toggle hiding items your Mogaminator rules classify as Unwanted; while the filter is on the footer entry turns red and reads <color:keypress>Show Unwanted</color>. If the Mogaminator is disabled, <color:keypress>u</color> explains how to activate it first.
 
 Every store owner has access to limited funds, and will only pay so much for items that you sell; this amount is listed next to the store type on the top of the display.
 
@@ -42,6 +44,7 @@ Every store owner has access to limited funds, and will only pay so much for ite
 <color:keypress>B</color>         Buy out the entire shop inventory
 <color:keypress>S</color>         Pay to have shop inventory shuffled
 <color:keypress>R</color>         Reserve a shop item for future purchase
+<color:keypress>u U</color>       Toggle hiding Unwanted items in the listing
 <color:keypress>q Esc</color>     Leave the shop
 
 <color:G>Extra Commands</color>
@@ -66,5 +69,6 @@ Every store owner has access to limited funds, and will only pay so much for ite
 
 <color:G>Display Options</color>
 <color:keypress>^W</color>        Toggle weights (see <link:option.txt#show_weights>)
+<color:keypress>^P</color>        Toggle device powers (see <link:option.txt#show_power>)
 <color:keypress>^G</color>        Toggle graphics (see <link:option.txt#show_item_graph>)
 </indent>

@@ -1043,7 +1043,7 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
 
     char            tmp_val[MAX_NLEN+160];
     char            tmp_val2[MAX_NLEN+10];
-    char            fake_insc_buf[30];
+    char            fake_insc_buf[64];
     char            real_insc_buf[1024] = "";
 
     u32b            flgs[OF_ARRAY_SIZE];
@@ -2451,8 +2451,19 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
             if (fake_insc_buf[0]) strcat(fake_insc_buf, ", ");
 
             (void)object_desc_num(discount_num_buf, o_ptr->discount);
-            strcat(fake_insc_buf, discount_num_buf);
-            strcat(fake_insc_buf, "% off");
+            /* In store listings the discount is highlighted in purple so the
+             * best deals stand out; elsewhere it stays plain text. */
+            if (mode & OD_STORE)
+            {
+                strcat(fake_insc_buf, "<color:v>");
+                strcat(fake_insc_buf, discount_num_buf);
+                strcat(fake_insc_buf, "%</color> off");
+            }
+            else
+            {
+                strcat(fake_insc_buf, discount_num_buf);
+                strcat(fake_insc_buf, "% off");
+            }
         }
     }
 

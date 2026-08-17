@@ -1492,6 +1492,13 @@ static void _wizard_stock(shop_ptr shop);
 static void _shuffle_stock(shop_ptr shop);
 static int  _stock_base(shop_ptr shop);
 
+/* Session toggle for hiding Unwanted items in store listings (u/U). */
+static bool _shop_hide_unwanted;
+
+static bool   _shop_item_hidden(shop_ptr shop, slot_t slot);
+static slot_t _shop_page_slot(shop_ptr shop, int pos);
+static int    _shop_page_max(shop_ptr shop);
+
 void shop_ui(shop_ptr shop)
 {
     _ui_context_t context = {0};
@@ -1519,7 +1526,7 @@ static void _loop(_ui_context_ptr context)
     context->doc = doc_alloc(MIN(80, ui_shop_rect().cx));
     for (;;)
     {
-        int    max = inv_last(context->shop->inv, obj_exists);
+        int    max = _shop_page_max(context->shop);
         rect_t r = ui_shop_rect(); /* recalculate in case resize */
         int    cmd, ct;
 
@@ -1557,13 +1564,41 @@ static void _loop(_ui_context_ptr context)
                 doc_display_help("context_shop.txt", NULL);
                 Term_clear_rect(ui_shop_msg_rect());
                 break;
+            case 'u': case 'U':
+                if (no_mogaminator)
+                {
+                    msg_print("Exit this menu then press _ to activate the Mogaminator, in order to define unwanted items for filtering.");
+                    break;
+                }
+                /* Reflow the page lead so the same first item stays on the
+                 * page when the filter changes: slot <-> visible position. */
+                if (_shop_hide_unwanted)
+                    context->top = _shop_page_slot(context->shop, context->top);
+                else
+                {
+                    slot_t slot;
+                    int    pos = 1;
+
+                    _shop_hide_unwanted = TRUE;
+                    for (slot = 1; slot < context->top; slot++)
+                        if (!_shop_item_hidden(context->shop, slot)) pos++;
+                    _shop_hide_unwanted = FALSE;
+                    context->top = pos;
+                }
+                _shop_hide_unwanted = !_shop_hide_unwanted;
+                break;
             case SKEY_PGDOWN: case '3': case ' ':
                 if (context->top + context->page_size - 1 < max)
                     context->top += context->page_size;
+                else
+                    context->top = 1; /* wrap to the first page */
                 break;
             case SKEY_PGUP: case '9': case '-':
                 if (context->top > context->page_size)
                     context->top -= context->page_size;
+                else
+                    /* wrap to the last page */
+                    context->top = ((max - 1) / context->page_size) * context->page_size + 1;
                 break;
             case SKEY_BOTTOM: case '1':
                  while (context->top + context->page_size - 1 < max)
@@ -1597,7 +1632,7 @@ static void _loop(_ui_context_ptr context)
             }
             else
             {
-                max = inv_last(context->shop->inv, obj_exists);
+                max = _shop_page_max(context->shop);
                 while (context->top > max)
                     context->top -= context->page_size;
                 if (context->top < 1) context->top = 1;
@@ -1645,7 +1680,7 @@ static void _display(_ui_context_ptr context)
     _display_inv(doc, shop, context->top, context->page_size);
     
     {
-        slot_t max = inv_last(shop->inv, obj_exists);
+        slot_t max = _shop_page_max(shop);
         slot_t bottom = context->top + context->page_size - 1;
 
         if (context->top > 1 || bottom < max)
@@ -1659,21 +1694,24 @@ static void _display(_ui_context_ptr context)
 
     big_num_display(p_ptr->au, buf);
     doc_printf(doc, "Gold Remaining: <color:y>%s</color>\n\n", buf);
-    doc_insert(doc, "<color:keypress>b</color> to buy. ");
-    if (no_selling)
-        doc_insert(doc, "<color:keypress>s</color> to give. ");
-    else
-        doc_insert(doc, "<color:keypress>s</color> to sell. ");
-    doc_insert(doc, 
-        "<color:keypress>x</color> to begin examining items.\n"
-        "<color:keypress>B</color> to buyout inventory. "
-		"<color:keypress>S</color> to shuffle stock. "
-        "<color:keypress>R</color> to reserve an item.");
-    doc_newline(doc);
 
+    /* Command footer in the death-screen style: light-green text with orange
+     * command letters.  The Unwanted entry turns red and reads "Show
+     * Unwanted" while the filter is on. */
+    doc_insert(doc, "<color:G>");
+    doc_insert(doc, "[<color:o>b/p/g</color>] Buy  [<color:o>s/d</color>] ");
+    doc_insert(doc, no_selling ? "Give" : "Sell");
     doc_insert(doc,
-        "<color:keypress>Esc</color> to exit. "
-        "<color:keypress>?</color> for help.");
+        "  [<color:o>x</color>] Examine  [<color:o>?</color>] Help  "
+        "[<color:o>q/Esc</color>] Exit\n"
+        "[<color:o>R</color>] Reserve Item  [<color:o>S</color>] Shuffle Stock  "
+        "[<color:o>B</color>] Buy Everything\n"
+        "[<color:o>Space/PgDn</color>] Next  [<color:o>-/PgUp</color>] Previous  ");
+    if (_shop_hide_unwanted)
+        doc_insert(doc, "<color:R>[</color><color:o>U</color><color:R>] Show Unwanted</color>");
+    else
+        doc_insert(doc, "[<color:o>U</color>] Hide Unwanted");
+    doc_insert(doc, "</color>");
     doc_insert(doc, "</style>");
 
     Term_clear_rect(r);
@@ -2067,9 +2105,8 @@ static void _examine(_ui_context_ptr context)
 
         if (!msg_command("<color:y>Examine which item <color:w>(<color:keypress>Esc</color> when done)</color>?</color>", &cmd)) break;
         if (cmd < 'a' || cmd > 'z') continue;
-        slot = label_slot(cmd);
-        slot = slot + context->top - 1;
-        obj = inv_obj(context->shop->inv, slot);
+        slot = _shop_page_slot(context->shop, context->top + label_slot(cmd) - 1);
+        obj = slot ? inv_obj(context->shop->inv, slot) : NULL;
         if (!obj) continue;
 
         obj_learn_store(obj);
@@ -2170,9 +2207,8 @@ static void _reserve(_ui_context_ptr context)
 
         if (!msg_command("<color:y>Reserve which item <color:w>(<color:keypress>Esc</color> when done)</color>?</color>", &cmd)) break;
         if (cmd < 'a' || cmd > 'z') continue;
-        slot = label_slot(cmd);
-        slot = slot + context->top - 1;
-        obj = inv_obj(context->shop->inv, slot);
+        slot = _shop_page_slot(context->shop, context->top + label_slot(cmd) - 1);
+        obj = slot ? inv_obj(context->shop->inv, slot) : NULL;
         if (!obj) continue;
 
         if (obj->marked & OM_RESERVED)
@@ -2264,9 +2300,8 @@ static void _sell(_ui_context_ptr context)
         if (!msg_command("<color:y>Buy which item <color:w>(<color:keypress>Esc</color> "
                          "to cancel)</color>?</color>", &cmd)) break;
         if (cmd < 'a' || cmd > 'z') continue;
-        slot = label_slot(cmd);
-        slot = slot + context->top - 1;
-        obj = inv_obj(context->shop->inv, slot);
+        slot = _shop_page_slot(context->shop, context->top + label_slot(cmd) - 1);
+        obj = slot ? inv_obj(context->shop->inv, slot) : NULL;
         if (!obj) continue;
 
         /* Check 1-unit affordability before prompting */
@@ -2339,7 +2374,7 @@ static void _sell(_ui_context_ptr context)
 static void _sellout(shop_ptr shop)
 {
     slot_t slot, max = inv_last(shop->inv, obj_exists);
-    int    price, total_price = 0;
+    int    price, total_price = 0, total_stock = 0;
 
 	//ugh I copy/pasted this
 	if (shop->type->id == SHOP_SHROOMERY)
@@ -2354,7 +2389,14 @@ static void _sellout(shop_ptr shop)
 		}
 	}
 
-    if (1 && !get_check("Are you sure you want to buy the entire inventory of this store? "))
+    /* Show the full price up front so the confirm is an informed choice. */
+    for (slot = 1; slot <= max; slot++)
+    {
+        obj_ptr obj = inv_obj(shop->inv, slot);
+        if (!obj) continue;
+        total_stock += _sell_price(shop, obj_value(obj)) * obj->number;
+    }
+    if (!get_check(format("Buy the entire inventory of this store for <color:y>%d</color> gp? ", total_stock)))
         return;
 
     for (slot = 1; slot <= max; slot++)
@@ -2766,9 +2808,61 @@ bool shop_common_cmd_handler(int cmd)
     return FALSE;
 }
 
+/* Is this shop item hidden by the Unwanted filter?  Only store listings are
+ * filtered; Home and other inventory views always show everything. */
+static bool _shop_item_hidden(shop_ptr shop, slot_t slot)
+{
+    obj_ptr obj;
+    int     idx;
+
+    if (!_shop_hide_unwanted) return FALSE;
+    if (inv_loc(shop->inv) != INV_SHOP) return FALSE;
+
+    obj = inv_obj(shop->inv, slot);
+    if (!obj || !obj->k_idx) return FALSE;
+
+    obj_list_autopick_hack = TRUE;
+    idx = is_autopick(obj);
+    obj_list_autopick_hack = FALSE;
+    return autopick_is_unwanted(idx);
+}
+
+/* Resolve a page position (1-based, counting only visible items while the
+ * Unwanted filter is on) to its shop slot, so pages and slot letters stay
+ * contiguous and map correctly through the filter.  With the filter off the
+ * position is the slot number, as before. */
+static slot_t _shop_page_slot(shop_ptr shop, int pos)
+{
+    slot_t slot, max = inv_last(shop->inv, obj_exists);
+    int    seen = 0;
+
+    if (!_shop_hide_unwanted) return pos;
+
+    for (slot = 1; slot <= max; slot++)
+    {
+        if (_shop_item_hidden(shop, slot)) continue;
+        if (++seen == pos) return slot;
+    }
+    return 0;
+}
+
+/* Number of pageable entries - the slot count normally, the visible-item
+ * count while the Unwanted filter is on. */
+static int _shop_page_max(shop_ptr shop)
+{
+    slot_t slot, max = inv_last(shop->inv, obj_exists);
+    int    ct = 0;
+
+    if (!_shop_hide_unwanted) return max;
+
+    for (slot = 1; slot <= max; slot++)
+        if (!_shop_item_hidden(shop, slot)) ct++;
+    return ct;
+}
+
 static void _display_inv(doc_ptr doc, shop_ptr shop, slot_t top, int page_size)
 {
-    slot_t  slot;
+    int     line;
     int     xtra = 0;
     char    name[MAX_NLEN];
     inv_ptr inv = shop->inv;
@@ -2795,21 +2889,24 @@ static void _display_inv(doc_ptr doc, shop_ptr shop, slot_t top, int page_size)
     }
     doc_newline(doc);
 
-    for (slot = top; slot < top + page_size; slot++)
+    for (line = 1; line <= page_size; line++)
     {
-        obj_ptr obj = inv_obj(inv, slot);
+        slot_t  slot = _shop_page_slot(shop, top + line - 1);
+        obj_ptr obj = slot ? inv_obj(inv, slot) : NULL;
         if (obj)
         {
-            obj_ptr     next = inv_obj(inv, slot + 1);
+            slot_t      nslot = _shop_page_slot(shop, top + line);
+            obj_ptr     next = nslot ? inv_obj(inv, nslot) : NULL;
             doc_style_t style = *doc_current_style(doc);
             char        label_color = 'w';
 
             if (next && obj_cmp(obj, next) > 0)
                 label_color = 'r';
 
-            object_desc(name, obj, OD_COLOR_CODED | (show_item_markers ? OD_ITEM_MARKERS : 0));
+            object_desc(name, obj, OD_COLOR_CODED | (show_prices ? OD_STORE : 0) |
+                (show_item_markers ? OD_ITEM_MARKERS : 0));
 
-            doc_printf(doc, " <color:%c>%c</color>) ", label_color, slot_label(slot - top + 1));
+            doc_printf(doc, " <color:%c>%c</color>) ", label_color, slot_label(line));
             if (show_item_graph)
             {
                 doc_insert_char(doc, object_attr(obj), object_char(obj));

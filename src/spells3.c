@@ -3405,8 +3405,8 @@ bool potion_smash_effect(int who, int y, int x, int k_idx)
         case SV_POTION_INC_CON:
         case SV_POTION_INC_CHR:
         case SV_POTION_AUGMENTATION:
-        case SV_POTION_ENLIGHTENMENT:
-        case SV_POTION_STAR_ENLIGHTENMENT:
+        case SV_POTION_REVELATION:
+        case SV_POTION_STAR_REVELATION:
         case SV_POTION_SELF_KNOWLEDGE:
         case SV_POTION_RESISTANCE:
         case SV_POTION_INVULNERABILITY:

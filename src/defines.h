@@ -2138,8 +2138,8 @@ enum {
 #define SV_POTION_INC_CHR               53
 #define SV_POTION_RES_ALL               54
 #define SV_POTION_AUGMENTATION          55
-#define SV_POTION_ENLIGHTENMENT         56
-#define SV_POTION_STAR_ENLIGHTENMENT    57
+#define SV_POTION_REVELATION           56
+#define SV_POTION_STAR_REVELATION      57
 #define SV_POTION_SELF_KNOWLEDGE        58
 #define SV_POTION_EXPERIENCE            59
 #define SV_POTION_RESISTANCE            60

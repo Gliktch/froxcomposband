@@ -1090,7 +1090,7 @@ static cptr _do_potion(int sval, int mode)
             if (do_inc_stat(A_CHR)) device_noticed = TRUE;
         }
         break;
-    case SV_POTION_ENLIGHTENMENT:
+    case SV_POTION_REVELATION:
         if (desc) return (p_ptr->pclass == CLASS_ALCHEMIST) ? "It maps, lights permanently and detects all items on the entire level and provides temporary telepathy when you quaff it." : "It maps, lights permanently and detects all items on the entire level when you quaff it.";
         if (cast)
         {
@@ -1102,7 +1102,7 @@ static cptr _do_potion(int sval, int mode)
             device_noticed = TRUE;
         }
         break;
-    case SV_POTION_STAR_ENLIGHTENMENT: /* warning - long line ahead */
+    case SV_POTION_STAR_REVELATION: /* warning - long line ahead */
         if (desc) return (p_ptr->pclass == CLASS_ALCHEMIST) ? "It maps, lights permanently and detects all items on the entire level, increases your intelligence and wisdom, detects all traps, doors, stairs, treasures in your vicinity, identifies all items in pack, provides temporary telepathy and gives information about yourself when you quaff it." : "It maps, lights permanently and detects all items on the entire level, increases your intelligence and wisdom, detects all traps, doors, stairs, treasures in your vicinity, identifies all items in pack and gives information about yourself when you quaff it.";
         if (cast)
         {

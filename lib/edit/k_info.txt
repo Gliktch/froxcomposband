@@ -3177,7 +3177,7 @@ A:40/12
 F:NO_SHUFFLE
 P:0:1d1:0:0:0
 
-N:*:Enlightenment:Pink
+N:*:Revelation:Pink
 G:!:P
 I:75:56:0
 W:25:0:0:4:800
@@ -3185,7 +3185,7 @@ A:25/1:50/1
 P:0:1d1:0:0:0
 M:15:1d3
 
-N:*:*Enlightenment*:Yellow Speckled
+N:*:*Revelation*:Yellow Speckled
 G:!:y
 I:75:57:0
 W:70:0:0:4:120000
@@ -4611,4 +4611,3 @@ I:10:8:0
 W:0:0:0:10:0
 P:0:1d1:0:0:0
 F:PLURAL
-

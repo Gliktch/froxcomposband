@@ -107,8 +107,8 @@ static _formula_info_t _formulas[POTION_MAX+1] = {
 { SV_POTION_INC_CHR,				240, 50, _CTIER2 },
 { SV_POTION_RES_ALL,				120, 40, _CTIER1 },
 { SV_POTION_AUGMENTATION,			1000, 999, _CTIER2 },
-{ SV_POTION_ENLIGHTENMENT,			120, 40, _CTIER1 },
-{ SV_POTION_STAR_ENLIGHTENMENT,			800, 60, _CTIER2 },
+{ SV_POTION_REVELATION,			120, 40, _CTIER1 },
+{ SV_POTION_STAR_REVELATION,			800, 60, _CTIER2 },
 { SV_POTION_SELF_KNOWLEDGE,			120, 40, _CTIER1 },
 { SV_POTION_EXPERIENCE,				1000, 999, _CTIER2 },
 { SV_POTION_RESISTANCE,				120, 30, _CTIER1 },
@@ -952,8 +952,8 @@ void alchemist_super_potion_effect(int sval){
 
 	switch (sval)
 	{
-		case SV_POTION_ENLIGHTENMENT: set_tim_esp(100 + randint0(p_ptr->lev * 2), FALSE); break;
-		case SV_POTION_STAR_ENLIGHTENMENT: set_tim_esp(300 + randint0(p_ptr->lev * 6), FALSE); break;
+		case SV_POTION_REVELATION: set_tim_esp(100 + randint0(p_ptr->lev * 2), FALSE); break;
+		case SV_POTION_STAR_REVELATION: set_tim_esp(300 + randint0(p_ptr->lev * 6), FALSE); break;
 		case SV_POTION_CLARITY: set_confused(0, TRUE); break;
 		case SV_POTION_GREAT_CLARITY: set_confused(0, TRUE); set_stun(0, TRUE); set_image(0, TRUE); break;
 	}

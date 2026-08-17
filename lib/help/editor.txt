@@ -49,7 +49,7 @@ mushroom of restoring<color:U>#!E</color>
 <color:R>potions</color>:speed<color:U>#!kq</color>                                                               
 <color:R>potions</color>:giant strength<color:U>#!k</color>                                                       
                                                                                 
-<color:R>potions</color>:enlightenment                                                           
+<color:R>potions</color>:revelation                                                           
                                                                                 
 <color:R>potions</color>:of strength<color:U>#!k</color>                                                          
 <color:B>-------------------------------------------------------------------------------</color>
@@ -402,7 +402,7 @@ mushr<color:b>|</color><color:B> c) Sa</color><color:b>+------------------------
 <color:R>potions</color>:speed<color:U>#!kq</color>                                                               
 <color:R>potions</color>:giant strength<color:U>#!k</color>                                                       
                                                                                 
-<color:R>potions</color>:enlightenment                                                           
+<color:R>potions</color>:revelation                                                           
                                                                                 
 <color:R>potions</color>:of strength<color:U>#!k</color>                                                          
 <color:B>--------------------------------------------------------------------------------</color>

@@ -1352,7 +1352,7 @@ arena_type arena_info[MAX_ARENA_MONS + 2] =
     { MON_GROO,          TV_SCROLL, SV_SCROLL_MUNDANITY           },
     { MON_D_ELF_SORC,    TV_WAND,   EFFECT_METEOR                 },
     { MON_IRON_LICH,     TV_POTION, SV_POTION_NEW_LIFE            },
-    { MON_G_TITAN,       TV_POTION, SV_POTION_STAR_ENLIGHTENMENT  },
+    { MON_G_TITAN,       TV_POTION, SV_POTION_STAR_REVELATION    },
     { MON_SPEC_TYRANNO,  TV_ROD,    EFFECT_ENLIGHTENMENT          },
     { MON_MUMMY_KING,    TV_ROD,    EFFECT_BEAM_DISINTEGRATE      },
     { MON_NIGHTWALKER,   TV_STAFF,  EFFECT_SPEED                  },

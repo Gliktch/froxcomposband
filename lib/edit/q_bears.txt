@@ -54,4 +54,4 @@ M:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 R:OBJ(STAFF_ENLIGHTENMENT)
 
 ?:[EQU $CLASS Berserker]
-R:OBJ(potion of enlightenment, NUMBER=1)
+R:OBJ(potion of revelation, NUMBER=1)

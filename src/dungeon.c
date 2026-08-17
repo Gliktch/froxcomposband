@@ -6490,7 +6490,7 @@ quick_restart_loop:
         {
             if (p_ptr->pclass == CLASS_BERSERKER)
             {
-                py_birth_obj_aux(TV_POTION, SV_POTION_ENLIGHTENMENT, 10);
+                py_birth_obj_aux(TV_POTION, SV_POTION_REVELATION, 10);
                 py_birth_obj_aux(TV_POTION, SV_POTION_CURING, 2);
             }
             else

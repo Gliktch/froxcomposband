@@ -3186,8 +3186,8 @@ static bool _kind_theme_mage(int k_idx) {
         switch (k_info[k_idx].sval)
         {
         case SV_POTION_RESTORE_MANA:
-        case SV_POTION_ENLIGHTENMENT:
-        case SV_POTION_STAR_ENLIGHTENMENT:
+        case SV_POTION_REVELATION:
+        case SV_POTION_STAR_REVELATION:
         case SV_POTION_SELF_KNOWLEDGE:
         case SV_POTION_INVULNERABILITY:
         case SV_POTION_CLARITY:

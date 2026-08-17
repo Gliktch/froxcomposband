@@ -2577,20 +2577,22 @@ static bool _travel_next_obj(int mode)
 }
 void do_cmd_get(void)
 {
-    if (!cave[py][px].o_idx)
+    if (!cave[py][px].o_idx && (auto_get_objects || auto_get_ammo))
         msg_print("You see no objects here. Try <color:keypress>^G</color> to auto-get nearby objects.");
     (void)pack_get_floor();
 }
 void do_cmd_autoget(void)
 {
     /* Ctrl-G travels to the next matching object; use g to pick up
-     * whatever is underfoot. */
-    if (auto_get_objects)
-        _travel_next_obj(TRAVEL_MODE_AUTOPICK);
-    else if (auto_get_ammo)
-        _travel_next_obj(TRAVEL_MODE_AMMO);
-    else
-        do_cmd_get();
+     * whatever is underfoot if no auto-get target exists. */
+    if (auto_get_objects || auto_get_ammo)
+    {
+        if (_travel_next_obj(auto_get_objects ? TRAVEL_MODE_AUTOPICK : TRAVEL_MODE_AMMO))
+            return;
+    }
+    /* No auto-get target (options off, Mog off, or nothing matching):
+     * plain g behaviour, without the ^G hint. */
+    (void)pack_get_floor();
 }
 
 /*

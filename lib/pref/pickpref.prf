@@ -1,24 +1,53 @@
 #########################################
+# What each of the starting symbols do:
+#
+# (none) pick up items which match this rule
+#   ~    leave these items on the floor
+#   !    destroy these items automatically
+#   ;    prompt to pick up this item
+#   ?    auto-identify (if you have Identify available)
+#   (    hide from the map and object lists
+#   #    A line *beginning* with # is a comment, meaning it's not active, or is
+#        only being used to convey information to someone reading the pref file.
+#
+# #text  auto-inscribe matching items - when placed at the end of a rule, this
+#        means put an inscription on those items. One common use for this is to
+#        apply the same label (letter) to all items of a specified type, such as
+#        putting #@qc on the curing potions line in order to make all curing use
+#        the letter 'c' when you're in the drink ([q]uaff) menu.
+#
+# Rules apply in order: the first matching rule for an item wins.
+#########################################
+
+#########################################
 # Consumables
 #########################################
-mushroom of restoring#!E
-~mushroom of hallucination
 
-?:[EQU $RACE Snotling Doppelganger]
-~?unidentified items:mushroom
-~mushroom
-?:1
+potions:curing
+potions:heroism
+potions:speed#!kq
+
+# The next bit you see here is a 'conditional', which is a way of making a rule
+# only apply to some characters, or when you're above or below a certain level,
+# for example.  In this case it's being used to only automatically pick up the
+# fire/cold resist pots when the player is less than or equal to level 35, as a
+# player past this level will usually have better resistance options by then.
+#
+# See the Mogaminator help (press Esc then a) for full instructions and details.
 
 ?:[LEQ $LEVEL 35]
 potions:resist heat and cold#!kq
 ?:1
 potions:resistance#!kq
 potions:stone skin#!k
-potions:heroism
-potions:speed#!kq
 potions:giant strength#!k
 
 potions:revelation
+potions:experience
+potions:self knowledge#!k
+
+
+# There's no such thing as too many stat points... Down the hatch, adventurer.
 
 potions:of strength#!k
 potions:of intelligence#!k
@@ -28,15 +57,33 @@ potions:of constitution#!k
 potions:of charisma#!k
 potions:augmentation#!k
 
-potions:experience
 potions:polymorph#!k
 potions:new life#!**
-potions:self knowledge#!k
 
-potions:curing
-potions:of healing#!kq
 potions:of life#!kq
-potions:of *healing*#!kq
+
+# No-one has ever complained of having too many hit points, either!
+# 
+# Because "potions:healing" actually matches both "Potion of Healing" and the
+# much rarer "Potion of *Healing*", this one rule applies to them both. This !kq
+# inscription means the game asks you for confirmation if you attempt to [q]uaff
+# or [k]ill (destroy) one of these potions.
+
+potions:healing#!kq
+
+# If instead one wanted to set custom labels for each of the two different pots,
+# that would require leaving a bit more of the original wording in - just like
+# how the stat potion lines above leave their 'of's in place, to avoid matching
+# common potions like 'restore dexterity' as well.  For the below more specific
+# rules to work, one would need to turn off (comment out or delete) the single
+# rule above, since higher rules in this file always override lower ones.
+
+potions:of healing#@qq!kq
+potions:of *healing*#@qh!kq
+
+
+# Berserkers no read so good...  They don't need to pick up these pretty bits of
+# paper, but some scrolls are mighty useful to the rest of us literate types.
 
 ?:[NOT [EQU $CLASS Berserker]]
 scrolls:artifact creation#!*
@@ -51,6 +98,14 @@ scrolls:banish
 potions:restore mana#!kq
 ?:1
 
+mushroom of restoring#!E
+~mushroom of hallucination
+
+?:[EQU $RACE Snotling Doppelganger]
+~?unidentified items:mushroom
+~mushroom
+?:1
+
 #########################################
 # Devices
 #########################################
@@ -61,6 +116,10 @@ potions:restore mana#!kq
 #!identified rings
 #!identified amulets
 
+# Berserkers cannot use or sell magic devices: with selling off they are
+# destroyed (except for undead, who can still use them), with selling on they
+# are simply left on the ground. These blocks must stay above the normal
+# device rules below, since the first matching rule wins.
 ?:[AND [EQU $SELLING Off] [EQU $CLASS Berserker]]
 !nameless shooters
 !scrolls
@@ -76,9 +135,15 @@ potions:restore mana#!kq
 !staves
 ?:1
 
-?:[NOT [EQU $CLASS Berserker]]
+?:[AND [EQU $SELLING On] [EQU $CLASS Berserker]]
+~rods
+~wands
+~staves
+?:1
+
 rods:angelic healing#@zh!sdk
 rods:heroic speed#@zs!sdk
+rods:enlightenment
 ?staves:healing#@uh!sdk
 ?staves:speed#@us!sdk
 ?staves:destruction#@ud!sdk
@@ -88,9 +153,8 @@ rods:heroic speed#@zs!sdk
 ?wands:rocket#@ar!sdk
 ?wands:disintegrate#@ad!sdk
 ?wands:annihilation#@ah!sdk
-?:1
 
-?:[AND [LEQ $LEVEL 45] [NOT [EQU $CLASS Berserker]] ]
+?:[LEQ $LEVEL 45]
 ?staves:cure wounds#@uu!sdk
 ?:1
 
@@ -98,7 +162,6 @@ rods:heroic speed#@zs!sdk
 wizardstaff
 ?:1
 
-?:[NOT [EQU $CLASS Berserker]]
 ~?rods:illumination#@za!sdk
 ~?rods:detection#@zb!sdk
 ~?rods:recall#@zc!sdk
@@ -111,7 +174,6 @@ wizardstaff
 ~?staves:telepathy#@ut!sdk
 ~?wands:stone to mud#@ab!sdk
 ~?wands:tsunami#@ac!sdk
-?:1
 
 ?unidentified rods
 ?unidentified staves

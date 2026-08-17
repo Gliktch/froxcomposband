@@ -285,6 +285,12 @@ vec_ptr scores_load(score_p filter)
         {
             score_ptr score = score_read(fp);
             if (!score) break;
+            /* Prune level-1 entries on load; they are no longer recorded. */
+            if (score->clvl < 2)
+            {
+                score_free(score);
+                continue;
+            }
             if (filter && !filter(score))
             {
                 score_free(score);
@@ -371,6 +377,14 @@ void scores_update(void)
     char      name[100];
     bool      make_dump = _score_check2(scores, current, TRUE);
 
+    /* Do not record or emit level-1 deaths. */
+    if ((current->clvl < 2) && score_is_dead(current))
+    {
+        vec_free(scores);
+        score_free(current);
+        return;
+    }
+
     for (i = 0; i < vec_length(scores); i++)
     {
         score_ptr score = vec_get(scores, i);
@@ -425,6 +439,21 @@ void _purge_docs(vec_ptr scores)
 /************************************************************************
  * User Interface
  ************************************************************************/
+static vec_ptr _score_view(vec_ptr scores)
+{
+    int i;
+    vec_ptr view = vec_alloc(NULL);
+
+    for (i = 0; i < vec_length(scores); i++)
+    {
+        score_ptr score = vec_get(scores, i);
+
+        vec_add(view, score);
+    }
+
+    return view;
+}
+
 static void _display(doc_ptr doc, vec_ptr scores, int top, int page_size)
 {
     int i, j;
@@ -535,25 +564,33 @@ void scores_display(vec_ptr scores)
 {
     doc_ptr   doc = doc_alloc(100);
     int       top = 0, cmd;
-    int       page_size = ui_screen_rect().cy - 6;
+    int       page_size = ui_screen_rect().cy - 7;
     bool      done = FALSE;
-
     if (page_size > 26)
         page_size = 26;
 
     Term_clear();
     while (!done)
     {
-        _display(doc, scores, top, page_size);
-        cmd = inkey_special(TRUE);
-        if (cmd == ESCAPE || cmd == 'Q') break;
-        switch (cmd)
+        vec_ptr view = _score_view(scores);
+
+        if (top >= vec_length(view))
         {
-        case ESCAPE: case 'Q':
+            if (vec_length(view) > page_size)
+                top = vec_length(view) - page_size;
+            else
+                top = 0;
+        }
+
+        _display(doc, view, top, page_size);
+        cmd = inkey_special(TRUE);
+
+        if (cmd == ESCAPE || cmd == 'Q')
             done = TRUE;
-            break;
+        else switch (cmd)
+        {
         case SKEY_PGDOWN: case '3': case ' ':
-            if (top + page_size < vec_length(scores))
+            if (top + page_size < vec_length(view))
                 top += page_size;
             break;
         case SKEY_PGUP: case '9': case '-':
@@ -587,12 +624,12 @@ void scores_display(vec_ptr scores)
             if (islower(cmd))
             {
                 int j = top + A2I(cmd);
-                if (0 <= j && j < vec_length(scores))
-                    _show_dump(vec_get(scores, j));
+                if (0 <= j && j < vec_length(view))
+                    _show_dump(vec_get(view, j));
             }
         }
+        vec_free(view);
     }
     Term_clear();
     doc_free(doc);
 }
-

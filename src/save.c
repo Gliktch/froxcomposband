@@ -103,7 +103,12 @@ void updatecharinfoS(void)
 	{
 		fprintf(oFile, "suppressDeathAnnounce: \"1\"\n");
 	}
-	else
+	/* Level-1 deaths normally stay silent, but deaths in Outpost or on the
+	 * first floor of Angband still announce so new players in trouble are
+	 * noticed.  Scores recording remains suppressed regardless. */
+	else if (!(p_ptr->is_dead && p_ptr->lev < 2
+			&& (p_ptr->town_num != TOWN_OUTPOST)
+			&& !((dungeon_type == DUNGEON_ANGBAND) && (dun_level == 1))))
 	{
 		fprintf(oFile, "killedBy: \"%s\"\n", p_ptr->died_from);
 	}

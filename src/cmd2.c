@@ -4354,72 +4354,77 @@ static bool _journey_quest_ok(quest_ptr q, bool entrance)
 {
     if (!q) return FALSE;
 
-    /* Entrances are only actionable while the quest is in progress. */
+    /* Entrances are only actionable while the quest is taken or in
+     * progress - that is how you go do it. */
     if (entrance)
         return (q->status == QS_TAKEN) || (q->status == QS_IN_PROGRESS);
 
-    /* Quest-giving buildings cover taking, entering (some towns keep the
-     * building visible while taken), claiming rewards, and failed shame. */
-    return (q->status == QS_UNTAKEN) || (q->status == QS_TAKEN) ||
-           (q->status == QS_IN_PROGRESS) || (q->status == QS_COMPLETED) ||
+    /* Quest-giving buildings qualify when there is something to do there: a
+     * quest ready to be taken, a reward to claim, or a failed quest's shame.
+     * Pending quests (taken or in progress) are served by their entrance,
+     * and finished or failed-done quests have nothing left at the building. */
+    return (q->status == QS_UNTAKEN) || (q->status == QS_COMPLETED) ||
            (q->status == QS_FAILED);
 }
 
 
-bool journey_find(char key, int *x_ptr, int *y_ptr)
+typedef struct _journey_kind_s
 {
-    static int last_qy = -1;
-    static int last_qx = -1;
-    int letter;
-    int shop_type = -1;
-    bool want_quest = FALSE;
-    int best_y = 0, best_x = 0;
-    int best = TRAVEL_UNABLE;
-    int y, x;
+    int  shop_type;   /* SHOP_* for store targets, -1 otherwise */
+    bool want_quest;  /* quest-giving buildings and entrances */
+    bool stairs;      /* nearest stairs: '<' up, '>' down */
+    bool stairs_up;
+    bool quest_exit;  /* the up-stair exit of the current quest level */
+} _journey_kind_t;
 
-    /* Roguelike keyset: lowercase letters are movement, so journey keys
-     * must be uppercase there.  Original keyset accepts either case. */
-    if (rogue_like_commands && !isupper((unsigned char)key)) return FALSE;
-    letter = tolower((unsigned char)key);
+/* Map a journey key to its target kind.  Returns FALSE for keys that are
+ * not journey keys. */
+static bool _journey_key_kind(char letter, _journey_kind_t *kind)
+{
+    kind->shop_type = -1;
+    kind->want_quest = FALSE;
+    kind->stairs = FALSE;
+    kind->stairs_up = FALSE;
+    kind->quest_exit = FALSE;
 
     switch (letter)
     {
         case 'h':
         case 'j':
-            shop_type = SHOP_HOME;
+            kind->shop_type = SHOP_HOME;
             break;
         case 'g':
-            shop_type = SHOP_GENERAL;
+            kind->shop_type = SHOP_GENERAL;
             break;
         case 'a':
-            shop_type = SHOP_ARMORY;
+            kind->shop_type = SHOP_ARMORY;
             break;
         case 'w':
-            shop_type = SHOP_WEAPON;
+            kind->shop_type = SHOP_WEAPON;
             break;
         case 't':
-            shop_type = SHOP_TEMPLE;
+            kind->shop_type = SHOP_TEMPLE;
             break;
         case 'y':
-            shop_type = SHOP_ALCHEMIST;
+            kind->shop_type = SHOP_ALCHEMIST;
             break;
         case 'm':
-            shop_type = SHOP_MAGIC;
+            kind->shop_type = SHOP_MAGIC;
             break;
         case 'b':
-            shop_type = SHOP_BLACK_MARKET;
+            kind->shop_type = SHOP_BLACK_MARKET;
             break;
         case 'o':
-            shop_type = SHOP_BOOK;
+            kind->shop_type = SHOP_BOOK;
             break;
         case 'u':
-            shop_type = SHOP_MUSEUM;
+            kind->shop_type = SHOP_MUSEUM;
             break;
         case 's':
-            shop_type = SHOP_SHROOMERY;
+            kind->shop_type = SHOP_SHROOMERY;
             break;
         case 'q':
-            want_quest = TRUE;
+            kind->want_quest = TRUE;
             break;
         case 'i':
         case 'c':
@@ -4427,13 +4432,141 @@ bool journey_find(char key, int *x_ptr, int *y_ptr)
         case 'r':
         case 'p':
             break;
+        case '<':
+            kind->stairs = TRUE;
+            kind->stairs_up = TRUE;
+            break;
+        case '>':
+            kind->stairs = TRUE;
+            break;
         default:
             return FALSE;
     }
+    return TRUE;
+}
+
+/* Does this grid hold a feature matching the journey key? */
+static bool _journey_grid_match(int letter, _journey_kind_t *kind, cave_type *c_ptr)
+{
+    feature_type *f_ptr = &f_info[c_ptr->feat];
+
+    if (kind->quest_exit)
+        return (have_flag(f_ptr->flags, FF_LESS) && quests_get_current());
+
+    if (kind->stairs)
+    {
+        /* '<' stairs up use FF_LESS, '>' stairs down use FF_MORE.  Quest
+         * and dungeon entrances share the '>' glyph and FF_MORE but are not
+         * travel stairs, so they are excluded from '>'; quest exits on the
+         * '<' side are fine. */
+        if (!have_flag(f_ptr->flags, kind->stairs_up ? FF_LESS : FF_MORE))
+            return FALSE;
+        if (!kind->stairs_up &&
+            (have_flag(f_ptr->flags, FF_ENTRANCE) ||
+             have_flag(f_ptr->flags, FF_QUEST_ENTER)))
+            return FALSE;
+        return TRUE;
+    }
+    if (kind->want_quest)
+    {
+        if (cave_have_flag_grid(c_ptr, FF_QUEST_ENTER))
+            return _journey_quest_ok(quests_get(c_ptr->special), TRUE);
+        if (have_flag(f_ptr->flags, FF_BLDG))
+            return _journey_quest_ok(quests_get(c_ptr->special), FALSE);
+        return FALSE;
+    }
+    if (kind->shop_type >= 0)
+        return (have_flag(f_ptr->flags, FF_STORE) && (f_ptr->subtype == kind->shop_type));
+    return (have_flag(f_ptr->flags, FF_BLDG) && _journey_building_match(letter, f_ptr));
+}
+
+/* Build the target kind for a key, optionally specialised as the current
+ * quest's exit stairs (a second '<' entry in the ? list). */
+static bool _journey_kind_for_key(char key, bool quest_exit, _journey_kind_t *kind)
+{
+    if (!_journey_key_kind(tolower((unsigned char)key), kind)) return FALSE;
+    if (quest_exit)
+    {
+        kind->stairs = TRUE;
+        kind->stairs_up = TRUE;
+        kind->quest_exit = TRUE;
+    }
+    return TRUE;
+}
+
+/* Is there any feature on the current map matching this journey key? */
+bool journey_available(char key)
+{
+    _journey_kind_t kind;
+    int letter, y, x;
+
+    if (rogue_like_commands && isalpha((unsigned char)key) && !isupper((unsigned char)key))
+        return FALSE;
+    if (!_journey_kind_for_key(key, FALSE, &kind)) return FALSE;
+    letter = tolower((unsigned char)key);
+
+    for (y = 0; y < cur_hgt; y++)
+        for (x = 0; x < cur_wid; x++)
+            if (_journey_grid_match(letter, &kind, &cave[y][x]))
+                return TRUE;
+    return FALSE;
+}
+
+/* Is this one of the journey shortcut keys (including the h/j Home alias)?
+ * In the roguelike keyset the shortcuts are the uppercase forms, since
+ * lowercase letters are movement there. */
+bool journey_key(char key)
+{
+    _journey_kind_t kind;
+
+    if (rogue_like_commands && isalpha((unsigned char)key) && !isupper((unsigned char)key))
+        return FALSE;
+    return _journey_key_kind(tolower((unsigned char)key), &kind);
+}
+
+/* Glyph and colour of the first feature matching the journey key on the
+ * current map, for the ? list.  Returns FALSE when nothing is available. */
+static bool _journey_target_glyph(char key, bool quest_exit, byte *attr, char *ch)
+{
+    _journey_kind_t kind;
+    feature_type *f_ptr;
+    int letter, y, x;
+
+    if (!_journey_kind_for_key(key, quest_exit, &kind)) return FALSE;
+    letter = tolower((unsigned char)key);
+
+    for (y = 0; y < cur_hgt; y++)
+        for (x = 0; x < cur_wid; x++)
+            if (_journey_grid_match(letter, &kind, &cave[y][x]))
+            {
+                f_ptr = &f_info[cave[y][x].feat];
+                *attr = f_ptr->x_attr[F_LIT_STANDARD];
+                *ch = f_ptr->x_char[F_LIT_STANDARD];
+                return TRUE;
+            }
+    return FALSE;
+}
+
+bool journey_find(char key, int *x_ptr, int *y_ptr)
+{
+    static int last_qy = -1;
+    static int last_qx = -1;
+    _journey_kind_t kind;
+    int letter;
+    int best_y = 0, best_x = 0;
+    int best = TRAVEL_UNABLE;
+    int y, x;
+
+    /* Roguelike keyset: lowercase letters are movement, so journey keys
+     * must be uppercase there.  Original keyset accepts either case. */
+    if (rogue_like_commands && isalpha((unsigned char)key) && !isupper((unsigned char)key))
+        return FALSE;
+    letter = tolower((unsigned char)key);
+    if (!_journey_key_kind(letter, &kind)) return FALSE;
 
     /* The previous quest-jump target is only skipped while it still shows an
      * actionable quest, so cycling survives map changes. */
-    if (want_quest && (!in_bounds(last_qy, last_qx)))
+    if (kind.want_quest && (!in_bounds(last_qy, last_qx)))
     {
         last_qy = -1;
         last_qx = -1;
@@ -4444,38 +4577,29 @@ bool journey_find(char key, int *x_ptr, int *y_ptr)
         for (x = 0; x < cur_wid; x++)
         {
             cave_type *c_ptr = &cave[y][x];
-            feature_type *f_ptr = &f_info[c_ptr->feat];
-            bool match = FALSE;
+            bool match = _journey_grid_match(letter, &kind, c_ptr);
             int tulos;
 
-            if (want_quest)
+            /* Skip the whole quest-giver building (or entrance) underfoot,
+             * and the whole building of the previous jump, so multi-door
+             * buildings (e.g. the three-door Count in Outpost) count as one
+             * quest and repeated presses hop between quests. */
+            if (match && kind.want_quest)
             {
-                if (cave_have_flag_grid(c_ptr, FF_QUEST_ENTER))
-                {
-                    match = _journey_quest_ok(quests_get(c_ptr->special), TRUE);
-                }
-                else if (have_flag(f_ptr->flags, FF_BLDG))
-                {
-                    match = _journey_quest_ok(quests_get(c_ptr->special), FALSE);
-                }
+                cave_type *h_ptr = &cave[py][px];
+                bool skip = FALSE;
 
-                /* Skip the square underfoot and the previous jump target so
-                 * repeated presses hop between quests. */
-                if (match && (((y == py) && (x == px)) ||
-                              ((y == last_qy) && (x == last_qx))))
-                {
-                    continue;
-                }
-            }
-            else if (shop_type >= 0)
-            {
-                match = (have_flag(f_ptr->flags, FF_STORE) &&
-                         (f_ptr->subtype == shop_type));
-            }
-            else
-            {
-                match = (have_flag(f_ptr->flags, FF_BLDG) &&
-                         _journey_building_match(letter, f_ptr));
+                if (h_ptr->special && c_ptr->special == h_ptr->special &&
+                    (have_flag(f_info[h_ptr->feat].flags, FF_BLDG) ||
+                     have_flag(f_info[h_ptr->feat].flags, FF_QUEST_ENTER)))
+                    skip = TRUE;
+
+                if (!skip && in_bounds(last_qy, last_qx) &&
+                    cave[last_qy][last_qx].special &&
+                    c_ptr->special == cave[last_qy][last_qx].special)
+                    skip = TRUE;
+
+                if (skip) continue;
             }
 
             if (!match) continue;
@@ -4497,10 +4621,129 @@ bool journey_find(char key, int *x_ptr, int *y_ptr)
 
     *x_ptr = best_x;
     *y_ptr = best_y;
-    if (want_quest)
+    if (kind.want_quest)
     {
         last_qy = best_y;
         last_qx = best_x;
     }
     return TRUE;
+}
+
+/* Journey key map shown by the ? list, in the same order and with the same
+ * tile glyphs as the ] object list; the 'h' entry also covers 'j' (Home). */
+static const struct {
+    char key;
+    char glyph;
+    bool quest_exit;
+    cptr label;
+} _journey_key_list[] = {
+    { 'g', '1', FALSE, "General Store" },
+    { 'a', '2', FALSE, "Armoury" },
+    { 'w', '3', FALSE, "Weapon Smiths" },
+    { 't', '4', FALSE, "Temple" },
+    { 'y', '5', FALSE, "Alchemy Shop" },
+    { 'm', '6', FALSE, "Magic Shop" },
+    { 'b', '7', FALSE, "Black Market" },
+    { 'h', '8', FALSE, "Home" },
+    { 'o', '9', FALSE, "Bookstore" },
+    { 's', '0', FALSE, "Mushroom Store" },
+    { 'u', 'M', FALSE, "Museum" },
+    { 'l', '+', FALSE, "Healer" },
+    { 'p', '+', FALSE, "Trump Tower" },
+    { 'i', '+', FALSE, "Inn" },
+    { 'c', '+', FALSE, "Casino" },
+    { 'r', '+', FALSE, "Reforging" },
+    { 'q', '>', FALSE, "Nearest quest" },
+    { '>', '>', FALSE, "Nearest Stairs Down" },
+    { '<', '<', FALSE, "Nearest Stairs Up" },
+    { '<', '<', TRUE, "Quest Exit" }
+};
+#define _N_JOURNEY_KEYS ((int)(sizeof(_journey_key_list) / sizeof(_journey_key_list[0])))
+#define _JOURNEY_COLS 3
+#define _JOURNEY_ROWS ((_N_JOURNEY_KEYS + _JOURNEY_COLS - 1) / _JOURNEY_COLS)
+
+/* Pick a journey target from the full key list, laid out in three
+ * column-major columns.  Targets with no match on the current map are shown
+ * greyed out with their standard glyph, and a journey letter travels
+ * directly without leaving the list.  Returns the chosen letter, or 0 on
+ * Esc. */
+char journey_choose_list(void)
+{
+    int  i, col, row, x;
+    char ch;
+
+    screen_save();
+    Term_clear();
+    c_put_str(TERM_WHITE, "Journey targets", 2, 4);
+    c_put_str(TERM_L_GREEN, "Press a journey letter to travel; Esc to cancel.", 3, 4);
+
+    for (i = 0; i < _N_JOURNEY_KEYS; i++)
+    {
+        byte attr;
+        char glyph;
+        char buf[40];
+        char keylab[8];
+        int  klen;
+
+        col = i / _JOURNEY_ROWS;
+        row = 5 + (i % _JOURNEY_ROWS);
+        x = 6 + col * 25 - ((col == 2) ? 1 : 0);
+        if (_journey_key_list[i].key == 'h')
+            strcpy(keylab, "[h/j] ");
+        else if (col == 1)
+            /* Centre-column brackets (except Home's wider h/j) sit one space
+             * in, centred underneath it. */
+            sprintf(keylab, " [%c] ", _journey_key_list[i].key);
+        else
+            sprintf(keylab, "[%c] ", _journey_key_list[i].key);
+        klen = strlen(keylab);
+
+        if (_journey_target_glyph(_journey_key_list[i].key,
+                _journey_key_list[i].quest_exit, &attr, &glyph))
+        {
+            c_put_str(TERM_WHITE, keylab, row, x);
+            c_put_str(attr, format("%c", glyph), row, x + klen);
+            c_put_str(TERM_WHITE, format(" %s", _journey_key_list[i].label), row, x + klen + 1);
+        }
+        else
+        {
+            sprintf(buf, "%s%c %s", keylab,
+                _journey_key_list[i].glyph, _journey_key_list[i].label);
+            c_put_str(TERM_SLATE, buf, row, x);
+        }
+    }
+    /* The third column only fills six rows, so its last-row slot hosts the
+     * go-back hint. */
+    c_put_str(TERM_ORANGE, "[Esc] ", 5 + _JOURNEY_ROWS - 1, 6 + 2 * 25 - 1);
+    c_put_str(TERM_L_GREEN, "Go back", 5 + _JOURNEY_ROWS - 1, 6 + 2 * 25 + 5);
+    Term_fresh();
+
+    for (;;)
+    {
+        ch = inkey();
+        if (ch == ESCAPE)
+        {
+            ch = 0;
+            break;
+        }
+        if (rogue_like_commands && isalpha((unsigned char)ch) && !isupper((unsigned char)ch))
+            continue;
+        ch = tolower((unsigned char)ch);
+        for (i = 0; i < _N_JOURNEY_KEYS; i++)
+        {
+            if (_journey_key_list[i].key == ch ||
+                (ch == 'j' && _journey_key_list[i].key == 'h'))
+            {
+                if (journey_available(ch))
+                {
+                    screen_load();
+                    return ch;
+                }
+                bell();
+                break;
+            }
+        }
+    }
+    screen_load();
+    return ch;
 }

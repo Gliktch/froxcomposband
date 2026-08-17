@@ -3516,6 +3516,28 @@ extern void do_cmd_debug(void);
 
 
 
+/* Is any adjacent grid a spikeable door?  Mirrors do_cmd_spike_dir's FF_SPIKE
+ * test, so the '+' building/store tiles (FF_DOOR but not FF_SPIKE) never
+ * count as doors here. */
+static bool _adjacent_spikeable_door(void)
+{
+    int i;
+
+    for (i = 1; i <= 9; i++)
+    {
+        int y, x;
+
+        if (i == 5) continue;
+        y = py + ddy[i];
+        x = px + ddx[i];
+        if (!in_bounds(y, x)) continue;
+
+        if (have_flag(f_info[get_feat_mimic(&cave[y][x])].flags, FF_SPIKE))
+            return TRUE;
+    }
+    return FALSE;
+}
+
 /*
  * Parse and execute the current command
  * Give "Warning" on illegal commands.
@@ -3821,21 +3843,48 @@ static void _dispatch_command(int old_now_turn)
         {
             if (!p_ptr->wild_mode)
             {
-                char ch = inkey();
-                int y, x;
+                for (;;)
+                {
+                    char ch = 0;
+                    int y, x;
 
-                /* A journey letter travels to the matching feature on the
-                 * current map (content-driven; see journey_find()). */
-                if (journey_find(ch, &y, &x))
-                {
-                    travel_begin(TRAVEL_MODE_NORMAL, x, y);
-                }
-                /* A direction still jams a door, as before. */
-                else
-                {
-                    int dir = get_keymap_dir(ch, FALSE);
-                    if (dir) do_cmd_spike_dir(dir);
-                    else bell();
+                    /* Show the most appropriate prompt: spiking needs a door
+                     * nearby, while journey shortcuts are the common case. */
+                    if (!msg_command(_adjacent_spikeable_door() ?
+                        "Which door to jam? " :
+                        "Please enter a journey letter target (? for list): ", &ch))
+                        break;
+
+                    /* A journey letter travels to the matching feature on the
+                     * current map (content-driven; see journey_find()). */
+                    if (journey_find(ch, &x, &y))
+                    {
+                        travel_begin(TRAVEL_MODE_NORMAL, x, y);
+                        break;
+                    }
+
+                    /* List the journey keys on request. */
+                    if (ch == '?')
+                    {
+                        char chosen = journey_choose_list();
+                        if (chosen)
+                        {
+                            if (journey_find(chosen, &x, &y))
+                            {
+                                travel_begin(TRAVEL_MODE_NORMAL, x, y);
+                                break;
+                            }
+                        }
+                        continue;
+                    }
+
+                    /* A direction still jams a door, as before. */
+                    {
+                        int dir = get_keymap_dir(ch, FALSE);
+                        if (dir) do_cmd_spike_dir(dir);
+                        else bell();
+                    }
+                    break;
                 }
             }
             break;

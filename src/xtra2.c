@@ -6306,18 +6306,24 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
         ch = inkey();
 
         /* Journey shortcuts: travel straight to a matching town feature.
-         * Content-driven, so keys without a matching feature on the current
-         * map fall through to their normal targeting meaning below. */
+         * A journey key with no matching or reachable feature is consumed
+         * with a bell rather than falling through to a normal targeting
+         * action, which would be unexpected in journey mode. */
         if (tgt_travel_mode && !p_ptr->wild_mode)
         {
             int jy, jx;
 
-            if (journey_find(ch, &jy, &jx))
+            if (journey_find(ch, &jx, &jy))
             {
                 y = jy;
                 x = jx;
                 success = TRUE;
                 break;
+            }
+            if (journey_key(ch))
+            {
+                bell();
+                continue;
             }
         }
 

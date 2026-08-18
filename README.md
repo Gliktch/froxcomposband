@@ -21,9 +21,9 @@ FrogComposband versions.
 
 | Platform | Package | Size | Alternate | Size |
 |:---:|:---:|:---:|:---:|:---:|
-| [![Windows](https://ask.band/assets/frox-win.png)](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-windows-x86_64.zip) | [Windows ZIP](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-windows-x86_64.zip) | 8.3 MB |
-| [![macOS](https://ask.band/assets/frox-mac.png)](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-macos-x86_64.dmg) | [macOS Intel DMG](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-macos-x86_64.dmg) | 6.0 MB | [macOS Apple Silicon DMG](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-macos-arm64.dmg) | 5.8 MB |
-| [![Linux](https://ask.band/assets/frox-linux.png)](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-linux-x86_64.deb) | [Linux .deb package](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-linux-x86_64.deb) | 4.9 MB | [Linux standalone tar.gz](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-linux-x86_64.tar.gz) | 7.5 MB |
+| [![Windows](https://ask.band/assets/frox-win.png)](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-windows-x86_64.zip) | [Windows ZIP](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-windows-x86_64.zip) | 7.86 MB |
+| [![macOS](https://ask.band/assets/frox-mac.png)](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-macos-x86_64.dmg) | [macOS Intel DMG](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-macos-x86_64.dmg) | 4.90 MB | [macOS Apple Silicon DMG](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-macos-arm64.dmg) | 5.44 MB |
+| [![Linux](https://ask.band/assets/frox-linux.png)](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-linux-x86_64.deb) | [Linux .deb package](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-linux-x86_64.deb) | 4.67 MB | [Linux standalone tar.gz](https://github.com/Gliktch/froxcomposband/releases/download/v7.3.0/froxcomposband-v7.3.0-linux-x86_64.tar.gz) | 7.09 MB |
 
 ## How to install manually
 

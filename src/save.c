@@ -1542,6 +1542,13 @@ static char *versio_nimi(int tavu, int keski)
 {
 	switch (keski)
 	{
+		case 3: {
+			switch (tavu)
+			{
+				case 0: return "pipari";
+				default: return "pipari";
+			}
+		}
 		case 0: {
 			switch (tavu)
 			{

@@ -1,3 +1,113 @@
+Changes in FroxComposband 7.3.0:
+
+Town travel
+* `j` in the original keyset (and the `` ` `` travel-targeting mode, with
+  capitals in the roguelike keyset) now accepts journey letters for shops,
+  buildings and the nearest quest target; `j` followed by a direction still
+  jams a door with spikes.
+
+World map
+* The global map now opens as a read-only overview of the exact map
+  (lookable with `*`/`x`/`l`). Travel only commits when a direction is
+  pressed, so viewing costs nothing, needs no food, and never deletes
+  floor items.
+
+Items and lists
+* `i`, `e` and `I` now share one item screen (inventory | equipment |
+  quiver | floor | specials tabs); `I` always shows special packs, shops
+  suppress the always-empty floor tab, and the tab order is inventory-first.
+* Renamed the Potion of Enlightenment and *Enlightenment* to Potion of
+  Revelation and *Revelation*; the Revelation potions, Enlightenment rod and
+  Clairvoyance now refresh the object list subwindow.
+* Added an explicit `y` command that wipes floor/wilderness-cell items the
+  Mogaminator classifies as Unwanted, with `u` previewing the exact list.
+* Guarded the object list against stale object coordinates.
+* Glove slays and brands now apply to martial arts, with correct monk
+  multipliers; rods of Enlightenment are auto-picked by default; Sabres no
+  longer throw and Spears do.
+* Fresh ammo piles always stack to at least 10; missed exploding ego ammo
+  can survive; weapon shops keep a baseline of each ammo type; quiver
+  takeoff/drop accepts `*` for all ammo; floor split remainders return to
+  the floor.
+ * Unknown activations are hidden from the activation menu; Crafting works
+   for ammo stacks again; Whip Fetch runs through pickup hooks.
+ * Object and monster list letter-search now jumps across the whole list
+   (wrapping past the end) instead of only the visible page, and scrolls
+   the found entry into view.
+
+UI information
+* Stalk now shows `Stalk XRegen` in the state line, covering both HP and
+  SP regeneration suppression.
+* Added a default-off "Run past side terrain changes" option.
+* Final character dumps (winner, death, suicide, retirement) show carried
+  items fully identified with device power, without changing the save.
+* Object and monster lists gained session-persistent filters, interactive
+  width controls, and movement keys no longer dismiss them; the monster
+  list has compact subwindow headers.
+* Added the spells and object-recall subwindows; the spell subwindow
+  refreshes only when the selected book or knowledge actually changes.
+* Death screen: cheat-death and quick-restart choices, a silent-death
+  option, a reflowed dialog layout, and subwindows cleared before the
+  tombstone.
+* Life rating displays as a percentage; the killer is labeled on the death
+  screen; stat-point confirmation names the chosen stat; score view hides
+  level-1 entries by default; the character sheet warns at full carrying
+  capacity.
+* Custom keys: `\d` is the Delete escape, friendly `[Name]` trigger tokens
+  are accepted, invalid escapes and unknown tokens are rejected instead of
+  silently stripped, multi-byte triggers show `Keymap: N/A`, and the pref
+  help has a compact escape table.
+ * Options: item markers default on, key-alert and monster-range defaults
+   improved, stairs shown in the object list by default, Frox option keys
+   shortened with save slots fixed, and options menus and value displays
+   reworked.
+ * New list option to put inscriptions before item names, with Off / User /
+   On modes: User shows your inscription first with pseudo-inscriptions
+   (feelings, curses) at the end; On moves those to the front too.
+* Misc: life-rating, stun-immunity and cold-aura wording; mount escape
+  messages; rest completion handling; subwindow `t` inversion; Tab
+  proficiency switching; clearer birth-screen labels; document search
+  advances after prompts; footer/header prompt cleanup.
+
+Combat
+* A completely whiffed attack (one that ignores AC) no longer wakes a
+  sleeping target while hidden in shadows; other complete whiffs roll the
+  unseen-bump wake chance, while AC-deflected misses still wake.
+* Declining an unseen-bump attack costs energy and rolls a wake chance;
+  Beam of Disintegration confirms despite auto-targeting.
+* Buff and heal targeting prefers the intended ally (mount, then pets,
+  then other friendlies).
+* Mount throws require acknowledgement; sleeping monsters no longer follow
+  up stairs; distant monsters can no longer sanity-blast during stairs;
+  Detection no longer reveals buried treasure; failed item-use retries
+  respect the configured limit.
+
+ Shops and gold
+ * Dungeon floor gold scales with depth; mined gold pays about 1.5x.
+ * Unaffordable purchase and reserve prompts are blocked before asking;
+   quantity prompts accept `*` for the maximum.
+ * Reserving a shop item now costs one quarter of its value instead of
+   half, with a 3x higher cap; final purchase prices are unchanged.
+* Shop stock pruning waits 250 turns since the last prune; no-sell games
+  hide non-shop discounts.
+ * Destroying items skips confirmation when it cannot be honoured; cursed
+   ring swaps auto-confirm into the refusal.
+
+ Scores
+ * Level-1 deaths are no longer recorded to the scores file or announced in
+   hosted chat, and existing level-1 entries are pruned on load, so the
+   high-score view no longer needs its level-1 display filter.
+
+Protected mode
+* Lock conflicts show live termination status and PID details, offer a
+  confirmed SIGKILL escalation, re-acquire the savefile lock after
+  terminating the old process, and gate the continue-override behind a
+  failed kill.
+
+Platform
+* Windows private user paths create recursively under the install
+  directory; the Windows resource build targets x86-64.
+
 Changes in FroxComposband 7.2.6:
 
 Hotfixes

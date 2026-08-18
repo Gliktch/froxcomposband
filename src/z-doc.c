@@ -1009,7 +1009,7 @@ cptr doc_lex(cptr pos, doc_token_ptr token)
 
 static string_ptr _doc_version_string(bool intro)
 {
-    string_ptr s = string_alloc_format("%d.%d.%d", VER_MAJOR, VER_MINOR, VER_EXTRA);
+    string_ptr s = string_alloc_format("%d.%d.%s.%d", VER_MAJOR, VER_MINOR, VER_PATCH, VER_EXTRA);
 
     if (coffee_break == SPEED_COFFEE) string_append_s(s, "<color:U> (Coffee)</color>");
     if (coffee_break == SPEED_INSTA_COFFEE) string_append_s(s, "<color:U> (Instant Coffee)</color>");

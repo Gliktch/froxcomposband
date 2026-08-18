@@ -1495,7 +1495,9 @@ static int  _stock_base(shop_ptr shop);
 /* Session toggle for hiding Unwanted items in store listings (u/U). */
 static bool _shop_hide_unwanted;
 
+static bool   _shop_item_unwanted(shop_ptr shop, slot_t slot);
 static bool   _shop_item_hidden(shop_ptr shop, slot_t slot);
+static int    _shop_unwanted_count(shop_ptr shop);
 static slot_t _shop_page_slot(shop_ptr shop, int pos);
 static int    _shop_page_max(shop_ptr shop);
 
@@ -1707,10 +1709,14 @@ static void _display(_ui_context_ptr context)
         "[<color:o>R</color>] Reserve Item  [<color:o>S</color>] Shuffle Stock  "
         "[<color:o>B</color>] Buy Everything\n"
         "[<color:o>Space/PgDn</color>] Next  [<color:o>-/PgUp</color>] Previous  ");
-    if (_shop_hide_unwanted)
-        doc_insert(doc, "<color:R>[</color><color:o>U</color><color:R>] Show Unwanted</color>");
-    else
-        doc_insert(doc, "[<color:o>U</color>] Hide Unwanted");
+    {
+        int unwanted = _shop_unwanted_count(shop);
+
+        if (_shop_hide_unwanted)
+            doc_printf(doc, "<color:w>[</color><color:o>U</color><color:w>] </color><color:R>Show Unwanted</color> <color:y>(%d)</color>", unwanted);
+        else
+            doc_printf(doc, "<color:w>[</color><color:o>U</color><color:w>] Hide Unwanted</color> <color:y>(%d)</color>", unwanted);
+    }
     doc_insert(doc, "</color>");
     doc_insert(doc, "</style>");
 
@@ -2808,14 +2814,14 @@ bool shop_common_cmd_handler(int cmd)
     return FALSE;
 }
 
-/* Is this shop item hidden by the Unwanted filter?  Only store listings are
- * filtered; Home and other inventory views always show everything. */
-static bool _shop_item_hidden(shop_ptr shop, slot_t slot)
+/* Is this shop item classified as Unwanted, independent of the display filter?
+ * Only store listings are classified; Home and other inventory views always
+ * show everything. */
+static bool _shop_item_unwanted(shop_ptr shop, slot_t slot)
 {
     obj_ptr obj;
     int     idx;
 
-    if (!_shop_hide_unwanted) return FALSE;
     if (inv_loc(shop->inv) != INV_SHOP) return FALSE;
 
     obj = inv_obj(shop->inv, slot);
@@ -2825,6 +2831,27 @@ static bool _shop_item_hidden(shop_ptr shop, slot_t slot)
     idx = is_autopick(obj);
     obj_list_autopick_hack = FALSE;
     return autopick_is_unwanted(idx);
+}
+
+/* Is this shop item hidden by the Unwanted filter? */
+static bool _shop_item_hidden(shop_ptr shop, slot_t slot)
+{
+    if (!_shop_hide_unwanted) return FALSE;
+    return _shop_item_unwanted(shop, slot);
+}
+
+/* Number of store rows classified as Unwanted (one per stack), shown in the
+ * command footer regardless of whether the filter is currently on. */
+static int _shop_unwanted_count(shop_ptr shop)
+{
+    slot_t slot, max = inv_last(shop->inv, obj_exists);
+    int    ct = 0;
+
+    if (inv_loc(shop->inv) != INV_SHOP) return 0;
+
+    for (slot = 1; slot <= max; slot++)
+        if (_shop_item_unwanted(shop, slot)) ct++;
+    return ct;
 }
 
 /* Resolve a page position (1-based, counting only visible items while the

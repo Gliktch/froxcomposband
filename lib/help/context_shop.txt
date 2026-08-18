@@ -28,11 +28,11 @@ Gold Remaining: <color:y>1.94k</color>
                                                                                 
 <color:G>[<color:o>b/p/g</color>] Buy  [<color:o>s/d</color>] Sell  [<color:o>x</color>] Examine  [<color:o>?</color>] Help  [<color:o>q/Esc</color>] Exit</color>
 <color:G>[<color:o>R</color>] Reserve Item  [<color:o>S</color>] Shuffle Stock  [<color:o>B</color>] Buy Everything</color>
-<color:G>[<color:o>Space/PgDn</color>] Next  [<color:o>-/PgUp</color>] Previous  [<color:o>U</color>] Hide Unwanted</color>
+<color:G>[<color:o>Space/PgDn</color>] Next  [<color:o>-/PgUp</color>] Previous  <color:w>[</color><color:o>U</color><color:w>] Hide Unwanted (<color:y>N</color>)</color>
 </indent></style>
 A quick list of available commands is displayed on the bottom of the screen. Simply choose the appropriate command and follow the instructions. Use <color:keypress>Page Up</color> and <color:keypress>Page Down</color> if the shop inventory extends to multiple pages.
 
-Press <color:keypress>u</color> or <color:keypress>U</color> to toggle hiding items your Mogaminator rules classify as Unwanted; while the filter is on the footer entry turns red and reads <color:keypress>Show Unwanted</color>. If the Mogaminator is disabled, <color:keypress>u</color> explains how to activate it first.
+Press <color:keypress>u</color> or <color:keypress>U</color> to toggle hiding items your Mogaminator rules classify as Unwanted; while the filter is on the footer entry turns red and reads <color:keypress>Show Unwanted</color>. The footer shows how many listed rows are affected (one per stack), and the count updates as the store contents change. If the Mogaminator is disabled, <color:keypress>u</color> explains how to activate it first.
 
 Every store owner has access to limited funds, and will only pay so much for items that you sell; this amount is listed next to the store type on the top of the display.
 

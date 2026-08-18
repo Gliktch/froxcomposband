@@ -2199,6 +2199,17 @@ static _obj_list_ptr _create_obj_list(_obj_list_filter_ptr filter)
     }
     vec_sort(list->list, (vec_cmp_f)_obj_list_comp);
 
+    /* A trailing footer (blank separator row) would show as an empty line at
+     * the bottom of the list, so drop it when one sorts to the end.  This is
+     * safe across pages: removing it shrinks ct_types, so pagination simply
+     * recomputes with one fewer row. */
+    if (vec_length(list->list))
+    {
+        _obj_list_info_ptr last = vec_get(list->list, vec_length(list->list) - 1);
+        if (last->subgroup == _SUBGROUP_FOOTER)
+            vec_pop(list->list);
+    }
+
     return list;
 }
 

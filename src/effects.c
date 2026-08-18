@@ -111,22 +111,22 @@ static int _death_dump_screen_prompt(bool *quick, bool *silent)
         c_put_str(*quick ? TERM_L_GREEN : TERM_RED, *quick ? "ON" : "OFF", row + 4, 38);
         put_str("To continue to the next death screen, press [n].", row + 6, 2);
         c_put_str(TERM_ORANGE, "n", row + 6, 47);
-        put_str("Still in denial? Or can't bear to leave without checking out that one last", row + 7, 2);
-        put_str("bit of loot to see what you died for? Or simply want to smack that big meanie", row + 8, 2);
-        put_str("one last time, for shuffling you off this mortal coil?", row + 9, 2);
-        put_str("In that case, press [w] now, to cheat death and resurrect in wizard mode, but", row + 11, 2);
-        c_put_str(TERM_ORANGE, "w", row + 11, 23);
-        put_str("know that of course it makes you a stinky cheater and no score will be saved.", row + 12, 2);
+        put_str("Still in denial? Or can't bear to leave without checking out that one last", row + 8, 2);
+        put_str("bit of loot to see what you died for? Or simply want to smack that big meanie", row + 9, 2);
+        put_str("one last time, for shuffling you off this mortal coil?", row + 10, 2);
+        put_str("In that case, press [w] now, to cheat death and resurrect in wizard mode, but", row + 12, 2);
+        c_put_str(TERM_ORANGE, "w", row + 12, 23);
+        put_str("know that of course it makes you a stinky cheater and no score will be saved.", row + 13, 2);
         c_put_str(TERM_L_GREEN, esc_armed
             ? "[d/y] View Screen  [s] Silent  [q] Quick  [w] Cheat Death  [Esc] Accept Death"
             : "[d/y] View Screen  [s] Silent  [q] Quick  [w] Cheat Death  [n] Accept Death",
-            row + 14, 2);
-        c_put_str(TERM_ORANGE, "d", row + 14, 3);
-        c_put_str(TERM_ORANGE, "y", row + 14, 5);
-        c_put_str(TERM_ORANGE, "s", row + 14, 22);
-        c_put_str(TERM_ORANGE, "q", row + 14, 34);
-        c_put_str(TERM_ORANGE, "w", row + 14, 45);
-        c_put_str(TERM_ORANGE, esc_armed ? "Esc" : "n", row + 14, 62);
+            row + 15, 2);
+        c_put_str(TERM_ORANGE, "d", row + 15, 3);
+        c_put_str(TERM_ORANGE, "y", row + 15, 5);
+        c_put_str(TERM_ORANGE, "s", row + 15, 22);
+        c_put_str(TERM_ORANGE, "q", row + 15, 34);
+        c_put_str(TERM_ORANGE, "w", row + 15, 45);
+        c_put_str(TERM_ORANGE, esc_armed ? "Esc" : "n", row + 15, 62);
         Term_gotoxy(MIN(2 + (int)strlen(killer), Term->wid - 1), row - 2);
         Term_fresh();
 

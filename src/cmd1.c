@@ -6687,14 +6687,21 @@ static int _autorun_continue_prompt(void)
         char ch = inkey();
 
         if (ch == 'y' || ch == 'Y' || ch == ' ' || ch == '\r' || ch == '\n')
+        {
+            msg_line_clear();
             return 1; /* Continue running */
+        }
         if (ch == 'n' || ch == 'N' || ch == ESCAPE)
+        {
+            msg_line_clear();
             return 0; /* Stop running */
+        }
 
         /* Any other key cancels the run and falls through to the main
          * loop, which handles it as a normal command - including prefixed
          * movement such as ;9 or .4. */
         Term_key_push(ch);
+        msg_line_clear();
         return 0;
     }
 }

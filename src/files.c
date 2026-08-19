@@ -586,6 +586,8 @@ errr process_pref_file_command(char *buf)
             opt_name = "monlist_range";
         if (streq(opt_name, "no_mogaminator"))
             opt_name = "disable_mogaminator";
+        if (streq(opt_name, "message_pane_wrap"))
+            opt_name = "messages_wrap";
         if (streq(opt_name, "temp_file_policy"))
         {
             temp_file_policy = (buf[0] == 'Y') ? TEMP_FILE_POLICY_PROMPT : TEMP_FILE_POLICY_FORCE;

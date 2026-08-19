@@ -3132,8 +3132,8 @@ static void _fix_message_aux(void)
 
     Term_get_size(&w, &h);
     doc_width = w;
-    if (message_pane_wrap_width <= 150)
-        doc_width = MIN(doc_width, message_pane_wrap_width);
+    if (messages_wrap_width <= 150)
+        doc_width = MIN(doc_width, messages_wrap_width);
     doc = doc_alloc(doc_width);
 
     for (i = MIN(h, msg_count() - 1); i >= 0; i--)

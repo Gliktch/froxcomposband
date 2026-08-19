@@ -2375,7 +2375,7 @@ option_type option_info[] =
     "travel_ignore_items",          "Ignore identified items while travelling" },
 
     { &autorun_max_steps_dummy,     TRUE, OPT_PAGE_DISTURBANCE, 3, 6,
-    "autorun_max_steps",            "Max autorun steps before stopping" },
+    "autorun_max_steps",            "Max autorun steps before pausing to confirm" },
 
     { &check_abort,                 TRUE,  OPT_PAGE_DISTURBANCE, 1, 18,
     "check_abort",                  "Check for user abort of automated input" },
@@ -2423,10 +2423,10 @@ option_type option_info[] =
     "disturb_trap_detect",          "Disturb when leaving trap-detected area" },
 
     { &alert_item_minor,            FALSE, OPT_PAGE_DISTURBANCE, 3, 0,
-    "alert_item_minor",             "Alert: Equipped item damaged or cursed" },
+    "alert_item_minor",             "Alert: Equipped item gets damaged or cursed" },
 
     { &alert_item_major,            TRUE,  OPT_PAGE_DISTURBANCE, 3, 1,
-    "alert_item_major",             "Alert: Item permanently damaged/lost" },
+    "alert_item_major",             "Alert: Item gets permanently damaged or is lost" },
 
     { &alert_insc_gone,             TRUE,  OPT_PAGE_DISTURBANCE, 0, 2,
     "alert_insc_gone",              "Alert: Inscribed item permanently damaged/lost" },
@@ -2635,7 +2635,7 @@ option_type option_info[] =
     "show_item_markers",            "Show item-state markers in object listings" },
 
     { &inscriptions_first_dummy,    FALSE, OPT_PAGE_LIST, 3, 13,
-    "inscriptions_first",           "Put inscriptions before item names" },
+    "inscriptions_first",           "Put these inscriptions before item names" },
 
     { &show_special_inventories,    FALSE, OPT_PAGE_LIST, 3, 7,
     "show_special_bags",            "Include special pack tabs in inventory lists" },
@@ -2665,7 +2665,7 @@ option_type option_info[] =
     "monlist_ungroup",              "List each monster separately in monster lists" },
 
     { &monlist_zzz_dummy,           FALSE,  OPT_PAGE_LIST, 7, 19,
-    "monlist_zzz",                  "Show a Zzz prefix for sleeping monster rows" },
+    "monlist_zzz",                  "Show a Zzz prefix for these sleeping monsters" },
 
     { &list_stairs,                 TRUE,   OPT_PAGE_LIST, 1, 10,
     "list_stairs",                  "Display stairs in object list" },
@@ -2686,7 +2686,7 @@ option_type option_info[] =
     "monster_list_width",           "Maximum width of the monster list" },
 
     { &msg_pane_wrap_width,         TRUE,  OPT_PAGE_LIST, 3, 8,
-    "message_pane_wrap",            "Word-wrap width for the Messages pane" },
+    "messages_wrap",                "Word-wrap width for the Messages subwindow" },
 
     /*** End of Table ***/
 

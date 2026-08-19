@@ -353,7 +353,7 @@ byte object_list_width = 56;
 bool mon_list_width;
 byte monster_list_width = 56;
 bool msg_pane_wrap_width;
-byte message_pane_wrap_width = 151;
+byte messages_wrap_width = 151;
 bool autorun_max_steps_dummy;
 byte autorun_max_steps = 0;
 
@@ -365,7 +365,7 @@ bool expand_list;    /* Expand the power of the list commands */
 bool bound_walls_perm;    /* Boundary walls become 'permanent wall' */
 bool delay_autopick;  /* Always use delayed autopick */
 bool last_words;    /* Leave last words when your character dies */
-byte temp_file_policy = TEMP_FILE_POLICY_FORCE; /* Temporary dungeon file handling policy */
+byte temp_file_policy = TEMP_FILE_POLICY_AUTO; /* Temporary dungeon file handling policy */
 bool temp_file_policy_dummy; /* Option-page anchor for temp_file_policy */
 
 #ifdef WORLD_SCORE

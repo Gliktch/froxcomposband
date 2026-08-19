@@ -82,7 +82,8 @@ void init_saved_floors(bool force)
 
                 if (prompt_for_cleanup)
                 {
-                    if (!get_check("Temporary dungeon files from a previous session were found. Delete them and continue loading? "))
+                    Term_clear();
+                    if (!get_check("Temporary dungeon files from a previous session were found. If there's another copy of the game running, close that before proceeding. Delete the temp files and continue loading? "))
                         quit("Aborted.");
                 }
                 force = TRUE;

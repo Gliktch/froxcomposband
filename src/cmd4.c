@@ -1541,7 +1541,7 @@ static void _autosave_freq_step(int delta)
     autosave_t = (autosave_freq > 0);
 }
 
-byte message_pane_wrap_width_normalize(byte width)
+byte messages_wrap_width_normalize(byte width)
 {
     if (width > 150) return 151;
     if (width < 20) return 20;
@@ -1611,9 +1611,9 @@ static void _option_value_append(char *buf, size_t bufsize, cptr value)
     strnfmt(buf + strlen(buf), bufsize - strlen(buf), "%-4s ", value);
 }
 
-static byte _inc_message_pane_wrap_width(byte width)
+static byte _inc_messages_wrap_width(byte width)
 {
-    width = message_pane_wrap_width_normalize(width);
+    width = messages_wrap_width_normalize(width);
     if (width > 150) return 20;
     if (width < 40) return width + 2;
     if (width < 80) return width + 4;
@@ -1621,9 +1621,9 @@ static byte _inc_message_pane_wrap_width(byte width)
     return 151;
 }
 
-static byte _dec_message_pane_wrap_width(byte width)
+static byte _dec_messages_wrap_width(byte width)
 {
-    width = message_pane_wrap_width_normalize(width);
+    width = messages_wrap_width_normalize(width);
     if (width > 150) return 150;
     if (width <= 20) return 151;
     if (width <= 40) return width - 2;
@@ -1740,7 +1740,7 @@ static bool _special_option_handle_direction(bool *o_var, int delta)
             if (monster_list_width > maksi) monster_list_width = maksi;
         }
         else if (o_var == &msg_pane_wrap_width)
-            message_pane_wrap_width = _inc_message_pane_wrap_width(message_pane_wrap_width);
+            messages_wrap_width = _inc_messages_wrap_width(messages_wrap_width);
         else if (o_var == &autorun_max_steps_dummy)
             autorun_max_steps = _inc_autorun_max_steps(autorun_max_steps);
         else if (o_var == &map_edge_center_dummy)
@@ -1851,7 +1851,7 @@ static bool _special_option_handle_direction(bool *o_var, int delta)
             if (monster_list_width < 24) monster_list_width = 24;
         }
         else if (o_var == &msg_pane_wrap_width)
-            message_pane_wrap_width = _dec_message_pane_wrap_width(message_pane_wrap_width);
+            messages_wrap_width = _dec_messages_wrap_width(messages_wrap_width);
         else if (o_var == &autorun_max_steps_dummy)
             autorun_max_steps = _dec_autorun_max_steps(autorun_max_steps);
         else if (o_var == &map_edge_center_dummy)
@@ -2099,8 +2099,8 @@ void do_cmd_options_aux(int page, cptr info)
             static const char *frox_only[] = {
                 "alert_item_major", "alert_item_minor", "autorun_max_steps",
                 "center_stair_tele", "confirm_hit_unseen", "confirm_hit_visible",
-                "display_upkeep_bar", "disturb_wakeup", "find_ignore_side",
-                "inscriptions_first", "map_edge_center", "message_pane_wrap",
+                "display_percentages", "display_upkeep_bar", "disturb_wakeup", "find_ignore_side",
+                "inscriptions_first", "map_edge_center", "messages_wrap",
                 "monlist_awake", "monlist_distance", "monlist_los",
                 "monlist_range", "monlist_range_all", "monlist_ungroup",
                 "monlist_zzz", "retry_item_count", "retry_obvious_count",
@@ -2187,7 +2187,7 @@ void do_cmd_options_aux(int page, cptr info)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 _option_value_append(buf, sizeof(buf),
-                    (message_pane_wrap_width > 150) ? "off" : format("%d", message_pane_wrap_width));
+                    (messages_wrap_width > 150) ? "off" : format("%d", messages_wrap_width));
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &autorun_max_steps_dummy)
@@ -2206,7 +2206,7 @@ void do_cmd_options_aux(int page, cptr info)
             }
             else if (option_info[opt[i]].o_var == &inscriptions_first_dummy)
             {
-                static const char *inscriptions_first_names[] = { "Off", "User", "On" };
+                static const char *inscriptions_first_names[] = { "None", "User", "All" };
                 strnfmt(buf, sizeof(buf), "%-48s: %-4s ", option_info[opt[i]].o_desc,
                     inscriptions_first_names[MIN(inscriptions_first, INSCRIPTIONS_FIRST_ON)]);
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);

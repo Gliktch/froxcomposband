@@ -333,7 +333,7 @@ extern bool show_discounts;
 extern bool show_item_graph;    /* Show items graphics */
 extern bool show_item_markers;  /* Show item-state markers in object listings */
 extern bool inscriptions_first_dummy; /* Option-page anchor for inscriptions_first */
-extern byte inscriptions_first; /* 0 = Off, 1 = User, 2 = On */
+extern byte inscriptions_first; /* 0 = None, 1 = User, 2 = All */
 extern bool monlist_zzz_dummy; /* Option-page anchor for monlist_zzz */
 extern byte monlist_zzz; /* 0 = None, 1 = Uniq, 2 = All */
 extern bool show_special_inventories; /* Show race/class special inventories in standard inventory lists */
@@ -382,11 +382,11 @@ extern byte object_list_width;
 extern bool mon_list_width;
 extern byte monster_list_width;
 extern bool msg_pane_wrap_width;
-extern byte message_pane_wrap_width;
+extern byte messages_wrap_width;
 extern bool autorun_max_steps_dummy;
 extern byte autorun_max_steps;
 extern byte map_edge_center_distance_normalize(byte distance);
-extern byte message_pane_wrap_width_normalize(byte width);
+extern byte messages_wrap_width_normalize(byte width);
 extern byte autorun_max_steps_normalize(byte steps);
 extern byte retry_count_normalize(byte count);
 

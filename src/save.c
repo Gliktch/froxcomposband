@@ -886,7 +886,7 @@ static void wr_extra(savefile_ptr file)
     savefile_write_s16b(file, p_ptr->lv_kills);
     savefile_write_s16b(file, p_ptr->pet_lv_kills);
     savefile_write_s32b(file, p_ptr->p_stat);
-    savefile_write_s32b(file, message_pane_wrap_width > 150 ? 0 : message_pane_wrap_width_normalize(message_pane_wrap_width));
+    savefile_write_s32b(file, messages_wrap_width > 150 ? 0 : messages_wrap_width_normalize(messages_wrap_width));
     savefile_write_s32b(file, autorun_max_steps);
     savefile_write_s32b(file, always_repeat_count);
     savefile_write_s32b(file, failed_item_retry_count);

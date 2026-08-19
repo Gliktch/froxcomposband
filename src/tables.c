@@ -2581,8 +2581,8 @@ option_type option_info[] =
     { &destroy_debug,               FALSE, OPT_PAGE_AUTODESTROY, 7, 10,
     "destroy_debug",                "List the rule used when applying the Mogaminator" },
 
-    { &no_mogaminator,              FALSE, OPT_PAGE_AUTODESTROY, 7, 11,
-    "no_mogaminator",               "Never apply the Mogaminator" },
+    { &disable_mogaminator,              FALSE, OPT_PAGE_AUTODESTROY, 7, 11,
+    "disable_mogaminator",               "Never apply the Mogaminator" },
 
     { &leave_mogaminator,           FALSE, OPT_PAGE_AUTODESTROY, 7, 12,
     "leave_mogaminator",            "Leave items the Mogaminator wants to destroy" },

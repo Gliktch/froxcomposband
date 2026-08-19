@@ -845,7 +845,14 @@ static void autopick_entry_from_object(autopick_type *entry, object_type *o_ptr)
     {
         char o_name[MAX_NLEN];
 
-        object_desc(o_name, o_ptr, (OD_NO_FLAVOR | OD_OMIT_PREFIX | OD_NO_PLURAL | OD_NAME_ONLY));
+        object_desc(o_name, o_ptr, (OD_NO_FLAVOR | OD_OMIT_PREFIX | OD_NO_PLURAL | OD_SINGULAR | OD_NAME_ONLY));
+        /* Drop any leading inscription block (inscriptions-first modes can
+         * prepend one) so the rule matches the plain base name. */
+        if (o_name[0] == '{')
+        {
+            cptr close = my_strchr(o_name, '}');
+            if (close && close[1] == ' ') strcpy(o_name, close + 2);
+        }
         snprintf(name_str, sizeof(name_str), "^%.200s$", o_name);
     }
 
@@ -943,6 +950,7 @@ static bool write_text_lines(cptr filename, cptr *lines_list);
 static cptr *read_text_lines(cptr filename);
 static void free_text_lines(cptr *lines_list);
 static bool update_legacy_pickpref_rules(cptr *lines_list);
+static bool _migrate_enlightenment_rules(cptr *lines_list);
 
 #define _LINES_LIST_INIT() \
   if (err == 0) \
@@ -2068,10 +2076,17 @@ int is_autopick(object_type *o_ptr)
         return 0;
     }
 
-    if (no_mogaminator) return -1;
+    if (disable_mogaminator) return -1;
 
     /* Prepare object name string first */
-    object_desc(o_name, o_ptr, (OD_NAME_ONLY | OD_NO_FLAVOR | OD_OMIT_PREFIX | OD_NO_PLURAL));
+    object_desc(o_name, o_ptr, (OD_NAME_ONLY | OD_NO_FLAVOR | OD_OMIT_PREFIX | OD_NO_PLURAL | OD_SINGULAR));
+    /* Match the registered rule's plain base name; inscriptions-first modes
+     * can prepend a {..} block, so strip it on both sides. */
+    if (o_name[0] == '{')
+    {
+        cptr close = my_strchr(o_name, '}');
+        if (close && close[1] == ' ') strcpy(o_name, close + 2);
+    }
 
     /* Convert the string to lower case */
     str_tolower(o_name);
@@ -2264,12 +2279,12 @@ static void auto_destroy_obj(object_type *o_ptr, int autopick_idx)
     if (is_opt_confirm_destroy(o_ptr)) destroy = TRUE;
 
     /* Protected by auto-picker (2nd priotity) */
-    if ((!no_mogaminator) && (autopick_idx >= 0) &&
+    if ((!disable_mogaminator) && (autopick_idx >= 0) &&
         (!(autopick_list[autopick_idx].action & DO_AUTODESTROY)))
         destroy = FALSE;
 
     /* Auto-destroyer works only when !always_pickup */
-    if ((!always_pickup) && (!no_mogaminator) && (!leave_mogaminator))
+    if ((!always_pickup) && (!disable_mogaminator) && (!leave_mogaminator))
     {
         /* Auto-picker/destroyer (1st priority) */
         if (autopick_idx >= 0 &&
@@ -2280,7 +2295,7 @@ static void auto_destroy_obj(object_type *o_ptr, int autopick_idx)
     /* Not to be destroyed */
     if (!destroy)
     {
-        if (destroy_debug && !no_mogaminator && autopick_idx >= 0 && (autopick_list[autopick_idx].action & DONT_AUTOPICK))
+        if (destroy_debug && !disable_mogaminator && autopick_idx >= 0 && (autopick_list[autopick_idx].action & DONT_AUTOPICK))
             msg_autopick(autopick_idx, "Leave");
         return;
     }
@@ -2368,7 +2383,7 @@ void do_cmd_wipe_unwanted(void)
 {
     int i, ct = 0;
 
-    if (no_mogaminator)
+    if (disable_mogaminator)
     {
         msg_print("In order to identify items as Unwanted for this function, you need to enable the Mogaminator loot helper - please press _ to activate it.");
         return;
@@ -2460,7 +2475,7 @@ void autopick_alter_obj(obj_ptr o_ptr, bool allow_destroy)
     /* Get the index in the auto-pick/destroy list */
     int idx = is_autopick(o_ptr);
 
-    if (no_mogaminator) return;
+    if (disable_mogaminator) return;
 
     /* Auto-id: Try "?unidentified good" for a L30 monk ... */
     if (idx >= 0 && autopick_list[idx].action & DO_AUTO_ID)
@@ -2594,7 +2609,7 @@ static void _get_obj(obj_ptr obj)
 
     if ((!obj) || (!obj->k_idx)) return;
 
-    if (no_mogaminator)
+    if (disable_mogaminator)
     {
         if (_obj_has_auto_pickup_inscription(obj))
         {
@@ -2889,9 +2904,12 @@ static int _prompt_activate_mogaminator(void)
 }
 
 /*
- *  Automatically register an auto-destroy preference line
+ *  Automatically register an auto-destroy preference line.
+ *  Returns 1 when the rule was newly added, 2 when a matching auto-destroy
+ *  rule already exists, and 0 when registration failed (a message has
+ *  already been printed).
  */
-bool autopick_autoregister(object_type *o_ptr)
+int autopick_autoregister(object_type *o_ptr)
 {
     char buf[1024];
     char pref_file[1024];
@@ -2901,28 +2919,34 @@ bool autopick_autoregister(object_type *o_ptr)
 
     int match_autopick = is_autopick(o_ptr);
 
-    if (no_mogaminator)
+    if (disable_mogaminator)
     {
         msg_print("The Mogaminator is not currently active.");
-        return FALSE;
+        return 0;
     }
 
     /* Already registered */
     if (match_autopick != -1)
     {
-        cptr what;
         byte act = autopick_list[match_autopick].action;
-        string_ptr s = autopick_line_from_entry(&autopick_list[match_autopick], AUTOPICK_COLOR_CODED);
 
-        if (act & DO_AUTOPICK) what = "auto-pickup";
-        else if (act & DO_AUTODESTROY) what = "auto-destroy";
-        else if (act & DONT_AUTOPICK) what = "leave on floor";
-        else /* if (act & DO_QUERY_AUTOPICK) */ what = "query auto-pickup";
+        /* An existing auto-destroy rule is reported by the caller; other
+         * registrations keep the generic message. */
+        if (act & DO_AUTODESTROY)
+            return 2;
 
-        msg_format("The object is already registered to %s by the rule %s.", what, string_buffer(s));
+        {
+            cptr what;
+            string_ptr s = autopick_line_from_entry(&autopick_list[match_autopick], AUTOPICK_COLOR_CODED);
 
-        string_free(s);
-        return FALSE;
+            if (act & DO_AUTOPICK) what = "auto-pickup";
+            else if (act & DONT_AUTOPICK) what = "leave on floor";
+            else what = "query auto-pickup";
+
+            msg_format("The object is already registered to %s by the rule %s.", what, string_buffer(s));
+            string_free(s);
+        }
+        return 0;
     }
 
     /* Known to be an artifact? */
@@ -2939,14 +2963,14 @@ bool autopick_autoregister(object_type *o_ptr)
         msg_format("You cannot auto-destroy %s.", o_name);
 
         /* Done */
-        return FALSE;
+        return 0;
     }
 
 
     if (!p_ptr->autopick_autoregister)
     {
         /* Clear old auto registered lines */
-        if (!clear_auto_register()) return FALSE;
+        if (!clear_auto_register()) return 0;
     }
 
     /* Try a filename with player name */
@@ -2955,21 +2979,10 @@ bool autopick_autoregister(object_type *o_ptr)
 
     if (!pref_fff)
     {
-        prepare_default_pickpref(TRUE);
-        pref_fff = my_fopen(pref_file, "r");
-        if (!pref_fff)
-        {
-            msg_print("Initialize Mogaminator preferences first (press '_').");
-            return FALSE;
-        }
-        else
-        {
-            char buf[80];
-            my_strcpy(buf, pickpref_filename(PT_WITH_PREFNAME, NULL), sizeof(buf));
-            msg_print("Mogaminator preferences initialized. Press '_' to edit or disable them.");
-            process_autopick_file(buf);
-            _inscribe_pack();
-        }
+        /* The Mogaminator must be activated via '_' first, so the destroy
+         * flow never silently creates starter rules. */
+        msg_print("Auto destroy rules require the Mogaminator loot helper. Please press _ (the underscore key) to activate it.");
+        return 0;
     }
 
     /* Check the header */
@@ -3013,7 +3026,7 @@ bool autopick_autoregister(object_type *o_ptr)
         /* Add the header */
         fprintf(pref_fff, "%s\n", autoregister_header);
 
-        fprintf(pref_fff, "%s\n", "# *Warning!* The lines below will be deleted later.");
+        fprintf(pref_fff, "%s\n", "# *Warning!* The lines below will be deleted if you use Auto-destroy with a new character.");
         fprintf(pref_fff, "%s\n", "# Keep them by cut & paste if you need them for future characters.");
 
         /* Now auto register is in-use */
@@ -3025,6 +3038,15 @@ bool autopick_autoregister(object_type *o_ptr)
 
     /* Set to auto-destroy (with no-display) */
     entry->action = DO_AUTODESTROY;
+
+    /* The rule matches the item type, not one specific inscribed stack:
+     * drop the object's inscription so it neither enters the rule nor gets
+     * auto-inscribed onto other matching items. */
+    if (entry->insc)
+    {
+        z_string_free(entry->insc);
+        entry->insc = NULL;
+    }
 
     /* Load the new line as preference */
     add_autopick_list(entry);
@@ -3038,7 +3060,77 @@ bool autopick_autoregister(object_type *o_ptr)
     /* Close the file */
     fclose(pref_fff);
 
-    return TRUE;
+    return 1;
+}
+
+
+/* Noun for the auto-destroy registration message, matching the category
+ * the rule editor uses for the entry. */
+static cptr _autopick_register_noun(object_type *o_ptr)
+{
+    switch (o_ptr->tval)
+    {
+        case TV_DIGGING: return KEY_DIGGERS;
+        case TV_BOW: return KEY_SHOOTERS;
+        case TV_WAND: return KEY_WANDS;
+        case TV_STAFF: return KEY_STAVES;
+        case TV_ROD: return KEY_RODS;
+        case TV_POTION: return KEY_POTIONS;
+        case TV_SCROLL: return KEY_SCROLLS;
+        case TV_LITE: return KEY_LIGHTS;
+        case TV_RING: return KEY_RINGS;
+        case TV_AMULET: return KEY_AMULETS;
+        case TV_SHIELD: return KEY_SHIELDS;
+        case TV_DRAG_ARMOR: case TV_HARD_ARMOR: case TV_SOFT_ARMOR: return KEY_SUITS;
+        case TV_CLOAK: return KEY_CLOAKS;
+        case TV_HELM: case TV_CROWN: return KEY_HELMS;
+        case TV_GLOVES: return KEY_GLOVES;
+        case TV_BOOTS: return KEY_BOOTS;
+        case TV_SKELETON: case TV_BOTTLE: case TV_JUNK: case TV_STATUE: return KEY_JUNKS;
+        case TV_CORPSE: return KEY_CORPSES;
+        default:
+            if (object_is_ammo(o_ptr)) return KEY_AMMO;
+            if (object_is_melee_weapon(o_ptr)) return KEY_WEAPONS;
+            if (o_ptr->tval >= TV_LIFE_BOOK) return KEY_SPELLBOOKS;
+            return KEY_ITEMS;
+    }
+}
+
+/*
+ * Report an auto-destroy registration for the object, colouring the
+ * mogaminator noun, the item name, and the editor key like the editor.
+ */
+void autopick_msg_registered(object_type *o_ptr, bool already, char *buf, int max)
+{
+    char name[MAX_NLEN];
+    cptr noun = _autopick_register_noun(o_ptr);
+    int  len;
+
+    /* Singular base name, like the registered rule. */
+    object_desc(name, o_ptr, (OD_NAME_ONLY | OD_NO_FLAVOR | OD_OMIT_PREFIX
+        | OD_NO_PLURAL | OD_SINGULAR));
+
+    len = strnfmt(buf, max, "<color:R>%c%s</color> named <color:y>'%s'</color>",
+        toupper((unsigned char)noun[0]), noun + 1, name);
+
+    if (object_is_nameless(o_ptr))
+        len += strnfmt(buf + len, max - len,
+            " which aren't artifacts or ego items");
+
+    if (already)
+        strnfmt(buf + len, max - len,
+            " are already marked for automatic destruction.");
+    else
+        strnfmt(buf + len, max - len,
+            " will be destroyed automatically from now on. Press the <color:o>_</color> key"
+            " and scroll to the bottom to change or remove these added auto-destroy rules.");
+}
+
+/* Remember the last object destroyed through the explicit auto-destroy
+ * register flow, so the editor's repeat-last-destroyed feature works. */
+void autopick_record_destroyed(object_type *o_ptr)
+{
+    autopick_last_destroyed_object = *o_ptr;
 }
 
 
@@ -3521,10 +3613,15 @@ static void describe_autopick(char *buff, autopick_type *entry)
     /* Describe whether it will be displayed on the full map or not */
     if (act & (DO_AUTOPICK | DO_QUERY_AUTOPICK))
     {
-        strcat(buff, " Display these items as wanted in object list.");
+        strcat(buff, " Display these items as wanted in object lists.");
     }
     else
         strcat(buff, " Do not display as wanted.");
+
+    /* A '(' prefix additionally classifies the items as Unwanted, which is
+     * separate from the wanted display above. */
+    if (!(act & DO_DISPLAY))
+        strcat(buff, " Classify these items as Unwanted in object lists and stores.");
 
 }
 
@@ -3616,6 +3713,72 @@ static bool update_legacy_pickpref_rules(cptr *lines_list)
         }
     }
 
+    updated |= _migrate_enlightenment_rules(lines_list);
+
+    return updated;
+}
+
+/* Case-insensitive substring search. */
+static cptr _strcasestr(cptr haystack, cptr needle)
+{
+    size_t nlen = strlen(needle);
+    cptr p;
+
+    if (!nlen) return haystack;
+    for (p = haystack; *p; p++)
+    {
+        if (strncasecmp(p, needle, nlen) == 0)
+            return p;
+    }
+    return NULL;
+}
+
+/* Migrate legacy potion-of-Enlightenment rules to the Revelation rename in
+ * a loaded pickpref.  A line matches when it carries the unambiguous
+ * *enlightenment* sequence, or the word alongside "potion" (potions:,
+ * potion of, ...); matching lines get every "enlightenment" rewritten to
+ * "revelation", keeping the rest of the line intact. */
+static bool _migrate_enlightenment_rules(cptr *lines_list)
+{
+    static const char token[] = "enlightenment"; /* 13 chars */
+    static const char repl[] = "revelation";     /* 9 chars */
+    int i;
+    bool updated = FALSE;
+
+    for (i = 0; lines_list[i]; i++)
+    {
+        cptr s = lines_list[i];
+        char buf[1024];
+        size_t o = 0;
+        cptr p;
+
+        if (!_strcasestr(s, "*enlightenment*") &&
+            !(_strcasestr(s, "enlightenment") && _strcasestr(s, "potion")))
+            continue;
+
+        /* The replacement is shorter than the token, so the result always
+         * fits the line buffer. */
+        for (p = s; *p && o < sizeof(buf) - 1; )
+        {
+            if (strncasecmp(p, token, sizeof(token) - 1) == 0)
+            {
+                memcpy(buf + o, repl, sizeof(repl) - 1);
+                if (isupper((unsigned char)*p))
+                    buf[o] = 'R';
+                o += sizeof(repl) - 1;
+                p += sizeof(token) - 1;
+            }
+            else
+                buf[o++] = *p++;
+        }
+        buf[o] = '\0';
+
+        if (streq(s, buf)) continue;
+
+        z_string_free(lines_list[i]);
+        lines_list[i] = z_string_make(buf);
+        updated = TRUE;
+    }
     return updated;
 }
 
@@ -3625,17 +3788,6 @@ static bool update_legacy_pickpref_rules(cptr *lines_list)
  */
 static bool prepare_default_pickpref(bool silent)
 {
-    static char *headers[] = {
-        "Mogaminator rules for this character, created from the default ruleset.",
-        "Press [Esc] then [a] for the detailed Mogaminator help.",
-        NULL
-    };
-    static char *userheaders[] = {
-        "Mogaminator rules for this character, from your user-default ruleset.",
-        "Press [Esc] then [a] for the detailed Mogaminator help.",
-        NULL
-    };
-
     char buf[1024];
     char dest_path[1024];
     char buf_src[255];
@@ -3691,13 +3843,8 @@ static bool prepare_default_pickpref(bool silent)
         return FALSE;
     }
 
-    /* Write header messages for a notification */
-    fprintf(user_fp, "#***\n");
-    for (i = 0; use_user_defaults ? userheaders[i] : headers[i]; i++)
-    {
-        fprintf(user_fp, "#***  %s\n", use_user_defaults ? userheaders[i] : headers[i]);
-    }
-    fprintf(user_fp, "#***\n\n\n");
+    /* A single blank line before the default ruleset content. */
+    fprintf(user_fp, "\n");
 
     /* Copy the contents of default file */
     for (i = 0; lines_list[i]; i++)
@@ -5637,7 +5784,7 @@ static void draw_text_editor(text_body_type *tb)
             default:
                 if (tb->states[tb->cy] & LSTAT_AUTOREGISTER)
                 {
-                    str2 = "This line will be deleted later.";
+                    str2 = "This line will be deleted if you use Auto-destroy with a new character.";
                 }
 
                 else if (tb->states[tb->cy] & LSTAT_BYPASS)
@@ -5659,7 +5806,7 @@ static void draw_text_editor(text_body_type *tb)
 
             if (tb->states[tb->cy] & LSTAT_AUTOREGISTER)
             {
-                strcat(buf, "  This line will be deleted later.");
+                strcat(buf, "  This line will be deleted if you use Auto-destroy with a new character.");
             }
 
             if (tb->states[tb->cy] & LSTAT_BYPASS)
@@ -6960,6 +7107,25 @@ static int analyze_move_key(text_body_type *tb, int skey)
 /*
  * In-game editor of Object Auto-picker/Destoryer
  */
+/* Does a per-character pickpref file exist yet?  The first-use activation
+ * prompt is gated on this, so starter rules are only created after the
+ * player explicitly confirms via _ / y. */
+static bool _has_pickpref_file(void)
+{
+    char path[1024];
+    FILE *fp;
+
+    path_build(path, sizeof(path), ANGBAND_DIR_USER,
+        pickpref_filename(PT_WITH_PREFNAME, NULL));
+    fp = my_fopen(path, "r");
+    if (fp)
+    {
+        my_fclose(fp);
+        return TRUE;
+    }
+    return FALSE;
+}
+
 void do_cmd_edit_autopick(void)
 {
     static int cx_save = 0;
@@ -6975,7 +7141,7 @@ void do_cmd_edit_autopick(void)
 
     static s32b old_autosave_turn = 0L;
     byte quit = 0;
-    bool activating = no_mogaminator || !max_autopick;
+    bool activating = disable_mogaminator || !_has_pickpref_file();
 
     if (activating)
     {
@@ -6983,7 +7149,7 @@ void do_cmd_edit_autopick(void)
 
         if (choice == 'n')
             return;
-        no_mogaminator = FALSE;
+        disable_mogaminator = FALSE;
         object_list_reset_mog_filter();
         if (choice == 'y')
         {
@@ -6991,7 +7157,7 @@ void do_cmd_edit_autopick(void)
             {
                 if (!prepare_default_pickpref(FALSE))
                 {
-                    no_mogaminator = TRUE;
+                    disable_mogaminator = TRUE;
                     object_list_reset_mog_filter();
                     autopick_load_pref(ALP_CHECK_NUMERALS);
                     return;
@@ -7054,7 +7220,7 @@ void do_cmd_edit_autopick(void)
         {
             if (activating)
             {
-                no_mogaminator = TRUE;
+                disable_mogaminator = TRUE;
                 object_list_reset_mog_filter();
             }
             z_string_free(tb->last_destroyed);
@@ -7176,7 +7342,7 @@ void do_cmd_edit_autopick(void)
         write_text_lines(buf, tb->lines_list);
     else if (quit == QUIT_DISABLE)
     {
-        no_mogaminator = TRUE;
+        disable_mogaminator = TRUE;
         object_list_reset_mog_filter();
     }
 

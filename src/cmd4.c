@@ -2395,7 +2395,7 @@ void do_cmd_options_aux(int page, cptr info)
                         if (confirm == 'n') break;
                     }
                     (*option_info[opt[k]].o_var) = TRUE;
-                    if (option_info[opt[k]].o_var == &no_mogaminator)
+                    if (option_info[opt[k]].o_var == &disable_mogaminator)
                         object_list_reset_mog_filter();
                     k = (k + 1) % n;
                     if (scroll_mode)
@@ -2418,7 +2418,7 @@ void do_cmd_options_aux(int page, cptr info)
                 else
                 {
                     (*option_info[opt[k]].o_var) = FALSE;
-                    if (option_info[opt[k]].o_var == &no_mogaminator)
+                    if (option_info[opt[k]].o_var == &disable_mogaminator)
                         object_list_reset_mog_filter();
                     k = (k + 1) % n;
                     if (scroll_mode)
@@ -2437,7 +2437,7 @@ void do_cmd_options_aux(int page, cptr info)
                 if (_special_option_handle_direction(option_info[opt[k]].o_var, 1))
                     break;
                 (*option_info[opt[k]].o_var) = !(*option_info[opt[k]].o_var);
-                if (option_info[opt[k]].o_var == &no_mogaminator)
+                if (option_info[opt[k]].o_var == &disable_mogaminator)
                     object_list_reset_mog_filter();
                 break;
             }
@@ -10714,7 +10714,7 @@ static void do_cmd_knowledge_autopick(void)
     int k;
     doc_ptr doc = doc_alloc(80);
 
-    if (no_mogaminator)
+    if (disable_mogaminator)
     {
         doc_insert(doc, "You have disabled the Mogaminator.\n");
     }
@@ -10732,7 +10732,7 @@ static void do_cmd_knowledge_autopick(void)
     }
     doc_insert(doc, "For help on the Mogaminator, see <link:editor.txt>.\n\n");
 
-    if (!no_mogaminator)
+    if (!disable_mogaminator)
     {
         for (k = 0; k < max_autopick; k++)
         {

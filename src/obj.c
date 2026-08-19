@@ -1290,10 +1290,18 @@ void obj_destroy_ui(void)
         if (ch == 'n') return;
         if (ch == 'A')
         {
-            if (autopick_autoregister(prompt.obj) || is_autopick(prompt.obj) >= 0)
+            int reg = autopick_autoregister(prompt.obj);
+            if (reg)
             {
-                autopick_alter_obj(prompt.obj, TRUE); /* destroyed! */
+                char msg[1024];
+
+                /* Build the report first, then destroy and show it, so the
+                 * "Destroyed." line precedes the registration message. */
+                autopick_msg_registered(prompt.obj, reg == 2, msg, sizeof(msg));
+                autopick_record_destroyed(prompt.obj);
+                prompt.obj->marked |= OM_AUTODESTROY;
                 obj_release(prompt.obj, OBJ_RELEASE_QUIET);
+                msg_print(msg);
             }
             return;
         }

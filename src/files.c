@@ -584,6 +584,8 @@ errr process_pref_file_command(char *buf)
         cptr opt_name = buf + 2;
         if (streq(opt_name, "display_distance"))
             opt_name = "monlist_range";
+        if (streq(opt_name, "no_mogaminator"))
+            opt_name = "disable_mogaminator";
         if (streq(opt_name, "temp_file_policy"))
         {
             temp_file_policy = (buf[0] == 'Y') ? TEMP_FILE_POLICY_PROMPT : TEMP_FILE_POLICY_FORCE;

@@ -1927,14 +1927,14 @@ static _obj_list_filter_t _obj_list_session_filter;
 
 static _obj_list_filter_t _obj_list_filter_default(void)
 {
-    _obj_list_filter_t filter = { TRUE, TRUE, TRUE, TRUE, no_mogaminator, list_stairs, FALSE };
+    _obj_list_filter_t filter = { TRUE, TRUE, TRUE, TRUE, disable_mogaminator, list_stairs, FALSE };
     return filter;
 }
 
 void object_list_reset_mog_filter(void)
 {
     if (_obj_list_session_filter_initialized)
-        _obj_list_session_filter.show_unwanted = no_mogaminator ? TRUE : FALSE;
+        _obj_list_session_filter.show_unwanted = disable_mogaminator ? TRUE : FALSE;
 }
 
 static _obj_list_filter_ptr _obj_list_filter_current(void)
@@ -2606,7 +2606,7 @@ void do_cmd_list_objects(void)
             }
             case 'U':
             {
-                if (no_mogaminator)
+                if (disable_mogaminator)
                 {
                     msg_print("Exit this menu then press _ to activate the Mogaminator, in order to define unwanted items for filtering.");
                     screen_load();

@@ -497,7 +497,7 @@ In addition, the matching rule will be displayed when an object is inspected, fo
   <color:B>Score:</color> <color:D>100</color>                                            
   <color:r>Autopick:</color> ~<color:G>first realm's first </color><color:R>spellbooks</color><color:U>#@ma!k</color>                                         </indent></style>
 
-<topic:no_mogaminator><color:U>Never apply the Mogaminator</color> <color:D>(no_mogaminator)</color>
+<topic:disable_mogaminator><color:U>Never apply the Mogaminator</color> <color:D>(disable_mogaminator)</color>
 This option deactivates the Mogaminator. (It is redundant if the Mogaminator was never activated in the first place.)
 
 <topic:leave_mogaminator><color:U>Leave items the Mogaminator wants to destroy</color> <color:D>(leave_mogaminator)</color>

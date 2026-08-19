@@ -1567,7 +1567,7 @@ static void _loop(_ui_context_ptr context)
                 Term_clear_rect(ui_shop_msg_rect());
                 break;
             case 'u': case 'U':
-                if (no_mogaminator)
+                if (disable_mogaminator)
                 {
                     msg_print("Exit this menu then press _ to activate the Mogaminator, in order to define unwanted items for filtering.");
                     break;

@@ -82,7 +82,7 @@ Ouch! Well, don't panic. You can fix the problem easily; but doing so will requi
 !<color:G>worthless </color><color:R>items</color>                                                                
 <color:G>#!unusable items</color>                                                                
 <color:R>?:$AUTOREGISTER</color>                                                                 
-<color:R># *Warning!* The lines below will be deleted later.</color>                             
+<color:R># *Warning!* The lines below will be deleted if you use Auto-destroy with a new character.</color>
 <color:R># Keep them by cut & paste if you need them for future characters.</color>              
 <color:R>(!nameless lights:^wooden torch$</color>                                                
 <color:B>-------------------------------------------------------------------------------</color>
@@ -111,7 +111,7 @@ mushroom of restoring<color:U>#!E</color>
 <color:v>?:1</color>                                                                             
 <color:B>--------------------------------------------------------------------------------</color>
 Pick up all items which have "cure critical wounds" as part of their name.
-Display these items as wanted in object list.
+Display these items as wanted in object lists.
 </indent></style>
 I colored the new line <color:y>yellow</color> in the screenshot to make it stand out. Pay attention to the bottom of the screen: does it sound like it will work? The reason I had to put the new line at the top is that <color:G>rules are processed in order of priority from top to bottom</color>; so if I placed the new rule at the bottom, it might have been overridden by an earlier rule.
 
@@ -416,7 +416,7 @@ Note that the editor automatically colors each rule line according to the syntax
 
 If, after reading all of the above, you decide that the Mogaminator is too much for you to handle, you may instead use a simpler system to manage objects: the <color:keyword>Easy Destroyer</color>. This system is configured via options (see <link:option.txt#AutoDestroyer>); the option <color:keyword>destroy_items</color> turns the Easy Destroyer on and off. Using the Mogaminator and the Easy Destroyer side-by-side is recommended <color:v>if and only if</color> you have the <color:keyword>always_pickup</color> option on.
 
-If you have turned on the Mogaminator but don't like what it's doing, you can disable it from this editor's <color:keypress>ESC</color> menu or use the <color:keyword>no_mogaminator</color> option to turn it off. The <color:keyword>leave_mogaminator</color> option limits object destruction to complete junk only. Using <color:keyword>always_pickup</color> also disables item destruction by the Mogaminator while still allowing the Easy Destroyer.
+If you have turned on the Mogaminator but don't like what it's doing, you can disable it from this editor's <color:keypress>ESC</color> menu or use the <color:keyword>disable_mogaminator</color> option to turn it off. The <color:keyword>leave_mogaminator</color> option limits object destruction to complete junk only. Using <color:keyword>always_pickup</color> also disables item destruction by the Mogaminator while still allowing the Easy Destroyer.
 
 <topic:Reference><style:heading>Reference Tables</style>
 

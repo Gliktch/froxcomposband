@@ -2384,7 +2384,7 @@ void do_cmd_wipe_unwanted(void)
 
     while (TRUE)
     {
-        char answer = msg_prompt("Destroy them? <color:y>[y/n/u]</color> (u lists the items)",
+        char answer = msg_prompt("Destroy these items? <color:y>[y/n/u]</color> (u lists the items)",
                                  "nyu", PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_FORCE_CHOICE);
 
         if (answer == 'u')
@@ -2396,13 +2396,47 @@ void do_cmd_wipe_unwanted(void)
         break;
     }
 
-    for (i = 1; i < max_o_idx; i++)
     {
-        if (autopick_wipe_candidate(&o_list[i]))
-            delete_object_idx(i);
-    }
+        char names[1024];
+        int  len = 0;
 
-    msg_format("You destroy %d unwanted item%s.", ct, (ct == 1) ? "" : "s");
+        names[0] = '\0';
+        for (i = 1; i < max_o_idx; i++)
+        {
+            if (autopick_wipe_candidate(&o_list[i]))
+            {
+                char name[MAX_NLEN + 160];
+                int  name_len;
+
+                /* Short name for the summary: keep the stack count and
+                 * flavor, omit the stat details (dice, enchant, pval). */
+                object_desc(name, &o_list[i], OD_NAME_ONLY);
+
+                /* Drop the indefinite article on single items, keeping the
+                 * numeric prefix on stacks ("3 Wooden torches", not
+                 * "a Short Sword"). */
+                if (!strncmp(name, "a ", 2))
+                    strcpy(name, name + 2);
+                else if (!strncmp(name, "an ", 3))
+                    strcpy(name, name + 3);
+
+                name_len = strlen(name);
+                if (len && len + 2 + name_len < (int)sizeof(names) - 4)
+                    len += strnfmt(names + len, sizeof(names) - len, ", %s", name);
+                else if (len + name_len < (int)sizeof(names) - 4)
+                    len += strnfmt(names + len, sizeof(names) - len, "%s", name);
+                else
+                {
+                    strnfmt(names + len, sizeof(names) - len, "...");
+                    break;
+                }
+
+                delete_object_idx(i);
+            }
+        }
+
+        msg_format("You destroy %d unwanted item%s: %s.", ct, (ct == 1) ? "" : "s", names);
+    }
 }
 
 /*

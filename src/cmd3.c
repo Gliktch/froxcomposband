@@ -2955,6 +2955,23 @@ void obj_list_display_wipe_preview(void)
                 redraw = TRUE;
             }
             break;
+        case '/':
+        {
+            int idx = top + pos;
+            if (0 <= idx && idx < ct_types)
+            {
+                _obj_list_info_ptr info_ptr = vec_get(list->list, idx);
+                assert(info_ptr);
+                if (info_ptr->idx && info_ptr->group != _GROUP_FEATURE)
+                {
+                    obj_display_inspect(&o_list[info_ptr->idx]);
+                    screen_load();
+                    screen_save();
+                    redraw = TRUE;
+                }
+            }
+            break;
+        }
         default:
             break;
         }

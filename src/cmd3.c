@@ -2844,11 +2844,14 @@ void do_cmd_list_objects(void)
 }
 
 /*
- * Read-only preview of exactly the items the wipe command would destroy.
- * Shows the full Unwanted set regardless of the browsing filters, so the
- * preview always matches the destruction.
+ * Expandable preview of exactly the items the wipe command would destroy,
+ * shown with the confirmation prompt still visible above it.  Shows the
+ * full Unwanted set regardless of the browsing filters, so the preview
+ * always matches the destruction.  Returns 'Y' when the player confirms,
+ * 'n' when they cancel outright, or anything else when they toggle back
+ * to the collapsed confirmation prompt.
  */
-void obj_list_display_wipe_preview(void)
+char obj_list_display_wipe_preview(void)
 {
     _obj_list_filter_t filter = _obj_list_filter_default();
     _obj_list_ptr list;
@@ -2857,12 +2860,13 @@ void obj_list_display_wipe_preview(void)
     int top = 0, page_size, pos = 0;
     int ct_types;
     bool done = FALSE;
+    char result = 'u';
     bool redraw = TRUE;
 
     filter.only_unwanted = TRUE;
 
     _apply_list_width(&display_rect, object_list_width);
-    list_rect = _obj_list_rect(display_rect);
+    list_rect = display_rect; /* the list begins right below the message line */
 
     list = _create_obj_list(&filter);
     ct_types = vec_length(list->list);
@@ -2874,6 +2878,10 @@ void obj_list_display_wipe_preview(void)
     msg_line_clear();
     screen_save();
 
+    /* Keep the confirmation prompt visible while the list is expanded */
+    c_put_str(TERM_WHITE, WIPE_PROMPT_PREFIX, 0, 0);
+    c_put_str(TERM_YELLOW, WIPE_PROMPT_HINT, 0, (int)strlen(WIPE_PROMPT_PREFIX));
+
     while (!done)
     {
         int cmd;
@@ -2882,9 +2890,6 @@ void obj_list_display_wipe_preview(void)
         if (redraw)
         {
             Term_erase(display_rect.x, display_rect.y, display_rect.cx);
-            Term_erase(display_rect.x, display_rect.y + 1, display_rect.cx);
-            c_put_str(TERM_L_BLUE, "Unwanted items on this floor:", display_rect.y, display_rect.x);
-            c_put_str(TERM_WHITE, "Esc returns to the confirmation.", display_rect.y + 1, display_rect.x);
             ct = _draw_obj_list(list, top, list_rect);
             for (i = ct; i < list_rect.cy; i++)
                 Term_erase(list_rect.x, list_rect.y + i, list_rect.cx);
@@ -2902,9 +2907,24 @@ void obj_list_display_wipe_preview(void)
 
         switch (cmd)
         {
+        /* The action keys take precedence over any list navigation or
+         * letter handling, so y/u/n never select an item letter here. */
         case ESCAPE:
         case 'Q':
+        case 'n':
+        case 'N':
+            result = 'n';
             done = TRUE;
+            break;
+        case 'Y':
+            result = 'Y';
+            done = TRUE;
+            break;
+        case 'y':
+        case 'u':
+        case 'U':
+        case '?':
+            done = TRUE; /* toggle back to the collapsed prompt */
             break;
         case SKEY_TOP:
         case '7':
@@ -2990,6 +3010,7 @@ void obj_list_display_wipe_preview(void)
 
     screen_load();
     _obj_list_free(list);
+    return result;
 }
 
 void _fix_object_list_aux(void)

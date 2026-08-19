@@ -966,7 +966,11 @@ enum {
 };
 extern void do_cmd_list_monsters(int mode);
 extern void do_cmd_list_objects(void);
-extern void obj_list_display_wipe_preview(void);
+/* The Unwanted wipe confirmation, shown both as the collapsed prompt and
+ * above the expanded preview list. */
+#define WIPE_PROMPT_PREFIX "Destroy these items? "
+#define WIPE_PROMPT_HINT   "(Y to confirm, y/u/? to toggle list, n/Esc to cancel)"
+extern bool obj_list_display_wipe_preview(void);
 extern void object_list_reset_mog_filter(void);
 extern void fix_monster_list(void);
 extern void fix_object_list(void);

@@ -2360,12 +2360,19 @@ bool autopick_wipe_candidate(object_type *o_ptr)
 
 /*
  * Explicitly wipe the current floor or wilderness cell of items the
- * Mogaminator classifies as Unwanted.  Confirmation can preview the
- * exact list with 'u' before anything is destroyed.
+ * Mogaminator classifies as Unwanted.  Confirmation requires a capital Y;
+ * y/u/? toggles the exact preview list before anything is destroyed.  When
+ * the Mogaminator loot helper is disabled, points the player at '_' instead.
  */
 void do_cmd_wipe_unwanted(void)
 {
     int i, ct = 0;
+
+    if (no_mogaminator)
+    {
+        msg_print("In order to identify items as Unwanted for this function, you need to enable the Mogaminator loot helper - please press _ to activate it.");
+        return;
+    }
 
     for (i = 1; i < max_o_idx; i++)
     {
@@ -2384,16 +2391,19 @@ void do_cmd_wipe_unwanted(void)
 
     while (TRUE)
     {
-        char answer = msg_prompt("Destroy these items? <color:y>[y/n/u]</color> (u lists the items)",
-                                 "nyu", PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_FORCE_CHOICE);
+        char answer = msg_prompt(
+            format("%s<color:y>%s</color>", WIPE_PROMPT_PREFIX, WIPE_PROMPT_HINT),
+            "nNYyuU?", PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_FORCE_CHOICE
+            | PROMPT_CASE_SENSITIVE);
 
-        if (answer == 'u')
-        {
-            obj_list_display_wipe_preview();
-            continue;
-        }
-        if (answer != 'y') return;
-        break;
+        if (answer == 'Y') break;
+        if (answer == 'n' || answer == 'N') return;
+
+        /* y/u/U/? expands the preview; from there the player can confirm (Y),
+         * cancel outright (n/N/Esc), or toggle back to this prompt. */
+        answer = obj_list_display_wipe_preview();
+        if (answer == 'Y') break;
+        if (answer == 'n') return;
     }
 
     {

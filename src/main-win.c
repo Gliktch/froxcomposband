@@ -1109,7 +1109,6 @@ static void load_prefs(void)
     always_repeat_count = retry_count_normalize(GetPrivateProfileInt("Angband", "AlwaysRepeatCount", always_repeat_count, ini_file));
     failed_item_retry_count = retry_count_normalize(GetPrivateProfileInt("Angband", "FailedItemRetryCount", failed_item_retry_count, ini_file));
     map_edge_center_distance = map_edge_center_distance_normalize(GetPrivateProfileInt("Angband", "MapEdgeCenterDistance", map_edge_center_distance, ini_file));
-    sync_retry_options();
 
     /* Load window prefs */
     for (i = 0; i < MAX_TERM_DATA; ++i)

@@ -1581,14 +1581,6 @@ byte retry_count_normalize(byte count)
     return count - (count % 10);
 }
 
-void sync_retry_options(void)
-{
-    always_repeat_count = retry_count_normalize(always_repeat_count);
-    failed_item_retry_count = retry_count_normalize(failed_item_retry_count);
-    always_repeat = always_repeat_count ? TRUE : FALSE;
-    failed_item_retry_count_dummy = failed_item_retry_count ? TRUE : FALSE;
-}
-
 static cptr _temp_file_policy_desc(void)
 {
     switch (temp_file_policy)
@@ -1760,12 +1752,10 @@ static bool _special_option_handle_direction(bool *o_var, int delta)
         else if (o_var == &always_repeat)
         {
             always_repeat_count = _inc_retry_count(always_repeat_count);
-            sync_retry_options();
         }
         else if (o_var == &failed_item_retry_count_dummy)
         {
             failed_item_retry_count = _inc_retry_count(failed_item_retry_count);
-            sync_retry_options();
         }
         else if (o_var == &reduce_uniques)
         {
@@ -1873,12 +1863,10 @@ static bool _special_option_handle_direction(bool *o_var, int delta)
         else if (o_var == &always_repeat)
         {
             always_repeat_count = _dec_retry_count(always_repeat_count);
-            sync_retry_options();
         }
         else if (o_var == &failed_item_retry_count_dummy)
         {
             failed_item_retry_count = _dec_retry_count(failed_item_retry_count);
-            sync_retry_options();
         }
         else if (o_var == &ironman_empty_levels)
         {

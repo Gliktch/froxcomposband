@@ -472,8 +472,6 @@ static void wr_options(savefile_ptr file)
     int i;
     u16b c;
 
-    sync_retry_options();
-
     savefile_write_byte(file, delay_factor);
     savefile_write_byte(file, hitpoint_warn);
     savefile_write_byte(file, mana_warn);

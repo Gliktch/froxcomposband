@@ -389,7 +389,6 @@ extern byte map_edge_center_distance_normalize(byte distance);
 extern byte message_pane_wrap_width_normalize(byte width);
 extern byte autorun_max_steps_normalize(byte steps);
 extern byte retry_count_normalize(byte count);
-extern void sync_retry_options(void);
 
 /*** Game-Play Options ***/
 

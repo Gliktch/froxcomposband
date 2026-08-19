@@ -1554,6 +1554,9 @@ byte message_pane_wrap_width_normalize(byte width)
 
 byte map_edge_center_distance_normalize(byte distance)
 {
+    /* The old 0/default "asymmetric edge-scroll" mode is gone; anything
+     * carrying 0 (legacy saves) migrates to 2, and the usable range is 1-20. */
+    if (!distance) return 2;
     if (distance > 20) return 20;
     return distance;
 }
@@ -1640,13 +1643,13 @@ static byte _inc_map_edge_center_distance(byte distance)
 {
     distance = map_edge_center_distance_normalize(distance);
     if (distance < 20) return distance + 1;
-    return 0;
+    return 1;
 }
 
 static byte _dec_map_edge_center_distance(byte distance)
 {
     distance = map_edge_center_distance_normalize(distance);
-    if (!distance) return 20;
+    if (distance <= 1) return 20;
     return distance - 1;
 }
 
@@ -2210,7 +2213,7 @@ void do_cmd_options_aux(int page, cptr info)
             {
                 strnfmt(buf, sizeof(buf), "%-48s: ", option_info[opt[i]].o_desc);
                 _option_value_append(buf, sizeof(buf),
-                    !map_edge_center_distance ? "old" : format("%d", map_edge_center_distance));
+                    format("%d", map_edge_center_distance_normalize(map_edge_center_distance)));
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &inscriptions_first_dummy)

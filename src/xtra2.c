@@ -3587,8 +3587,6 @@ void viewport_verify_aux(u32b options)
     rect_t  r = ui_map_rect();
     point_t o = viewport_origin;
     point_t c = rect_center(r);
-    int edge_y = 2;
-    int edge_x = 4;
 
     if ((options & VIEWPORT_FORCE_CENTER) || !rect_contains_pt(r, p.x, p.y))
     {
@@ -3598,42 +3596,27 @@ void viewport_verify_aux(u32b options)
     }
     else
     {
-        if (map_edge_center_distance)
-        {
-            int distance = map_edge_center_distance_normalize(map_edge_center_distance);
-            bool center_y = FALSE;
-            bool center_x = FALSE;
+        int distance = map_edge_center_distance_normalize(map_edge_center_distance);
+        bool center_y = FALSE;
+        bool center_x = FALSE;
+        int edge_y = MIN(distance, MAX(1, r.cy/2 - 1));
+        int edge_x = MIN(distance * 2, MAX(1, r.cx/2 - 1));
 
-            /* The configured distance applies at 1x to the north/south edges
-             * and at 2x to the east/west edges, capped by the viewport size. */
-            edge_y = MIN(distance, MAX(1, r.cy/2 - 1));
-            edge_x = MIN(distance * 2, MAX(1, r.cx/2 - 1));
+        /* The configured distance applies at 1x to the north/south edges and
+         * at 2x to the east/west edges, each capped at half the viewport. */
+        if (p.y >= r.y + r.cy - edge_y)
+            center_y = TRUE;
+        else if (p.y < r.y + edge_y)
+            center_y = TRUE;
+        if (p.x >= r.x + r.cx - edge_x)
+            center_x = TRUE;
+        else if (p.x < r.x + edge_x)
+            center_x = TRUE;
 
-            if (p.y >= r.y + r.cy - edge_y)
-                center_y = TRUE;
-            else if (p.y < r.y + edge_y)
-                center_y = TRUE;
-            if (p.x >= r.x + r.cx - edge_x)
-                center_x = TRUE;
-            else if (p.x < r.x + edge_x)
-                center_x = TRUE;
-
-            if (center_y)
-                o.y += p.y - c.y;
-            if (center_x)
-                o.x += p.x - c.x;
-        }
-        else
-        {
-            if (p.y > r.y + r.cy - edge_y)
-                o.y += r.cy/2;
-            else if (p.y < r.y + edge_y)
-                o.y -= r.cy/2;
-            if (p.x > r.x + r.cx - edge_x)
-                o.x += r.cx/2;
-            else if (p.x < r.x + edge_x)
-                o.x -= r.cx/2;
-        }
+        if (center_y)
+            o.y += p.y - c.y;
+        if (center_x)
+            o.x += p.x - c.x;
     }
     if (o.x > cur_wid - 3*r.cx/4) o.x = cur_wid - 3*r.cx/4;
     if (o.y > cur_hgt - 3*r.cy/4) o.y = cur_hgt - 3*r.cy/4;

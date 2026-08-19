@@ -2664,6 +2664,9 @@ option_type option_info[] =
     { &monlist_ungroup,             FALSE,  OPT_PAGE_LIST, 7, 16,
     "monlist_ungroup",              "List each monster separately in monster lists" },
 
+    { &monlist_zzz_dummy,           FALSE,  OPT_PAGE_LIST, 7, 19,
+    "monlist_zzz",                  "Show a Zzz prefix for sleeping monster rows" },
+
     { &list_stairs,                 TRUE,   OPT_PAGE_LIST, 1, 10,
     "list_stairs",                  "Display stairs in object list" },
 

@@ -895,8 +895,10 @@ static void wr_extra(savefile_ptr file)
     savefile_write_s32b(file, temp_file_policy);
     savefile_write_s32b(file, map_edge_center_distance_normalize(map_edge_center_distance));
     for (i = 0; i < 9; i++)
-        /* Future use; slot 1 stores the inscription mode + 1 */
-        savefile_write_s32b(file, (i == 1) ? (inscriptions_first + 1) : 0);
+        /* Future use; slot 1 stores the inscription mode + 1, slot 2 the Zzz mode + 1 */
+        savefile_write_s32b(file,
+            (i == 1) ? (inscriptions_first + 1) :
+            (i == 2) ? (monlist_zzz + 1) : 0);
 
     for (i = 0; i < MAX_POWER_LABEL; i++)
     {

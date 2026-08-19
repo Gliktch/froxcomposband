@@ -580,6 +580,9 @@ If this option is on, the nearby monster list sorts nearer monsters before farth
 <topic:monlist_ungroup><color:U>List each monster separately in monster lists</color> <color:D>(monlist_ungroup)</color>
 If this option is on, the nearby monster list will display one row per monster instead of grouping monsters of the same apparent race together.
 
+<topic:monlist_zzz><color:U>Show a Zzz prefix for sleeping monster rows</color> <color:D>(monlist_zzz)</color>
+Controls the Zzz prefix on fully-asleep rows in the nearby monster list. With <color:keypress>None</color>, sleeping rows are never marked; with <color:keypress>Uniq</color>, only rows of unique monsters get the prefix; with <color:keypress>All</color>, every fully-asleep row is marked.
+
 <topic:list_stairs><color:U>Display stairs in the object list</color> <color:D>(list_stairs)</color>
 If this option is enabled, the list of visible objects (accessible in-game by pressing <color:keypress>O</color> or <color:keypress>]</color>) will include stairs in its Interesting Features section. (The inclusion of stairs in the object list can be toggled in the list itself by pressing <color:keypress>S</color>, but this option determines whether stairs are shown by default.)
 

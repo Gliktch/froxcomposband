@@ -860,6 +860,13 @@ static void rd_extra(savefile_ptr file)
             else
                 inscriptions_first = INSCRIPTIONS_FIRST_OFF;
         }
+        else if (i == 2)
+        {
+            if (res >= 1 && res <= 3)
+                monlist_zzz = (byte)(res - 1);
+            else
+                monlist_zzz = MONSTER_ZZZ_ALL;
+        }
     }
     wipe_labels();
     if (!savefile_is_older_than(file, 7, 1, 0, 4))

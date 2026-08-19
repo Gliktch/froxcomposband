@@ -1156,9 +1156,13 @@ static int _draw_monster_list(_mon_list_ptr list, int top, rect_t rect, int mode
             byte                attr = TERM_WHITE;
             char                buf[100];
             char                loc[100];
+            bool                zzz;
 
             assert(info_ptr->r_idx > 0);
             r_ptr = &r_info[info_ptr->r_idx];
+            zzz = !info_ptr->ct_awake &&
+                ((monlist_zzz == MONSTER_ZZZ_ALL) ||
+                 (monlist_zzz == MONSTER_ZZZ_UNIQ && (r_ptr->flags1 & RF1_UNIQUE)));
 
             if (r_ptr->flags1 & RF1_UNIQUE)
                 attr = TERM_VIOLET;
@@ -1176,8 +1180,8 @@ static int _draw_monster_list(_mon_list_ptr list, int top, rect_t rect, int mode
 
             if (info_ptr->ct_total == 1)
             {
-                if (!info_ptr->ct_awake)
-                    sprintf(buf, "(Zzz) %s", r_name + r_ptr->name);
+                if (zzz)
+                    sprintf(buf, "Zzz %s", r_name + r_ptr->name);
                 else
                     sprintf(buf, "%s", r_name + r_ptr->name);
                 if (monlist_range_all || (info_ptr->los && monlist_range))
@@ -1191,8 +1195,8 @@ static int _draw_monster_list(_mon_list_ptr list, int top, rect_t rect, int mode
                             (info_ptr->dx > 0) ? 'E' : 'W', abs(info_ptr->dx));
                 }
             }
-            else if (!info_ptr->ct_awake)
-                sprintf(buf, "(Zzz) %s (%d)", r_name + r_ptr->name, info_ptr->ct_total);
+            else if (zzz)
+                sprintf(buf, "Zzz %s (%d)", r_name + r_ptr->name, info_ptr->ct_total);
             else if (info_ptr->ct_awake == info_ptr->ct_total)
                 sprintf(buf, "%s (%d)", r_name + r_ptr->name, info_ptr->ct_total);
             else

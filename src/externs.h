@@ -334,6 +334,8 @@ extern bool show_item_graph;    /* Show items graphics */
 extern bool show_item_markers;  /* Show item-state markers in object listings */
 extern bool inscriptions_first_dummy; /* Option-page anchor for inscriptions_first */
 extern byte inscriptions_first; /* 0 = Off, 1 = User, 2 = On */
+extern bool monlist_zzz_dummy; /* Option-page anchor for monlist_zzz */
+extern byte monlist_zzz; /* 0 = None, 1 = Uniq, 2 = All */
 extern bool show_special_inventories; /* Show race/class special inventories in standard inventory lists */
 extern bool shops_mark_unseen;    /* Indicate unseen flavors in shops */
 extern bool equippy_chars;    /* Display 'equippy' chars */

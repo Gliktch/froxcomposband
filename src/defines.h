@@ -465,6 +465,11 @@
 #define INSCRIPTIONS_FIRST_USER  1 /* player inscription first, pseudo at end */
 #define INSCRIPTIONS_FIRST_ON    2 /* player and pseudo inscriptions first */
 
+/* Sleeping Zzz prefix modes for monster list rows (monlist_zzz) */
+#define MONSTER_ZZZ_NONE  0 /* no Zzz prefix */
+#define MONSTER_ZZZ_UNIQ  1 /* Zzz prefix for unique rows only */
+#define MONSTER_ZZZ_ALL   2 /* Zzz prefix for every fully-asleep row */
+
 /*
  * Player regeneration constants
  */

@@ -1662,6 +1662,18 @@ static byte _dec_inscriptions_first_mode(byte mode)
     return mode - 1;
 }
 
+static byte _inc_monlist_zzz_mode(byte mode)
+{
+    if (mode >= MONSTER_ZZZ_ALL) return MONSTER_ZZZ_NONE;
+    return mode + 1;
+}
+
+static byte _dec_monlist_zzz_mode(byte mode)
+{
+    if (!mode) return MONSTER_ZZZ_ALL;
+    return mode - 1;
+}
+
 static byte _inc_autorun_max_steps(byte steps)
 {
     steps = autorun_max_steps_normalize(steps);
@@ -1740,6 +1752,8 @@ static bool _special_option_handle_direction(bool *o_var, int delta)
             map_edge_center_distance = _inc_map_edge_center_distance(map_edge_center_distance);
         else if (o_var == &inscriptions_first_dummy)
             inscriptions_first = _inc_inscriptions_first_mode(inscriptions_first);
+        else if (o_var == &monlist_zzz_dummy)
+            monlist_zzz = _inc_monlist_zzz_mode(monlist_zzz);
         else if (o_var == &always_repeat)
         {
             always_repeat_count = _inc_retry_count(always_repeat_count);
@@ -1851,6 +1865,8 @@ static bool _special_option_handle_direction(bool *o_var, int delta)
             map_edge_center_distance = _dec_map_edge_center_distance(map_edge_center_distance);
         else if (o_var == &inscriptions_first_dummy)
             inscriptions_first = _dec_inscriptions_first_mode(inscriptions_first);
+        else if (o_var == &monlist_zzz_dummy)
+            monlist_zzz = _dec_monlist_zzz_mode(monlist_zzz);
         else if (o_var == &always_repeat)
         {
             always_repeat_count = _dec_retry_count(always_repeat_count);
@@ -2175,6 +2191,13 @@ void do_cmd_options_aux(int page, cptr info)
                 static const char *inscriptions_first_names[] = { "Off", "User", "On" };
                 strnfmt(buf, sizeof(buf), "%-48s: %-4s ", option_info[opt[i]].o_desc,
                     inscriptions_first_names[MIN(inscriptions_first, INSCRIPTIONS_FIRST_ON)]);
+                strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
+            }
+            else if (option_info[opt[i]].o_var == &monlist_zzz_dummy)
+            {
+                static const char *monlist_zzz_names[] = { "None", "Uniq", "All" };
+                strnfmt(buf, sizeof(buf), "%-48s: %-4s ", option_info[opt[i]].o_desc,
+                    monlist_zzz_names[MIN(monlist_zzz, MONSTER_ZZZ_ALL)]);
                 strnfmt(buf + strlen(buf), sizeof(buf) - strlen(buf), "(%.19s)", option_info[opt[i]].o_text);
             }
             else if (option_info[opt[i]].o_var == &always_repeat)

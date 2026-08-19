@@ -1,3 +1,36 @@
+Changes in FroxComposband 7.3.1 (hotfix):
+
+Mogaminator
+* Auto-destroy registration on stacks (`k` then `A`) now works reliably:
+  the rule registers by the item's singular name, the whole stack is
+  destroyed whether the rule is new or already present, and the report
+  follows the "Destroyed." line.
+* `A` refuses when no per-character rules file exists yet and points you at
+  the `_` key; the first-use activation prompt appears whenever that file
+  is missing.
+* The `no_mogaminator` option is renamed to `disable_mogaminator`, old pref
+  files using the previous name still load, and legacy potion-of-
+  Enlightenment rules migrate to the renamed Revelation potions.
+* Rule footers for the `(` hide prefix also classify the items as Unwanted,
+  and generated rule files drop their old banner.
+
+Options
+* `display_percentages` now appears on the New Options Introduced in Frox
+  page.
+* The inscriptions-first modes are renamed to None/User/All and the
+  message-wrap option to `messages_wrap`, with old pref lines still
+  loading.
+* Temporary-file handling for stale floors defaults to auto, asking before
+  cleanup unless a protected session proves the files stale; the prompt
+  warns about another running copy.
+* Option descriptions and help refreshed for autorun pauses, the item
+  alerts, the Zzz prefix, and the Messages subwindow.
+
+World map
+* Refusing to travel from the world-map overview (hunger, monsters hunting)
+  returns you to the local map so the message is visible; confirmation
+  prompts stay on the overview.
+
 Changes in FroxComposband 7.3.1:
 
 Options and settings

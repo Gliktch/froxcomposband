@@ -94,8 +94,9 @@ void quest_take(quest_ptr q)
     q->status = QS_TAKEN;
     q->seed = randint0(0x10000000);
     s = quest_get_description(q);
-    msg_format("<color:R>%s</color> (<color:U>Level %d</color>): %s",
-        kayttonimi(q), q->danger_level, string_buffer(s));
+    msg_print_for_prompt(TERM_WHITE,
+        format("<color:R>%s</color> (<color:U>Level %d</color>): %s",
+            kayttonimi(q), q->danger_level, string_buffer(s)));
     string_free(s);
 }
 
@@ -155,7 +156,7 @@ void quest_complete(quest_ptr q, point_t p)
         p_ptr->fame += 50;
 
     if (!(q->flags & QF_NO_MSG))
-        cmsg_print(TERM_L_BLUE, "You just completed your quest!");
+        msg_print_for_prompt(TERM_L_BLUE, "You just completed your quest!");
     msg_add_tiny_screenshot(50, 24);
 
     /* create stairs before the reward */
@@ -292,8 +293,9 @@ void quest_reward(quest_ptr q)
     assert(q->status == QS_COMPLETED);
 
     s = quest_get_description(q);
-    msg_format("<color:R>%s</color> (<color:U>Level %d</color>): %s",
-        kayttonimi(q), q->danger_level, string_buffer(s));
+    msg_print_for_prompt(TERM_WHITE,
+        format("<color:R>%s</color> (<color:U>Level %d</color>): %s",
+            kayttonimi(q), q->danger_level, string_buffer(s)));
     string_free(s);
 
     reward = quest_get_reward(q);
@@ -316,7 +318,8 @@ void quest_fail(quest_ptr q)
     q->status = QS_FAILED;
     q->completed_lev = p_ptr->lev;
     q->completed_turn = game_turn;
-    msg_format("You have <color:v>failed</color> the quest: <color:R>%s</color>.", kayttonimi(q));
+    msg_print_for_prompt(TERM_WHITE,
+        format("You have <color:v>failed</color> the quest: <color:R>%s</color>.", kayttonimi(q)));
     virtue_add(VIRTUE_VALOUR, -2);
     if (!(q->flags & QF_PURPLE)) fame_on_failure();
     if (!(q->flags & QF_TOWN))

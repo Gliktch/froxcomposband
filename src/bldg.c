@@ -2524,8 +2524,9 @@ static void castle_quest(void)
     else if (quest->status == QS_FAILED)
     {
         string_ptr s = quest_get_description(quest);
-        msg_format("<color:R>%s</color> (<color:U>Level %d</color>): %s",
-            quest->name, quest->danger_level, string_buffer(s));
+        msg_print_for_prompt(TERM_WHITE,
+            format("<color:R>%s</color> (<color:U>Level %d</color>): %s",
+                quest->name, quest->danger_level, string_buffer(s)));
         string_free(s);
         quest->status = QS_FAILED_DONE;
         reinit_wilderness = TRUE;
@@ -4398,8 +4399,9 @@ void do_cmd_quest(void)
     {
         int quest_id = cave[py][px].special;
         int danger = quests_get_level(quest_id);
-        msg_format("This is the entrance to the quest: <color:B>%s</color>.",
-            quests_get_name(quest_id));
+        msg_print_for_prompt(TERM_WHITE,
+            format("This is the entrance to the quest: <color:B>%s</color>.",
+                quests_get_name(quest_id)));
         if (((danger < 23) && (p_ptr->lev < danger - 4)) ||
             ((danger < 34) && (p_ptr->lev < danger - 7)) ||
             ((danger > 33) && (danger < 46) && (p_ptr->lev < (danger / 2) + 11)) ||

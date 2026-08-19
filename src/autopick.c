@@ -2378,8 +2378,9 @@ void do_cmd_wipe_unwanted(void)
         return;
     }
 
-    msg_format("%d item%s on this floor categorised as 'Unwanted' will be destroyed.",
-               ct, (ct == 1) ? "" : "s");
+    msg_print_for_prompt(TERM_WHITE,
+        format("%d item%s on this floor categorised as 'Unwanted' will be destroyed.",
+               ct, (ct == 1) ? "" : "s"));
 
     while (TRUE)
     {

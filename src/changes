@@ -1,3 +1,43 @@
+Changes in FroxComposband 7.3.1:
+
+Options and settings
+* The options menu gained a New Options Introduced in Frox page (N) that
+  mirrors the options new to FroxComposband, for players moving over from
+  Frog.
+* Monster list rows can mark fully-asleep monsters with a compact Zzz
+  prefix (None/Uniq/All, default All), replacing the parenthesised (Zzz)
+  form.
+* The map edge-centering setting now runs 1-20 with wraparound; the old
+  0/default mode migrates to 2 on load.
+* Retry counts for obvious commands and failed item uses persist as saved
+  option values, with old saves migrating their defaults.
+
+Unwanted item wipe
+* The `y` wipe confirmation requires a capital Y to destroy; y, u, U or ?
+  toggles the exact preview list, which keeps the prompt visible above it,
+  accepts Y to confirm, n/N/Esc to cancel outright, and / to inspect items.
+* The destruction summary lists each stack by short name (count and flavor,
+  without stat details), and the shop footer shows how many listed rows the
+  Unwanted filter affects.
+* Pressing `y` with the Mogaminator loot helper disabled points you at
+  enabling it via `_` instead of claiming there are no unwanted items.
+
+UI
+* Quest entrance, detail, completion, reward and failure messages, plus the
+  wipe count line, force-display even when main-message suppression is on.
+* The death dump dialog gains a blank line, the object list drops its
+  trailing blank row, and the keep-going prompt clears after answering.
+* Journey keys report when no target is found and distinguish unreachable
+  from undetected destinations; `>` also targets dungeon entrances, and
+  stair targets skip the square underfoot.
+* Option help clarified for confirm-hit costs, shop quantity prompts, and
+  edge centering.
+
+Stability
+* Savefile loading is hardened against out-of-range race, class,
+  personality, ego/artifact flag, and option values instead of asserting or
+  loading corrupt state.
+
 Changes in FroxComposband 7.3.0:
 
 Town travel

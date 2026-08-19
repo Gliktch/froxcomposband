@@ -19,7 +19,7 @@
 #define VER_MAJOR 7
 #define VER_MINOR 3
 #define VER_PATCH "pipari"
-#define VER_EXTRA 0
+#define VER_EXTRA 1
 #define VERSION_IS_DEVELOPMENT (TRUE)
 #define FROX_BUILD_STAMP ""
 

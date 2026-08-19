@@ -2100,8 +2100,35 @@ void do_cmd_options_aux(int page, cptr info)
     /* Scan the options */
     for (i = 0; option_info[i].o_desc; i++)
     {
-        /* Notice options on this "page" */
-        if (option_info[i].o_page == page) opt[n++] = i;
+        /* The Frox page mirrors options that are new in FroxComposband,
+         * wherever they normally live, so players moving over from Frog can
+         * find and change them all in one place. */
+        if (page == OPT_PAGE_FROX)
+        {
+            static const char *frox_only[] = {
+                "alert_item_major", "alert_item_minor", "autorun_max_steps",
+                "center_stair_tele", "confirm_hit_unseen", "confirm_hit_visible",
+                "display_upkeep_bar", "disturb_wakeup", "find_ignore_side",
+                "inscriptions_first", "map_edge_center", "message_pane_wrap",
+                "monlist_awake", "monlist_distance", "monlist_los",
+                "monlist_range", "monlist_range_all", "monlist_ungroup",
+                "monlist_zzz", "retry_item_count", "retry_obvious_count",
+                "show_damage_hp",
+                "show_item_markers", "show_special_bags", "suppress_main_msgs",
+                "temp_file_policy"
+            };
+            int j;
+
+            for (j = 0; j < (int)(sizeof(frox_only) / sizeof(frox_only[0])); j++)
+            {
+                if (option_info[i].o_text && streq(option_info[i].o_text, frox_only[j]))
+                {
+                    opt[n++] = i;
+                    break;
+                }
+            }
+        }
+        else if (option_info[i].o_page == page) opt[n++] = i;
     }
 
     scroll_mode = (n > bottom_opt);
@@ -2672,7 +2699,7 @@ static bool _has_message_window(void)
     return FALSE;
 }
 
-#define OPT_NUM 15
+#define OPT_NUM 16
 
 static struct opts
 {
@@ -2698,6 +2725,7 @@ option_fields[OPT_NUM] =
     { 'w', "Window Flags", 16 },
 
     { 'b', "Birth Options (Browse Only)", 18 },
+    { 'n', "New Options Introduced in Frox", 20 },
     { 'c', "Cheat Options", 19 },
 };
 
@@ -2746,7 +2774,7 @@ void do_cmd_options(void)
                     format("(%c) %s", toupper(option_fields[i].key), option_fields[i].name));
             }
 
-            prt("Move to <dir>, Select to Enter, Cancel to ESC, ? to help: ", 21, 0);
+            prt("Move to <dir>, Select to Enter, Cancel to ESC, ? to help: ", 22, 0);
 
             /* Get command */
             skey = inkey_special(TRUE);
@@ -2841,6 +2869,14 @@ void do_cmd_options(void)
             case 'b':
             {
                 do_cmd_options_aux(OPT_PAGE_BIRTH, (!p_ptr->wizard || !allow_debug_opts) ? "Birth Options(browse only)" : "Birth Options((*)s effect score)");
+                break;
+            }
+
+            /* New Options Introduced in Frox */
+            case 'N':
+            case 'n':
+            {
+                do_cmd_options_aux(OPT_PAGE_FROX, "New Options Introduced in Frox");
                 break;
             }
 

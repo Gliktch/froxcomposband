@@ -3598,6 +3598,7 @@ enum r_drop_e
 #define OPT_PAGE_BIRTH          6
 #define OPT_PAGE_AUTODESTROY    7
 #define OPT_PAGE_LIST           8
+#define OPT_PAGE_FROX           9
 #define OPT_PAGE_PLAYRECORD    10
 
 #define TEMP_FILE_POLICY_AUTO      0

@@ -184,10 +184,10 @@ If this option is off, no confirmation will be asked if you attempt to destroy a
 This option prompts you if you attempt to wear or wield an item known to be cursed, to make sure you are equipping it intentionally.
 
 <topic:confirm_hit_unseen><color:U>Confirmation on melee attacking unseen monsters</color> <color:D>(confirm_hit_unseen)</color>
-If this option is on, attempting a blind melee attack against a monster you cannot see asks for confirmation first. The prompt defaults to yes, so a careless keypress still continues the attack, but <color:keypress>n</color>, <color:keypress>N</color> or <color:keypress>Esc</color> will cancel it.
+If this option is on, attempting a blind melee attack against a monster you cannot see asks for confirmation first. The prompt defaults to yes, so a careless keypress still continues the attack, but <color:keypress>n</color>, <color:keypress>N</color> or <color:keypress>Esc</color> will cancel it. Declining is not free: you still bump into the monster, which costs half a turn and carries a chance of waking it.
 
 <topic:confirm_hit_visible><color:U>Confirmation on melee attacking visible monsters</color> <color:D>(confirm_hit_visible)</color>
-If this option is on, visible melee attacks ask for confirmation before the first hit, much like wielding a weapon inscribed with <color:keyword>!?</color>. Once you confirm an attack, repeated hits on that monster are assumed to be intentional.
+If this option is on, visible melee attacks ask for confirmation before the first hit, much like wielding a weapon inscribed with <color:keyword>!?</color>. Once you confirm an attack, repeated hits on that monster are assumed to be intentional. Declining costs no energy and carries no wake chance, since you can see the monster and simply hold back.
 
 <topic:target_pet><color:U>Allow targetting pets</color> <color:D>(target_pet)</color>
 If this option is off, monster-targetting prompts will not offer pets as target options (a pet can still be targeted if necessary, by switching into free-targetting mode). If this option is on, all monsters including pets will be offered as target options.
@@ -205,7 +205,7 @@ This option instructs the <color:keyword>auto-get</color> command (<color:keypre
 This option instructs the Auto-Get Objects command (<color:keypress>^G</color>) to automatically travel to nearby visible objects which you have registered to either pickup or destroy. This option subsumes (and extends) the <color:keyword>auto_get_ammo</color> option since ammo inscribed with <color:keypress>=g</color> is certainly registered for auto-pickup.
 
 <topic:limit_shop_prompts><color:U>Limit shop quantity prompts by money available</color> <color:D>(limit_shop_prompts)</color>
-If this option is on, quantity prompt caps for buying and reserving objects account for both the number of objects available in the shop and the number of objects you can actually afford, rather than just the number of objects available. Attempts to buy a completely unaffordable item are also rejected more efficiently.
+If this option is on, quantity prompt caps for buying and reserving objects account for both the number of objects available in the shop and the number of objects you can actually afford, rather than just the number of objects available.
 
 <topic:auto_detect_traps><color:U>Automatically detect traps while running</color> <color:D>(auto_detect_traps)</color>
 With this option enabled, the game will attempt to automatically detect traps whenever you run outside a trap-detected region. Use the <color:keyword>view_unsafe_grids</color> to make trap detected regions more visually obvious. For this option to work, you must be carrying a scroll, staff or rod able to detect traps. The game will use the object for you automatically, consuming a scroll or a single charge from an appropriate device.
@@ -231,7 +231,7 @@ If this option is off, the game waits until the player is finished running or tr
 If this option is on, the map recenters after stair travel, random floor placement, and teleports that move the player a substantial distance. Ordinary walking and short teleports are unaffected.
 
 <topic:map_edge_center><color:U>Center map when x/2x squares from NS/EW edges</color> <color:D>(map_edge_center)</color>
-Controls how close you can move to the edge of the visible map before the view recenters on the affected axis. The configured value applies at 1x to the north/south edges and at 2x to the east/west edges, so a setting of 10 recenters 10 squares from the north/south edges and 20 from the east/west edges. The <color:keyword>default</color> setting keeps the old asymmetric edge-scroll behavior, and each direction is capped by the viewport size.
+Controls how close you can move to the edge of the visible map before the view recenters on the affected axis. The configured value applies at 1x to the north/south edges and at 2x to the east/west edges, so a setting of 10 recenters 10 squares from the north/south edges and 20 from the east/west edges. Values run from 1 to 20 and wrap around.
 
 <topic:view_yellow_lite><color:U>Use special colors for torch-lit grids</color> <color:D>(view_yellow_lite)</color>
 If this option is enabled, visible floor or wall grids illuminated by a torch or other moving light source will be drawn in <color:y>yellow</color>. Keeping this option turned off may slightly improve game speed. This option has no effect if both <color:keyword>view_granite_lite</color> and <color:keyword>view_special_lite</color> are off.

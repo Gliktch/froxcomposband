@@ -55,6 +55,7 @@ int get_class_idx(void)
     return result;
 }
 
+
 /* Goal: This should be the one and only switch off of p_ptr->pclass in the
    entire system! */
 class_t *get_class_aux(int pclass, int psubclass)
@@ -219,6 +220,9 @@ class_t *result = NULL;
     case CLASS_YELLOW_MAGE:
         result = yellow_mage_get_class();
         break;
+    default:
+        result = warrior_get_class();
+        break;
     }
 
     assert(result);
@@ -255,4 +259,3 @@ int get_spell_stat(void)
 
     return result;
 }
-

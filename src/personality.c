@@ -1482,6 +1482,9 @@ personality_ptr get_personality_aux(int index)
     case PERS_UNLUCKY:
         result = _get_unlucky_personality();
         break;
+    default:
+        result = _get_mundane_personality();
+        break;
     }
     assert(result);
     result->id = index;

@@ -267,14 +267,23 @@ static void rd_options(savefile_ptr file)
     u32b mask[8];
 
     delay_factor = savefile_read_byte(file);
+    if (delay_factor > 9) delay_factor = 9;
     hitpoint_warn = savefile_read_byte(file);
+    if (hitpoint_warn > 9) hitpoint_warn = 9;
     mana_warn = savefile_read_byte(file);
+    if (mana_warn > 9) mana_warn = 9;
     random_artifact_pct = savefile_read_byte(file);
+    if (random_artifact_pct > 100) random_artifact_pct = 100;
     reduce_uniques_pct = savefile_read_byte(file);
+    if (reduce_uniques_pct > 100) reduce_uniques_pct = 100;
     object_list_width = savefile_is_older_than(file, 7,1,3,1) ? 56 : savefile_read_byte(file);
     monster_list_width = savefile_is_older_than(file, 7,1,3,1) ? 56 : savefile_read_byte(file);
+    if (object_list_width < 24) object_list_width = 24;
+    if (monster_list_width < 24) monster_list_width = 24;
     generate_empty = savefile_is_older_than(file, 7,1,2,12) ? EMPTY_SOMETIMES : savefile_read_byte(file);
+    if (generate_empty >= EMPTY_MAX) generate_empty = EMPTY_SOMETIMES;
     small_level_type = savefile_is_older_than(file, 7,1,0,11) ? 0 : savefile_read_byte(file);
+    if (small_level_type > SMALL_LVL_MAX) small_level_type = 0;
 
     /*** Cheating options ***/
     c = savefile_read_u16b(file);
@@ -461,6 +470,11 @@ static void rd_extra(savefile_ptr file)
     if (!savefile_is_older_than(file, 7,1,2,8)) pantheon_count = savefile_read_byte(file);
     if (savefile_is_older_than(file, 7,0,6,4)) game_pantheon = 0;
     else game_pantheon = savefile_read_byte(file);
+    if (game_pantheon >= PANTHEON_MAX)
+    {
+        note("Pantheon id out of range - resetting to none");
+        game_pantheon = 0;
+    }
     if (savefile_is_older_than(file, 7,1,2,8)) active_pantheon = (game_pantheon) ? (1 << game_pantheon) : 6;
     else active_pantheon = savefile_read_byte(file);
 
@@ -474,6 +488,11 @@ static void rd_extra(savefile_ptr file)
     p_ptr->psubclass = savefile_read_byte(file);
     p_ptr->psubrace = savefile_read_byte(file);
     p_ptr->current_r_idx = savefile_read_s16b(file);
+    if (p_ptr->current_r_idx < 0 || p_ptr->current_r_idx >= max_r_idx)
+    {
+        note("Possessor monster index out of range - clearing possession");
+        p_ptr->current_r_idx = 0;
+    }
     p_ptr->expfact = savefile_read_u16b(file);
 
     for (i = 0; i < 6; i++) p_ptr->stat_max[i] = savefile_read_s16b(file);
@@ -874,7 +893,7 @@ static void rd_extra(savefile_ptr file)
         for (i = 0; i < MAX_POWER_LABEL; i++)
         {
             int merkki = savefile_read_byte(file);
-            if (merkki > MAX_POWER_LABEL) continue;
+            if (merkki >= MAX_POWER_LABEL) continue;
             savefile_read_cptr(file, power_labels[i], 15);
         }
     }
@@ -1369,14 +1388,22 @@ static errr rd_savefile_new_aux(savefile_ptr file)
         {
             byte b = savefile_read_byte(file);
             if (b == 0xFF) break;
-            assert(/*0 <= b &&*/ b < OF_ARRAY_SIZE);
+            if (b >= OF_ARRAY_SIZE)
+            {
+                note(format("Ego known-flag block (%u) out of range!", b));
+                return (22);
+            }
             ego->known_flags[b] = savefile_read_u32b(file);
         }
         for (;;)
         {
             byte b = savefile_read_byte(file);
             if (b == 0xFF) break;
-            assert(/*0 <= b &&*/ b < OF_ARRAY_SIZE);
+            if (b >= OF_ARRAY_SIZE)
+            {
+                note(format("Ego extra-flag block (%u) out of range!", b));
+                return (22);
+            }
             ego->xtra_flags[b] = savefile_read_u32b(file);
         }
         ego->counts.generated = savefile_read_s16b(file);
@@ -1400,7 +1427,11 @@ static errr rd_savefile_new_aux(savefile_ptr file)
         {
             byte b = savefile_read_byte(file);
             if (b == 0xFF) break;
-            assert(/*0 <= b &&*/ b < OF_ARRAY_SIZE);
+            if (b >= OF_ARRAY_SIZE)
+            {
+                note(format("Art known-flag block (%u) out of range!", b));
+                return (22);
+            }
             art->known_flags[b] = savefile_read_u32b(file);
         }
     }
@@ -1446,6 +1477,15 @@ static errr rd_savefile_new_aux(savefile_ptr file)
 
 
     rd_extra(file);
+
+    /* Reject a corrupt identity rather than silently substituting a race,
+     * class, or personality that the next save would make permanent. */
+    if (p_ptr->prace >= MAX_RACES || p_ptr->pclass >= max_m_idx
+        || p_ptr->personality >= MAX_PERSONALITIES)
+    {
+        note("Player race, class, or personality is out of range!");
+        return (26);
+    }
 
     if (p_ptr->energy_need < -999) world_player = TRUE;
 

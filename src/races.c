@@ -333,6 +333,9 @@ race_t *get_race_aux(int prace, int psubrace)
     case MIMIC_DRAGON:
         result = karrot_dragon_get_race();
         break;
+    default:
+        result = human_get_race();
+        break;
     }
 
     assert(result);
@@ -340,6 +343,7 @@ race_t *get_race_aux(int prace, int psubrace)
     result->subid = psubrace;
     return result;
 }
+
 
 race_t *get_true_race(void)
 {
@@ -361,4 +365,3 @@ race_t *get_race(void)
     }
     return result;
 }
-

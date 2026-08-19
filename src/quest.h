@@ -90,6 +90,7 @@ extern void       quests_add(quest_ptr q); /* for the q_info.txt parser on N: li
 extern void       quests_cleanup(void);
 
 extern quest_ptr  quests_get_current(void);
+extern quest_ptr  quests_get_for_dungeon(int dungeon);
 extern int        quest_id_current(void);
 extern int        quest_get_rnd_num(int *num);
 extern quest_ptr  quests_get(int id);

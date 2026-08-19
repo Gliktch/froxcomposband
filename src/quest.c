@@ -1220,6 +1220,28 @@ static quest_ptr _find_quest(int dungeon, int level)
     return result;
 }
 
+/* Return the active quest whose effective dungeon matches the given dungeon
+ * id (dungeon entrances use this to bridge their entrance to the quest that
+ * lives inside). */
+quest_ptr quests_get_for_dungeon(int dungeon)
+{
+    int     i;
+    vec_ptr v = _quests_get(_find_quest_p);
+    quest_ptr result = NULL;
+
+    for (i = 0; i < vec_length(v); i++)
+    {
+        quest_ptr q = vec_get(v, i);
+
+        if (_quest_dungeon(q) != dungeon) continue;
+        result = q;
+        break;
+    }
+
+    vec_free(v);
+    return result;
+}
+
 void quests_on_generate(int dungeon, int level)
 {
 	quest_ptr q = _find_quest(dungeon, level);

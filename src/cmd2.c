@@ -4455,15 +4455,14 @@ static bool _journey_grid_match(int letter, _journey_kind_t *kind, cave_type *c_
 
     if (kind->stairs)
     {
-        /* '<' stairs up use FF_LESS, '>' stairs down use FF_MORE.  Quest
-         * and dungeon entrances share the '>' glyph and FF_MORE but are not
-         * travel stairs, so they are excluded from '>'; quest exits on the
-         * '<' side are fine. */
+        /* '<' stairs up use FF_LESS, '>' stairs down use FF_MORE.  Dungeon
+         * entrances share the '>' glyph and FF_MORE and are fair targets for
+         * '>'; pure quest entrances are left to jq.  Quest exits on the '<'
+         * side are fine. */
         if (!have_flag(f_ptr->flags, kind->stairs_up ? FF_LESS : FF_MORE))
             return FALSE;
-        if (!kind->stairs_up &&
-            (have_flag(f_ptr->flags, FF_ENTRANCE) ||
-             have_flag(f_ptr->flags, FF_QUEST_ENTER)))
+        if (!kind->stairs_up && have_flag(f_ptr->flags, FF_QUEST_ENTER) &&
+            !have_flag(f_ptr->flags, FF_ENTRANCE))
             return FALSE;
         return TRUE;
     }
@@ -4473,6 +4472,8 @@ static bool _journey_grid_match(int letter, _journey_kind_t *kind, cave_type *c_
             return _journey_quest_ok(quests_get(c_ptr->special), TRUE);
         if (have_flag(f_ptr->flags, FF_BLDG))
             return _journey_quest_ok(quests_get(c_ptr->special), FALSE);
+        if (have_flag(f_ptr->flags, FF_ENTRANCE))
+            return _journey_quest_ok(quests_get_for_dungeon(c_ptr->special), TRUE);
         return FALSE;
     }
     if (kind->shop_type >= 0)
@@ -4601,6 +4602,11 @@ bool journey_find(char key, int *x_ptr, int *y_ptr)
 
                 if (skip) continue;
             }
+
+            /* Skip the stair square underfoot so '<' / '>' travel to the
+             * next nearest stair instead of the current square. */
+            if (match && kind.stairs && (y == py) && (x == px))
+                continue;
 
             if (!match) continue;
 

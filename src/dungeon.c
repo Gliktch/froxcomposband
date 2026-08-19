@@ -3863,6 +3863,20 @@ static void _dispatch_command(int old_now_turn)
                         break;
                     }
 
+                    /* Feedback when no journey target resolves: quests and
+                     * ordinary journey letters get distinct messages, and a
+                     * detected-but-unreachable target is called out too. */
+                    if (journey_key(ch))
+                    {
+                        if (ch == 'q' || ch == 'Q')
+                            msg_print("You don't know of any unfinished business nearby!");
+                        else if (journey_available(ch))
+                            msg_print("You can't seem to reach there.");
+                        else
+                            msg_print("You don't see one of those nearby.");
+                        break;
+                    }
+
                     /* List the journey keys on request. */
                     if (ch == '?')
                     {
@@ -3874,6 +3888,10 @@ static void _dispatch_command(int old_now_turn)
                                 travel_begin(TRAVEL_MODE_NORMAL, x, y);
                                 break;
                             }
+                            if (journey_available(chosen))
+                                msg_print("You can't seem to reach there.");
+                            else
+                                msg_print("You don't see one of those nearby.");
                         }
                         continue;
                     }

@@ -505,6 +505,7 @@ extern bool leave_junk;    /* Auto-destroyer leaves junk */
 extern bool leave_special;    /* Auto-destroyer leaves items your race/class needs */
 extern bool leave_mogaminator; /* Read "destroy" as "leave" */
 extern bool disable_mogaminator;
+extern bool travel_refusal_was_prompt;
 extern bool check_full_pack; /* Check for full pack before manual pickup */
 
 extern bool cheat_peek;

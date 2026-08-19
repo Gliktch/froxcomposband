@@ -2079,6 +2079,10 @@ bool change_wild_mode(void)
     int i;
     bool have_pet = FALSE;
 
+    /* The overview uses this to tell a plain refusal message from a prompt,
+     * so it only closes itself when the message would otherwise be hidden. */
+    travel_refusal_was_prompt = FALSE;
+
     /* It is in the middle of changing map */
     if (p_ptr->leaving) return FALSE;
 
@@ -2142,6 +2146,7 @@ bool change_wild_mode(void)
 
     if (have_pet && !confirm_leaving_pets(TRUE))
     {
+        travel_refusal_was_prompt = TRUE;
         energy_use = 0;
         return FALSE;
     }
@@ -2153,6 +2158,7 @@ bool change_wild_mode(void)
         c = msg_prompt(buf, "ny", PROMPT_ESCAPE_DEFAULT | PROMPT_FORCE_CHOICE);
         if (c == 'n')
         {
+            travel_refusal_was_prompt = TRUE;
             energy_use = 0;
             return FALSE;
         }
@@ -2391,11 +2397,19 @@ void do_cmd_world_map(void)
             if (p_ptr->food < PY_FOOD_WEAK)
             {
                 msg_print("You must eat something before you can travel.");
+                /* Close the overview so the refusal message is visible. */
+                done = TRUE;
                 continue;
             }
             if (change_wild_mode())
             {
                 Term_key_push(key);
+                done = TRUE;
+            }
+            else if (!travel_refusal_was_prompt)
+            {
+                /* A plain refusal message was printed; leave the overview
+                 * so the player can read it on the main view. */
                 done = TRUE;
             }
             continue;

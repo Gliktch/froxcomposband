@@ -471,6 +471,7 @@ bool leave_junk;    /* Auto-destroyer leaves junk */
 bool leave_special;    /* Auto-destroyer leaves items your race/class needs */
 bool leave_mogaminator; /* Mogaminator reads "destroy" as "leave" */
 bool disable_mogaminator;   /* Deactivate the Mogaminator */
+bool travel_refusal_was_prompt; /* The last travel refusal was a prompt */
 bool check_full_pack; /* Check for full pack before manual pickup */
 
 

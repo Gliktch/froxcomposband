@@ -1043,7 +1043,7 @@ void object_desc(char *buf, object_type *o_ptr, u32b mode)
 
     char            tmp_val[MAX_NLEN+160];
     char            tmp_val2[MAX_NLEN+10];
-    char            fake_insc_buf[64];
+    char            fake_insc_buf[64] = "";
     char            real_insc_buf[1024] = "";
 
     u32b            flgs[OF_ARRAY_SIZE];

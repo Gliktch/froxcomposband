@@ -973,7 +973,8 @@ extern void do_cmd_list_objects(void);
  * above the expanded preview list. */
 #define WIPE_PROMPT_PREFIX "Destroy these items? "
 #define WIPE_PROMPT_HINT   "(Y to confirm, y/u/? to toggle list, n/Esc to cancel)"
-extern bool obj_list_display_wipe_preview(void);
+extern void wipe_count_message(char *buf, size_t size, int ct);
+extern bool obj_list_display_wipe_preview(int ct);
 extern void object_list_reset_mog_filter(void);
 extern void fix_monster_list(void);
 extern void fix_object_list(void);

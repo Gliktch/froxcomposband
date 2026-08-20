@@ -2372,6 +2372,56 @@ bool autopick_wipe_candidate(object_type *o_ptr)
     return autopick_is_unwanted(autopick_idx);
 }
 
+/* Format the Unwanted floor count line shared by the collapsed confirmation
+ * and the expanded preview header. */
+void wipe_count_message(char *buf, size_t size, int ct)
+{
+    strnfmt(buf, (uint)size,
+        "%d item%s or stack%s on this floor %s categorised as 'Unwanted'.",
+        ct, (ct == 1) ? "" : "s", (ct == 1) ? "" : "s",
+        (ct == 1) ? "is" : "are");
+}
+
+/*
+ * Collapsed Unwanted-wipe confirmation.  Draws a stable two-line header
+ * (floor count + one-line prompt) whenever the window has room, matching
+ * the expanded preview header; otherwise falls back to the wrapped
+ * message-line prompt.
+ */
+static char wipe_prompt_choice(int ct)
+{
+    if (strlen(WIPE_PROMPT_PREFIX) + strlen(WIPE_PROMPT_HINT) <= (size_t)Term->wid)
+    {
+        char count_msg[80];
+        char answer;
+
+        msg_line_clear();
+        Term_erase(0, 1, Term->wid);
+        auto_more_state = AUTO_MORE_PROMPT;
+        wipe_count_message(count_msg, sizeof(count_msg), ct);
+        c_put_str(TERM_WHITE, count_msg, 0, 0);
+        c_put_str(TERM_WHITE, WIPE_PROMPT_PREFIX, 1, 0);
+        c_put_str(TERM_YELLOW, WIPE_PROMPT_HINT, 1, (int)strlen(WIPE_PROMPT_PREFIX));
+
+        for (;;)
+        {
+            answer = (char)inkey();
+            if (answer == ESCAPE) answer = 'n';
+            if (my_strchr("nNYyuU?", answer)) break;
+        }
+        /* Repaint the header rows when leaving the collapsed confirmation:
+         * the prompt row overlays the top of the map and must not linger. */
+        msg_line_clear();
+        Term_erase(0, 1, Term->wid);
+        p_ptr->redraw |= (PR_MAP | PR_BASIC);
+        return answer;
+    }
+
+    return msg_prompt(
+        format("%s<color:y>%s</color>", WIPE_PROMPT_PREFIX, WIPE_PROMPT_HINT),
+        "nNYyuU?", PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_FORCE_CHOICE
+        | PROMPT_CASE_SENSITIVE);
+}
 
 /*
  * Explicitly wipe the current floor or wilderness cell of items the
@@ -2400,67 +2450,70 @@ void do_cmd_wipe_unwanted(void)
         return;
     }
 
-    msg_print_for_prompt(TERM_WHITE,
-        format("%d item%s on this floor categorised as 'Unwanted' will be destroyed.",
-               ct, (ct == 1) ? "" : "s"));
+    {
+        char count_msg[80];
+        wipe_count_message(count_msg, sizeof(count_msg), ct);
+        msg_print_for_prompt(TERM_WHITE, count_msg);
+    }
 
     while (TRUE)
     {
-        char answer = msg_prompt(
-            format("%s<color:y>%s</color>", WIPE_PROMPT_PREFIX, WIPE_PROMPT_HINT),
-            "nNYyuU?", PROMPT_NEW_LINE | PROMPT_ESCAPE_DEFAULT | PROMPT_FORCE_CHOICE
-            | PROMPT_CASE_SENSITIVE);
+        char answer = wipe_prompt_choice(ct);
 
         if (answer == 'Y') break;
         if (answer == 'n' || answer == 'N') return;
 
         /* y/u/U/? expands the preview; from there the player can confirm (Y),
          * cancel outright (n/N/Esc), or toggle back to this prompt. */
-        answer = obj_list_display_wipe_preview();
+        answer = obj_list_display_wipe_preview(ct);
         if (answer == 'Y') break;
         if (answer == 'n') return;
     }
 
+    /* Report each destroyed stack as its own appended message so the list
+     * reads "You destroy N unwanted items: item, item, item." across the
+     * existing -more- handler instead of overflowing the message area.
+     * There is no aggregate buffer, so nothing truncates. */
     {
-        char names[1024];
-        int  len = 0;
+        int last_idx = 0;
 
-        names[0] = '\0';
+        for (i = 1; i < max_o_idx; i++)
+            if (autopick_wipe_candidate(&o_list[i])) last_idx = i;
+
+        msg_format("You destroy %d unwanted item%s:", ct, (ct == 1) ? "" : "s");
+
         for (i = 1; i < max_o_idx; i++)
         {
             if (autopick_wipe_candidate(&o_list[i]))
             {
                 char name[MAX_NLEN + 160];
-                int  name_len;
+                bool last = (i == last_idx);
 
-                /* Short name for the summary: keep the stack count and
-                 * flavor, omit the stat details (dice, enchant, pval). */
-                object_desc(name, &o_list[i], OD_NAME_ONLY);
+                /* Short name for the list: keep the stack count and flavor,
+                 * omit the stat details (dice, enchant, pval) and any
+                 * inscription. */
+                object_desc(name, &o_list[i], OD_NAME_ONLY | OD_OMIT_INSCRIPTION);
 
                 /* Drop the indefinite article on single items, keeping the
                  * numeric prefix on stacks ("3 Wooden torches", not
-                 * "a Short Sword"). */
+                 * "a Short Sword").  memmove is required: the source and
+                 * destination overlap, and strcpy's overlapping behaviour
+                 * is undefined. */
                 if (!strncmp(name, "a ", 2))
-                    strcpy(name, name + 2);
+                    memmove(name, name + 2, strlen(name + 2) + 1);
                 else if (!strncmp(name, "an ", 3))
-                    strcpy(name, name + 3);
+                    memmove(name, name + 3, strlen(name + 3) + 1);
 
-                name_len = strlen(name);
-                if (len && len + 2 + name_len < (int)sizeof(names) - 4)
-                    len += strnfmt(names + len, sizeof(names) - len, ", %s", name);
-                else if (len + name_len < (int)sizeof(names) - 4)
-                    len += strnfmt(names + len, sizeof(names) - len, "%s", name);
+                if (last)
+                    msg_print(format("%s.", name));
                 else
-                {
-                    strnfmt(names + len, sizeof(names) - len, "...");
-                    break;
-                }
+                    msg_print(format("%s,", name));
 
-                delete_object_idx(i);
+                /* TEMP TEST: destruction disabled so the floor keeps all
+                 * candidates for repeated testing. */
+                /* delete_object_idx(i); */
             }
         }
-
-        msg_format("You destroy %d unwanted item%s: %s.", ct, (ct == 1) ? "" : "s", names);
     }
 }
 

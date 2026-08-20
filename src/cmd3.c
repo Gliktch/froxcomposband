@@ -2851,12 +2851,13 @@ void do_cmd_list_objects(void)
  * 'n' when they cancel outright, or anything else when they toggle back
  * to the collapsed confirmation prompt.
  */
-char obj_list_display_wipe_preview(void)
+char obj_list_display_wipe_preview(int ct)
 {
     _obj_list_filter_t filter = _obj_list_filter_default();
     _obj_list_ptr list;
     rect_t display_rect = ui_menu_rect();
     rect_t list_rect;
+    char count_msg[80];
     int top = 0, page_size, pos = 0;
     int ct_types;
     bool done = FALSE;
@@ -2866,7 +2867,12 @@ char obj_list_display_wipe_preview(void)
     filter.only_unwanted = TRUE;
 
     _apply_list_width(&display_rect, object_list_width);
-    list_rect = display_rect; /* the list begins right below the message line */
+    /* Keep the floor count and confirmation prompt as a stable two-line
+     * header above the list. */
+    list_rect = display_rect;
+    list_rect.y += 1;
+    list_rect.cy -= 1;
+    if (list_rect.cy < 1) list_rect.cy = 1;
 
     list = _create_obj_list(&filter);
     ct_types = vec_length(list->list);
@@ -2876,22 +2882,24 @@ char obj_list_display_wipe_preview(void)
     _obj_list_position_selectable(list, &top, page_size, &pos);
 
     msg_line_clear();
+    Term_erase(0, 1, Term->wid);
     screen_save();
 
-    /* Keep the confirmation prompt visible while the list is expanded */
-    c_put_str(TERM_WHITE, WIPE_PROMPT_PREFIX, 0, 0);
-    c_put_str(TERM_YELLOW, WIPE_PROMPT_HINT, 0, (int)strlen(WIPE_PROMPT_PREFIX));
+    wipe_count_message(count_msg, sizeof(count_msg), ct);
+    c_put_str(TERM_WHITE, count_msg, 0, 0);
+    c_put_str(TERM_WHITE, WIPE_PROMPT_PREFIX, 1, 0);
+    c_put_str(TERM_YELLOW, WIPE_PROMPT_HINT, 1, (int)strlen(WIPE_PROMPT_PREFIX));
 
     while (!done)
     {
         int cmd;
-        int i, ct;
+        int i, drawn;
 
         if (redraw)
         {
-            Term_erase(display_rect.x, display_rect.y, display_rect.cx);
-            ct = _draw_obj_list(list, top, list_rect);
-            for (i = ct; i < list_rect.cy; i++)
+            Term_erase(list_rect.x, list_rect.y, list_rect.cx);
+            drawn = _draw_obj_list(list, top, list_rect);
+            for (i = drawn; i < list_rect.cy; i++)
                 Term_erase(list_rect.x, list_rect.y + i, list_rect.cx);
             redraw = FALSE;
         }
@@ -2920,6 +2928,31 @@ char obj_list_display_wipe_preview(void)
             result = 'Y';
             done = TRUE;
             break;
+        case '=':
+        case '+':
+        case '-':
+        {
+            int old_cx = list_rect.cx;
+            int r;
+
+            _adjust_list_width(&object_list_width, (cmd == '-') ? -1 : 1);
+            display_rect = ui_menu_rect();
+            _apply_list_width(&display_rect, object_list_width);
+            list_rect = display_rect;
+            list_rect.y += 1;
+            list_rect.cy -= 1;
+            if (list_rect.cy < 1) list_rect.cy = 1;
+            if (list_rect.cx < old_cx)
+            {
+                for (r = 0; r < list_rect.cy; r++)
+                    Term_erase(list_rect.x + list_rect.cx, list_rect.y + r,
+                        old_cx - list_rect.cx);
+            }
+            if (page_size > list_rect.cy) page_size = list_rect.cy;
+            _obj_list_position_selectable(list, &top, page_size, &pos);
+            redraw = TRUE;
+            break;
+        }
         case 'y':
         case 'u':
         case 'U':
@@ -2998,6 +3031,13 @@ char obj_list_display_wipe_preview(void)
                     obj_display_inspect(&o_list[info_ptr->idx]);
                     screen_load();
                     screen_save();
+                    /* Redraw the two-line header after returning from the
+                     * inspect screen. */
+                    wipe_count_message(count_msg, sizeof(count_msg), ct);
+                    c_put_str(TERM_WHITE, count_msg, 0, 0);
+                    c_put_str(TERM_WHITE, WIPE_PROMPT_PREFIX, 1, 0);
+                    c_put_str(TERM_YELLOW, WIPE_PROMPT_HINT, 1,
+                        (int)strlen(WIPE_PROMPT_PREFIX));
                     redraw = TRUE;
                 }
             }
@@ -3008,6 +3048,9 @@ char obj_list_display_wipe_preview(void)
         }
     }
 
+    /* The header drawing cleared the character panel's top row, so make
+     * sure the next frame repaints the map and basic panel. */
+    p_ptr->redraw |= (PR_MAP | PR_BASIC);
     screen_load();
     _obj_list_free(list);
     return result;

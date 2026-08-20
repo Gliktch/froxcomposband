@@ -41,6 +41,11 @@ World map
 * Stepping from the overview into the real world map no longer flashes the
   local view in between.
 
+Items
+* Ammo breakage applies again on hits: exploding ego ammo breaks for certain
+  on a connected hit, and other ammo breaks at its usual rate, after a
+  missed-shot change stopped on-hit breakage entirely.
+
 UI
 * Life rating help now describes the percentage display (85% to 115%, a
   -15% to +15% deviation from 100%) and the optional 0 to 76 numeric

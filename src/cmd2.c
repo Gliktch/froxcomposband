@@ -2857,9 +2857,9 @@ static int breakage_chance_aux(object_type *o_ptr, bool connected)
     }
 
     /* Exploding ego ammo breaks for certain on a connected hit, but a missed
-     * shot shatters at double the base rate and detonates where it lands */
+     * shot shatters at triple the base rate and detonates where it lands */
     if (o_ptr->name2 == EGO_AMMO_EXPLODING)
-        return connected ? 100 : MIN(100, base * 2);
+        return connected ? 100 : MIN(100, base * 3);
 
     return base;
 }
@@ -3857,9 +3857,17 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
                 exploded = TRUE;
             }
 
-            /* The miss-break roll above already decided this shot's fate -
-             * do not roll the same chance again on the drop. */
-            drop_near(&arrow, exploded ? 100 : 0, drop_y, drop_x);
+            /* The miss-break roll above already decided a missed exploding
+             * shot's fate, so it either breaks for certain or survives
+             * untouched.  Every other shot applies the computed breakage
+             * chance: exploding ammo breaks for certain on a connected hit,
+             * and other ammo breaks at its usual rate on body hits. */
+            if (exploded)
+                drop_near(&arrow, 100, drop_y, drop_x);
+            else if ((arrow.name2 == EGO_AMMO_EXPLODING) && !hit_connected)
+                drop_near(&arrow, 0, drop_y, drop_x);
+            else
+                drop_near(&arrow, break_chance, drop_y, drop_x);
         }
 
     /* Sniper - Repeat shooting when double shots */

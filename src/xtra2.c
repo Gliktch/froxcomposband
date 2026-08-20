@@ -6298,6 +6298,13 @@ static bool tgt_pt_accept(int y, int x)
     /* Examine the grid */
     c_ptr = &cave[y][x];
 
+    /* Visible monsters */
+    if (c_ptr->m_idx)
+    {
+        monster_type *m_ptr = &m_list[c_ptr->m_idx];
+        if (m_ptr->ml) return (TRUE);
+    }
+
     /* Interesting memorized features */
     if (c_ptr->info & (CAVE_MARK))
     {
@@ -6368,10 +6375,21 @@ bool tgt_pt_travel(int *x_ptr, int *y_ptr)
     return result;
 }
 
+/* Re-show the travel-targeting prompt after a sub-screen (the journey
+ * picker or look-under) closes without committing a destination. */
+static void tgt_pt_reprompt(void)
+{
+    msg_line_clear();
+    p_ptr->redraw |= PR_MAP;
+    msg_print_for_prompt(TERM_WHITE,
+        "To travel, select a target square and press <color:o>space</color>, or press a <color:o>journey letter</color>. <color:G>[<color:o><</color>/<color:o>></color>] stairs cycle  [<color:o>*</color>] monsters cycle  [<color:o>x</color>] look under monsters  [<color:o>?</color>] journey targets</color>");
+}
+
 
 bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
 {
     char ch = 0;
+    char fail_key = 0;
     int d, x, y, n = 0;
     bool success = FALSE;
     rect_t map_rect = ui_map_rect();
@@ -6385,7 +6403,8 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
         n = 0;
     }
 
-    msg_print_for_prompt(TERM_WHITE, "Select a point and press <color:y>space</color>. < and > cycle through stairs, * cycles through monsters, x looks under monsters");
+    msg_print_for_prompt(TERM_WHITE,
+        "To travel, select a target square and press <color:o>space</color>, or press a <color:o>journey letter</color>. <color:G>[<color:o><</color>/<color:o>></color>] stairs cycle  [<color:o>*</color>] monsters cycle  [<color:o>x</color>] look under monsters  [<color:o>?</color>] journey targets</color>");
 
     while ((ch != ESCAPE) && !success)
     {
@@ -6407,9 +6426,18 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
 
             if (ch == '?')
             {
-                char chosen = journey_choose_list();
+                char chosen;
 
-                if (!chosen) continue;
+                /* Drop the travel prompt first so the picker opens directly
+                 * instead of tripping the message line's -more- state. */
+                msg_line_clear();
+                chosen = journey_choose_list();
+
+                if (!chosen)
+                {
+                    tgt_pt_reprompt();
+                    continue;
+                }
                 if (journey_find_any(chosen, &jx, &jy))
                 {
                     y = jy;
@@ -6417,7 +6445,7 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
                     success = TRUE;
                 }
                 else
-                    bell();
+                    fail_key = chosen;
                 break;
             }
             if (journey_find(ch, &jx, &jy))
@@ -6429,8 +6457,8 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
             }
             if (journey_key(ch))
             {
-                bell();
-                continue;
+                fail_key = ch;
+                break;
             }
         }
 
@@ -6459,21 +6487,24 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
             {
                 n++;
 
-                while(n < temp_n)    /* Skip stairs which have different distance */
+                /* Skip monsters, objects and wrong-direction stairs, but
+                 * keep the player as a cycle point. */
+                while (n < temp_n)
                 {
                     cave_type *c_ptr = &cave[temp_y[n]][temp_x[n]];
+                    bool is_player = (temp_y[n] == py) && (temp_x[n] == px);
 
                     if (ch == '>')
                     {
-                        if (cave_have_flag_grid(c_ptr, FF_LESS) ||
-                            cave_have_flag_grid(c_ptr, FF_QUEST_ENTER))
+                        if (!is_player && !cave_have_flag_grid(c_ptr, FF_MORE) &&
+                            !cave_have_flag_grid(c_ptr, FF_QUEST_ENTER))
                             n++;
                         else
                             break;
                     }
-                    else if (ch == '<')
+                    else
                     {
-                        if (cave_have_flag_grid(c_ptr, FF_MORE))
+                        if (!is_player && !cave_have_flag_grid(c_ptr, FF_LESS))
                             n++;
                         else
                             break;
@@ -6514,15 +6545,62 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
             }
             break;
 
-        case 'x':
-            if (target_set_look_under(y, x))
+        case '*':
+            if (expand_list && temp_n)
             {
-                x = target_col;
-                y = target_row;
-                success = TRUE;
+                int found = -1;
+                int tries = temp_n;
+
+                /* Cycle to the next visible monster grid. */
+                do
+                {
+                    n = (n + 1) % temp_n;
+                    if (cave[temp_y[n]][temp_x[n]].m_idx &&
+                        m_list[cave[temp_y[n]][temp_x[n]].m_idx].ml)
+                    {
+                        found = n;
+                        break;
+                    }
+                } while (--tries > 0);
+
+                if (found >= 0)
+                {
+                    y = temp_y[n];
+                    x = temp_x[n];
+
+                    while (!cave_xy_is_visible(x, y))
+                    {
+                        int dx = 0;
+                        int dy = 0;
+
+                        if (x < viewport_origin.x)
+                            dx = -1;
+                        else if (x >= viewport_origin.x + map_rect.cx)
+                            dx = 1;
+
+                        if (y < viewport_origin.y)
+                            dy = -1;
+                        else if (y >= viewport_origin.y + map_rect.cy)
+                            dy = 1;
+
+                        if (!(dy || dx)) break;
+                        if (!viewport_scroll(dy, dx)) break;
+                    }
+                }
             }
-            else
-                ch = 0;
+            break;
+
+        case 'x':
+            /* Toggle monster visibility in place.  The look-under mode can
+             * be entered from anywhere, including the player's square, and
+             * pressing x again restores the monsters (e.g. while the cursor
+             * is back on the player). */
+            hide_monsters_for_look = !hide_monsters_for_look;
+            p_ptr->update |= PU_MONSTERS;
+            p_ptr->redraw |= PR_MAP;
+            redraw_hack = TRUE;
+            handle_stuff();
+            redraw_hack = FALSE;
             break;
 
         default:
@@ -6595,10 +6673,23 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
         }
     }
 
+    /* Leaving the travel cursor by any route restores monster visibility. */
+    if (hide_monsters_for_look)
+    {
+        hide_monsters_for_look = FALSE;
+        p_ptr->update |= PU_MONSTERS;
+        p_ptr->redraw |= PR_MAP;
+    }
+
     msg_line_clear();
 
     /* Recenter the map around the player */
     viewport_verify_no_monsters(FALSE);
+
+    /* A journey key that found no destination reports like the j/S prompt,
+     * after the travel prompt has been cleared. */
+    if (fail_key)
+        journey_report_failure(fail_key);
 
     *x_ptr = x;
     *y_ptr = y;

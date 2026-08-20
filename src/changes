@@ -39,6 +39,11 @@ World map
   centering.
 * The targeter hints drop keys that never work on the world map.
 
+UI
+* Life rating help now describes the percentage display (85% to 115%, a
+  -15% to +15% deviation from 100%) and the optional 0 to 76 numeric
+  scale.
+
 Changes in FroxComposband 7.3.1 (hotfix):
 
 Mogaminator

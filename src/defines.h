@@ -21,7 +21,7 @@
 #define VER_PATCH "pipari"
 #define VER_EXTRA 2
 #define VERSION_IS_DEVELOPMENT (TRUE)
-#define FROX_BUILD_STAMP ""
+#define FROX_BUILD_STAMP " 2026-08-21.1"
 
 #define GAME_MODE_BEGINNER  0
 #define GAME_MODE_NORMAL    1

@@ -82,11 +82,7 @@ bool arg_protected_session; /* Command arg -- Request protected session mode */
 bool arg_quickstart;        /* Command arg -- Request quick start */
 bool quickstart;    /* Default quick restart to on at death */
 bool silent_death;  /* Default silent death to on at death */
-#ifdef WEBCLIENT
-bool arg_webclient = TRUE;  /* Command arg -- Request angband.live/webclient mode */
-#else
-bool arg_webclient;         /* Command arg -- Request angband.live/webclient mode */
-#endif
+bool arg_webclient = TRUE;  /* Hosted staging branch -- default angband.live/webclient mode on */
 bool arg_test;              /* Command arg -- Run release smoke test */
 bool arg_test_headless;     /* Command arg -- Run release smoke test without frontend */
 char arg_test_log[1024];    /* Command arg -- Release smoke test log path */

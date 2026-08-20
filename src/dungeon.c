@@ -3553,6 +3553,7 @@ static void _dispatch_command(int old_now_turn)
         case '\r':
         case '\n':
         case ESCAPE:
+            if (p_ptr->wild_mode) change_wild_mode();
             break;
 
         /*** Wizard Commands ***/

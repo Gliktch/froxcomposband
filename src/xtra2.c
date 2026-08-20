@@ -4474,6 +4474,43 @@ bool show_gold_on_floor = FALSE;
  *
  * This function must handle blindness/hallucination.
  */
+/* World-map targeting offers none of the monster/travel extras, so the key
+ * hints shrink to the cursor controls that still apply there. */
+static bool _target_wild_keys(char *info)
+{
+    if (!p_ptr->wild_mode && !world_map_overview_active) return FALSE;
+    strcpy(info, "q,p,o,+,-,?,<dir>");
+    return TRUE;
+}
+
+/* Persistent walking-energy cost of one world-map tile, mirrored from
+ * do_cmd_walk_aux: the base tile cost is 100 * (MAX_HGT+MAX_WID)/2 energy,
+ * with race, personality, mutation, action and stance modifiers applied.
+ * Timed effects (haste, the timed quick-walk buff) are deliberately left
+ * out because they wear off on the first world-map step. */
+static int _target_wild_walk_energy(void)
+{
+    int energy = 100 * ((MAX_HGT + MAX_WID) / 2);
+
+    if (!p_ptr->riding)
+    {
+        if (mut_present(MUT_LIMP)) energy += energy / 9;
+        if (p_ptr->action == ACTION_QUICK_WALK)
+            energy = (p_ptr->pclass == CLASS_NINJA_LAWYER) ?
+                energy * (60 - (p_ptr->lev / 2)) / 100 :
+                energy * (45 - (p_ptr->lev / 2)) / 100;
+        if (p_ptr->action == ACTION_STALK)
+            energy = energy * (150 - p_ptr->lev) / 100;
+        if (weaponmaster_get_toggle() == TOGGLE_SHADOW_STANCE)
+            energy = energy * (45 - (p_ptr->lev / 2)) / 100;
+        if (mut_present(MUT_FLEET_OF_FOOT)) energy = energy * 60 / 100;
+        if (p_ptr->mystic_fast_walk) energy = energy * 60 / 100;
+        if (personality_is_(PERS_CRAVEN)) energy = energy * 21 / 25;
+        if (prace_is_(RACE_MON_GOLEM)) energy *= 2;
+    }
+    return energy;
+}
+
 static int target_set_aux(int y, int x, int mode, cptr info)
 {
     cave_type *c_ptr = &cave[y][x];
@@ -4951,9 +4988,38 @@ static int target_set_aux(int y, int x, int mode, cptr info)
         }
 
         /* Display a message */
-        if (p_ptr->wild_mode && TRUE) /* TODO: I may want to hide this info later ... */
+        if (p_ptr->wild_mode || world_map_overview_active)
         {
-            sprintf(out_val, "%s%s%s%s [%s] L%d", s1, s2, s3, name, info, wilderness_level(x, y));
+            int dy = (py > y) ? (py - y) : (y - py);
+            int dx = (px > x) ? (px - x) : (x - px);
+            int d  = (dy > dx) ? (dy + (dx>>1)) : (dx + (dy>>1));
+            int tmp_speed = 0;
+            int base_speed;
+            long turns, minutes;
+
+            if (IS_FAST()) tmp_speed += 10;
+            tmp_speed -= player_slow();
+            if (IS_LIGHT_SPEED()) tmp_speed = 99;
+            base_speed = p_ptr->pspeed - tmp_speed;
+            if (base_speed < 1) base_speed = 1;
+
+            /* One world-map tile costs about 13200 energy (~132 local
+             * steps at 100 energy/step, before persistent walking-energy
+             * modifiers) and a step is 10 feet, so the straight-line
+             * distance is about d/4 miles.  The travel time uses the
+             * persistent unbuffed speed (100000 game turns per day) and
+             * ignores terrain penalties. */
+            turns = (long)d * _target_wild_walk_energy()
+                / SPEED_TO_ENERGY(base_speed);
+            minutes = turns * 1440 / 100000;
+
+            if (d > 0)
+                sprintf(out_val, "%s%s%s%s L%d (%.1f miles, %.1f hours) [%s]",
+                    s1, s2, s3, name, wilderness_level(x, y),
+                    d * 132 * 10 / 5280.0, minutes / 60.0, info);
+            else
+                sprintf(out_val, "%s%s%s%s L%d [%s]",
+                    s1, s2, s3, name, wilderness_level(x, y), info);
         }
         else if (p_ptr->wizard)
         {
@@ -5086,11 +5152,13 @@ bool target_set(int mode)
             /* Allow target */
             if (_target_allows_monster_target(mode, c_ptr))
             {
-                strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,+,-,?,<dir>" : "q,t,p,o,x,j,+,-,?,<dir>");
+                if (!_target_wild_keys(info))
+                    strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,+,-,?,<dir>" : "q,t,p,o,x,j,+,-,?,<dir>");
             }
             else
             {
-                strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,?,<dir>" : "q,p,o,x,j,+,-,?,<dir>");
+                if (!_target_wild_keys(info))
+                    strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,?,<dir>" : "q,p,o,x,j,+,-,?,<dir>");
             }
 
             /* Describe and Prompt */
@@ -5329,7 +5397,11 @@ bool target_set(int mode)
                 m = i;
 
                 /* Whole-map jumps can land beyond the current panel - scroll
-                 * the view to bring the selected landmark into view. */
+                 * the view to bring the selected landmark into view.  Only
+                 * when a landmark was actually picked: m is -1 after moving
+                 * onto boring terrain, and indexing temp_y with it would
+                 * read out of bounds. */
+                if (i >= 0)
                 {
                     int ty = temp_y[m];
                     int tx = temp_x[m];
@@ -5373,16 +5445,28 @@ bool target_set(int mode)
             if ((mode & TARGET_MARK) && !m_list[c_ptr->m_idx].ml)
             {
                 if (_target_mode_hides_monsters(mode))
-                    strcpy(info, rogue_like_commands ? "q,p,o,x,(,?,<dir>" : "q,p,o,x,j,(,?,<dir>");
+                {
+                    if (!_target_wild_keys(info))
+                        strcpy(info, rogue_like_commands ? "q,p,o,x,(,?,<dir>" : "q,p,o,x,j,(,?,<dir>");
+                }
                 else
-                    strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,?,<dir>" : "q,p,o,x,j,+,-,?,<dir>");
+                {
+                    if (!_target_wild_keys(info))
+                        strcpy(info, rogue_like_commands ? "q,p,o,x,(,+,-,?,<dir>" : "q,p,o,x,j,+,-,?,<dir>");
+                }
             }
             else
             {
                 if (_target_mode_hides_monsters(mode))
-                    strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,?,<dir>" : "q,t,p,o,x,j,(,?,<dir>");
+                {
+                    if (!_target_wild_keys(info))
+                        strcpy(info, rogue_like_commands ? "q,t,p,o,x,(,?,<dir>" : "q,t,p,o,x,j,(,?,<dir>");
+                }
                 else
-                    strcpy(info, rogue_like_commands ? "q,t,p,m,x,(,+,-,?,<dir>" : "q,t,p,m,x,j,+,-,?,<dir>");
+                {
+                    if (!_target_wild_keys(info))
+                        strcpy(info, rogue_like_commands ? "q,t,p,m,x,(,+,-,?,<dir>" : "q,t,p,m,x,j,+,-,?,<dir>");
+                }
             }
 
 
@@ -5578,6 +5662,28 @@ bool target_set(int mode)
                 /* Slide into legality */
                 if (y >= cur_hgt-1) y = cur_hgt- 2;
                 else if (y <= 0) y = 1;
+
+                /* World-map views: keep the cursor on screen even when a
+                 * jump or scroll lands outside the current panel. */
+                if ((p_ptr->wild_mode || world_map_overview_active)
+                    && !cave_xy_is_visible(x, y))
+                {
+                    rect_t vr = ui_map_rect();
+
+                    if (x < viewport_origin.x) viewport_origin.x = x;
+                    else if (x >= viewport_origin.x + vr.cx)
+                        viewport_origin.x = x - vr.cx + 1;
+                    if (y < viewport_origin.y) viewport_origin.y = y;
+                    else if (y >= viewport_origin.y + vr.cy)
+                        viewport_origin.y = y - vr.cy + 1;
+                    if (viewport_origin.x < 0) viewport_origin.x = 0;
+                    if (viewport_origin.y < 0) viewport_origin.y = 0;
+                    if (viewport_origin.x > cur_wid - vr.cx)
+                        viewport_origin.x = cur_wid - vr.cx;
+                    if (viewport_origin.y > cur_hgt - vr.cy)
+                        viewport_origin.y = cur_hgt - vr.cy;
+                    target_set_prepare(mode);
+                }
             }
         }
     }

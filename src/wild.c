@@ -1652,6 +1652,24 @@ static s16b conv_terrain2feat[MAX_WILDERNESS];
  * Build the wilderness area.
  * -DG-
  */
+/* Centre the world-map viewport the same way the overview does, so the
+ * real map starts from the identical view after the overview closes. */
+static void world_map_center_viewport(void)
+{
+    rect_t map_rect = ui_map_rect();
+
+    /* Center horizontally when the whole world fits; otherwise centre on
+     * the player and let horizontal scrolling work as usual. */
+    viewport_origin.x = (cur_wid <= map_rect.cx) ?
+        (cur_wid - map_rect.cx) / 2 : px - map_rect.cx / 2;
+    viewport_origin.y = py - map_rect.cy / 2;
+    if (!(cur_wid <= map_rect.cx) && viewport_origin.x < 0)
+        viewport_origin.x = 0;
+    if (viewport_origin.y < 0) viewport_origin.y = 0;
+    if (viewport_origin.y > cur_hgt - map_rect.cy)
+        viewport_origin.y = cur_hgt - map_rect.cy;
+}
+
 void wilderness_gen_small(void)
 {
     int i, j;
@@ -1697,6 +1715,10 @@ void wilderness_gen_small(void)
     py = p_ptr->wilderness_y;
 
     p_ptr->town_num = 0;
+
+    /* The real world map opens centred on the player, matching the
+     * overview's view so the transition has no visible shift. */
+    world_map_center_viewport();
 }
 
 
@@ -2231,6 +2253,28 @@ static void _world_map_overview_refresh(void)
     Term_fresh();
 }
 
+/* One-line guide for the world-map views: white title, intense-green
+ * description, orange command keys. */
+void world_map_draw_guide(int row)
+{
+    c_put_str(TERM_WHITE, "World Map:", row, 0);
+    c_put_str(TERM_L_GREEN, " [", row, 10);
+    c_put_str(TERM_ORANGE, "*", row, 12);
+    c_put_str(TERM_L_GREEN, "/", row, 13);
+    c_put_str(TERM_ORANGE, "x", row, 14);
+    c_put_str(TERM_L_GREEN, "/", row, 15);
+    c_put_str(TERM_ORANGE, "l", row, 16);
+    c_put_str(TERM_L_GREEN, "] Look around  [", row, 17);
+    c_put_str(TERM_ORANGE, "direction", row, 33);
+    c_put_str(TERM_L_GREEN, "] Travel  [", row, 42);
+    c_put_str(TERM_ORANGE, ">", row, 53);
+    c_put_str(TERM_L_GREEN, "/", row, 54);
+    c_put_str(TERM_ORANGE, "<", row, 55);
+    c_put_str(TERM_L_GREEN, "/", row, 56);
+    c_put_str(TERM_ORANGE, "Esc", row, 57);
+    c_put_str(TERM_L_GREEN, "] Exit to local map", row, 60);
+}
+
 /* Draw the world map's permawall border cells over whatever prt_map left at
  * the map edges, so the N/S/W frame shows even where the normal paint path
  * does not cover the outermost columns. */
@@ -2346,38 +2390,13 @@ void do_cmd_world_map(void)
     /* Show the whole world width (it fits the panel), and center vertically
      * on the player so both side borders are visible and the player is on
      * screen. */
-    {
-        rect_t map_rect = ui_map_rect();
-        /* Center horizontally when the whole world fits; otherwise centre on
-         * the player and let horizontal scrolling work as usual. */
-        viewport_origin.x = (cur_wid <= map_rect.cx) ?
-            (cur_wid - map_rect.cx) / 2 : px - map_rect.cx / 2;
-        viewport_origin.y = py - map_rect.cy / 2;
-        if (!(cur_wid <= map_rect.cx) && viewport_origin.x < 0)
-            viewport_origin.x = 0;
-        if (viewport_origin.y < 0) viewport_origin.y = 0;
-        if (viewport_origin.y > cur_hgt - map_rect.cy)
-            viewport_origin.y = cur_hgt - map_rect.cy;
-    }
+    world_map_center_viewport();
     prt_map();
     Term_fresh();
 
     /* One-line guide: white title, intense-green description, orange command
      * keys. */
-    c_put_str(TERM_WHITE, "World Map:", Term->hgt - 1, 0);
-    c_put_str(TERM_L_GREEN, " [", Term->hgt - 1, 10);
-    c_put_str(TERM_ORANGE, "*", Term->hgt - 1, 12);
-    c_put_str(TERM_L_GREEN, "/", Term->hgt - 1, 13);
-    c_put_str(TERM_ORANGE, "x", Term->hgt - 1, 14);
-    c_put_str(TERM_L_GREEN, "/", Term->hgt - 1, 15);
-    c_put_str(TERM_ORANGE, "l", Term->hgt - 1, 16);
-    c_put_str(TERM_L_GREEN, "] Look around  [", Term->hgt - 1, 17);
-    c_put_str(TERM_ORANGE, "direction", Term->hgt - 1, 33);
-    c_put_str(TERM_L_GREEN, "] Travel  [", Term->hgt - 1, 42);
-    c_put_str(TERM_ORANGE, ">", Term->hgt - 1, 53);
-    c_put_str(TERM_L_GREEN, "/", Term->hgt - 1, 54);
-    c_put_str(TERM_ORANGE, "Esc", Term->hgt - 1, 55);
-    c_put_str(TERM_L_GREEN, "] Exit to local map", Term->hgt - 1, 58);
+    world_map_draw_guide(Term->hgt - 1);
     Term_fresh();
 
     while (!done)
@@ -2429,6 +2448,7 @@ void do_cmd_world_map(void)
             break;
         }
         case '>':
+        case '<':
             done = TRUE;
             break;
         case KTRL('R'):

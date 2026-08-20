@@ -1006,7 +1006,7 @@ void map_info(int y, int x, byte *ap, char *cp, byte *tap, char *tcp)
             a = f_ptr->x_attr[F_LIT_STANDARD];
             c = f_ptr->x_char[F_LIT_STANDARD];
 
-            if (p_ptr->wild_mode)
+            if (p_ptr->wild_mode || world_map_overview_active)
             {
                 /* Special lighting effects */
                 /* Handle "night" */

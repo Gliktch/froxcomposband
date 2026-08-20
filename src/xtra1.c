@@ -1632,7 +1632,14 @@ static void prt_depth(void)
     if (!dun_level)
     {
         if (p_ptr->wild_mode)
-            sprintf(buf, "%s", "Surface");
+        {
+            /* The world map shows the same one-line guide as the overview
+             * instead of a bare "Surface" label; the status bar follows. */
+            Term_erase(r.x, r.y, r.cx);
+            world_map_draw_guide(r.y);
+            _depth_width = 81;
+            return;
+        }
         else if (p_ptr->inside_arena)
             sprintf(buf, "%s", "Gladiator Ring");
         else if (p_ptr->inside_battle)

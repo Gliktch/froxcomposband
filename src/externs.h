@@ -146,6 +146,7 @@ extern bool character_icky;
 extern bool world_map_overview_active;
 extern void world_map_overview_draw_border(void);
 extern void world_map_overview_restore_local(void);
+extern void world_map_draw_guide(int row);
 extern bool character_xtra;
 extern bool creating_savefile;
 extern u32b seed_flavor;

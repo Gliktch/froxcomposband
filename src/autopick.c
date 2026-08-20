@@ -2509,9 +2509,7 @@ void do_cmd_wipe_unwanted(void)
                 else
                     msg_print(format("%s,", name));
 
-                /* TEMP TEST: destruction disabled so the floor keeps all
-                 * candidates for repeated testing. */
-                /* delete_object_idx(i); */
+                delete_object_idx(i);
             }
         }
     }

@@ -333,7 +333,7 @@ static void msg_line_flush(void)
                 auto_more_state = AUTO_MORE_SKIP_ALL;
                 break;
             }
-            else if (cmd == '\n' || cmd == '\r' || cmd == 'n')
+            else if (cmd == 'n')
             {
                 auto_more_state = AUTO_MORE_SKIP_BLOCK;
                 break;
@@ -345,7 +345,8 @@ static void msg_line_flush(void)
                 screen_load_aux();
                 continue;
             }
-            else if (cmd == ' ' || cmd == 'm' || quick_messages)
+            else if (cmd == ' ' || cmd == '\n' || cmd == '\r' || cmd == 'm'
+                     || quick_messages)
             {
                 break;
             }

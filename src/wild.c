@@ -2339,6 +2339,7 @@ void do_cmd_world_map(void)
 {
     int        i, y, x;
     bool       done = FALSE;
+    bool       skip_local_redraw = FALSE;
 
     if (no_wilderness)
     {
@@ -2422,6 +2423,10 @@ void do_cmd_world_map(void)
             }
             if (change_wild_mode())
             {
+                /* Committed travel: the real world map renders next via the
+                 * pushed key, so the local map must not be repainted in
+                 * between - that frame is a jarring flash on hosted play. */
+                skip_local_redraw = TRUE;
                 Term_key_push(key);
                 done = TRUE;
             }
@@ -2472,12 +2477,16 @@ void do_cmd_world_map(void)
     world_map_overview_restore_local();
     for (i = 0; i < MAX_HGT; i++)
         free(_overview_saved_cave[i]);
-    Term_load();
-    msg_line_redraw();
 
-    /* Full mainview refresh so no overview guide/top-line bits remain. */
-    Term_clear();
-    do_cmd_redraw();
+    if (!skip_local_redraw)
+    {
+        Term_load();
+        msg_line_redraw();
+
+        /* Full mainview refresh so no overview guide/top-line bits remain. */
+        Term_clear();
+        do_cmd_redraw();
+    }
 }
 
 bool py_in_dungeon(void)

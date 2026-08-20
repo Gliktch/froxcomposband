@@ -38,6 +38,8 @@ World map
   both support < and Esc to exit, and the look cursor stays visible while
   centering.
 * The targeter hints drop keys that never work on the world map.
+* Stepping from the overview into the real world map no longer flashes the
+  local view in between.
 
 UI
 * Life rating help now describes the percentage display (85% to 115%, a

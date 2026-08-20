@@ -1,3 +1,44 @@
+Changes in FroxComposband 7.3.2:
+
+Unwanted item wipe
+* The wipe prompt keeps the floor count and confirmation line as a stable
+  two-line header while the preview list is open, and inspecting an item
+  no longer shrinks the count to the number of visible rows.
+* Each destroyed stack is reported as its own appended message, so long
+  wipes page through the -more- handler instead of truncating.
+* The preview list supports the - and =/+ width shortcuts, / inspect
+  works without pseudo-inscription corruption, and leaving the prompt
+  repaints the map and character panel.
+
+Journey travelling
+* Journey keys accept either case in the j/S prompt and ? pickers in both
+  keysets, s and j both head Home, and h takes you to the Mushroom Store.
+* The ? picker screens tighten their labels and colour available trigger
+  letters distinctly.
+* The ` travel prompt accepts journey keys and opens the ? journey
+  picker, keeps < > and 0 on their targeting meanings, and only cycles
+  through detected stairs.
+* Journey failures use the target's label and green name and exit the
+  targeting prompt like the j/S command.
+* The travel prompt has coloured triggers and a journey-target hint and
+  re-emits after the picker closes without a choice; * cycles through
+  monsters, x toggles look-under restored on exit, and stair cycling
+  stays limited to the player and matching stairs.
+
+More prompts
+* Enter now advances -more- pages like Space, n skips to the next message
+  boundary, and Esc dismisses all pending messages, with the keys
+  documented in the help.
+
+World map
+* Looking at a world map shows wilderness level, miles and an estimated
+  travel time based on the persistent unbuffed speed and walking-energy
+  modifiers, omitting the readout on your own square.
+* The overview and real map share the guide line and day/night lighting,
+  both support < and Esc to exit, and the look cursor stays visible while
+  centering.
+* The targeter hints drop keys that never work on the world map.
+
 Changes in FroxComposband 7.3.1 (hotfix):
 
 Mogaminator

@@ -3852,28 +3852,22 @@ static void _dispatch_command(int old_now_turn)
                      * nearby, while journey shortcuts are the common case. */
                     if (!msg_command(_adjacent_spikeable_door() ?
                         "Which door to jam? " :
-                        "Please enter a journey letter target (? for list): ", &ch))
+                        "Please enter a journey key target (? for list): ", &ch))
                         break;
 
-                    /* A journey letter travels to the matching feature on the
+                    /* A journey key travels to the matching feature on the
                      * current map (content-driven; see journey_find()). */
-                    if (journey_find(ch, &x, &y))
+                    if (journey_find_any(ch, &x, &y))
                     {
                         travel_begin(TRAVEL_MODE_NORMAL, x, y);
                         break;
                     }
 
-                    /* Feedback when no journey target resolves: quests and
-                     * ordinary journey letters get distinct messages, and a
-                     * detected-but-unreachable target is called out too. */
-                    if (journey_key(ch))
+                    /* Feedback when no journey target resolves is shared
+                     * with the picker path (see journey_report_failure). */
+                    if (journey_key_any(ch))
                     {
-                        if (ch == 'q' || ch == 'Q')
-                            msg_print("You don't know of any unfinished business nearby!");
-                        else if (journey_available(ch))
-                            msg_print("You can't seem to reach there.");
-                        else
-                            msg_print("You don't see one of those nearby.");
+                        journey_report_failure(ch);
                         break;
                     }
 
@@ -3881,19 +3875,14 @@ static void _dispatch_command(int old_now_turn)
                     if (ch == '?')
                     {
                         char chosen = journey_choose_list();
-                        if (chosen)
+                        if (!chosen) continue;
+                        if (journey_find_any(chosen, &x, &y))
                         {
-                            if (journey_find(chosen, &x, &y))
-                            {
-                                travel_begin(TRAVEL_MODE_NORMAL, x, y);
-                                break;
-                            }
-                            if (journey_available(chosen))
-                                msg_print("You can't seem to reach there.");
-                            else
-                                msg_print("You don't see one of those nearby.");
+                            travel_begin(TRAVEL_MODE_NORMAL, x, y);
                         }
-                        continue;
+                        else
+                            journey_report_failure(chosen);
+                        break;
                     }
 
                     /* A direction still jams a door, as before. */

@@ -132,7 +132,7 @@ To open a chest, you must use this command (for doors, simply walking into a clo
   <indent><color:U>Close a Door (<color:keypress>c</color>)</color>
 Non-intelligent and some other creatures cannot open doors, so shutting doors can be quite valuable. Broken doors cannot be closed. Bashing a door open may break it. Close can take a count, requires a direction, and is affected by the <color:keyword>retry_obvious_count</color> option.</indent>
 
-  <indent><color:U>Jam a Door (<color:keypress>j</color>) or Spike a Door (<color:keypress>S</color>)</color>
+  <indent><color:U>Jam a Door / Shortcut Move (<color:keypress>j</color>) or (<color:keypress>S</color>)</color>
 Many monsters can simply open closed doors, and can eventually get through a locked door. You may therefore occasionally want to jam a door shut with iron spikes. Each spike used on the door will make it harder to bash down the door, up to a certain limit. Smaller monsters are less able to bash down doors. In order to use this command, you must be carrying iron spikes. Jam or Spike requires a direction.</indent>
 
   <indent><color:U>Bash a Door (<color:keypress>B</color>) or Force a Door (<color:keypress>f</color>)</color>

@@ -6291,11 +6291,29 @@ bool tgt_pt(int *x_ptr, int *y_ptr, int rng)
         /* Journey shortcuts: travel straight to a matching town feature.
          * A journey key with no matching or reachable feature is consumed
          * with a bell rather than falling through to a normal targeting
-         * action, which would be unexpected in journey mode. */
+         * action, which would be unexpected in journey mode.  The picker
+         * opens on '?' so every journey target stays reachable even when
+         * the keyset reserves letters or digits for the targeting cursor;
+         * '<' and '>' keep their stair-cycling meaning here. */
         if (tgt_travel_mode && !p_ptr->wild_mode)
         {
             int jy, jx;
 
+            if (ch == '?')
+            {
+                char chosen = journey_choose_list();
+
+                if (!chosen) continue;
+                if (journey_find_any(chosen, &jx, &jy))
+                {
+                    y = jy;
+                    x = jx;
+                    success = TRUE;
+                }
+                else
+                    bell();
+                break;
+            }
             if (journey_find(ch, &jx, &jy))
             {
                 y = jy;

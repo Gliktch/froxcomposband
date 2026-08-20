@@ -4316,13 +4316,15 @@ void do_cmd_get_nearest(void)
  * callers can fall through to their normal handling of a key whenever this
  * returns FALSE.
  *
- * The roguelike keyset uses lowercase letters for movement, so its journey
- * shortcuts are the uppercase forms; the original keyset accepts either case.
+ * The roguelike keyset uses lowercase letters for movement during travel
+ * targeting, so its travel shortcuts are the uppercase forms there; the
+ * journey prompt and picker accept either case.  The original keyset
+ * accepts either case.
  *
  * Key map:
- *   h/j home, g general store, a armoury, w weapon smiths, t temple,
+ *   s/j home, g general store, a armoury, w weapon smiths, t temple,
  *   y alchemy shop, m magic shop, b black market, o bookstore, u museum,
- *   i inn, s mushroom store, c casino, l temple of life/mammon,
+ *   i inn, h mushroom store, c casino, l temple of life/mammon,
  *   r fighters' hall, p trump tower, q nearest quest target.
  */
 static bool _journey_building_match(int letter, feature_type *f_ptr)
@@ -4389,7 +4391,7 @@ static bool _journey_key_kind(char letter, _journey_kind_t *kind)
 
     switch (letter)
     {
-        case 'h':
+        case 's':
         case 'j':
             kind->shop_type = SHOP_HOME;
             break;
@@ -4420,7 +4422,7 @@ static bool _journey_key_kind(char letter, _journey_kind_t *kind)
         case 'u':
             kind->shop_type = SHOP_MUSEUM;
             break;
-        case 's':
+        case 'h':
             kind->shop_type = SHOP_SHROOMERY;
             break;
         case 'q':
@@ -4445,6 +4447,31 @@ static bool _journey_key_kind(char letter, _journey_kind_t *kind)
     return TRUE;
 }
 
+/* Map a raw journey keypress to the canonical internal letter for the
+ * current keyset and context.  Returns 0 when the key is not a journey key
+ * in that context.
+ *
+ * s/S and j/J are Home aliases in both keysets (S is also the journey
+ * command key in the roguelike keyset, the equivalent of j in the original
+ * keyset); the mushroom store is h/H.  During travel targeting, lowercase
+ * letters remain cursor movement and '<', '>' and '0' keep their targeting
+ * meanings. */
+static char _journey_input_key(char key, bool travel_mode)
+{
+    unsigned char c = (unsigned char)key;
+
+    if (isalpha(c))
+    {
+        /* Roguelike travel targeting: lowercase letters move the cursor. */
+        if (travel_mode && rogue_like_commands && !isupper(c))
+            return 0;
+        return (char)tolower(c);
+    }
+    if (key == '<' || key == '>')
+        return travel_mode ? 0 : key;
+    return 0;
+}
+
 /* Does this grid hold a feature matching the journey key? */
 static bool _journey_grid_match(int letter, _journey_kind_t *kind, cave_type *c_ptr)
 {
@@ -4463,6 +4490,11 @@ static bool _journey_grid_match(int letter, _journey_kind_t *kind, cave_type *c_
             return FALSE;
         if (!kind->stairs_up && have_flag(f_ptr->flags, FF_QUEST_ENTER) &&
             !have_flag(f_ptr->flags, FF_ENTRANCE))
+            return FALSE;
+        /* Only offer stairs the character knows about; the square underfoot
+         * always counts as known so the standing-on-the-only-stair case can
+         * be reported distinctly from undetected stairs. */
+        if (!(c_ptr->info & CAVE_MARK) && (c_ptr != &cave[py][px]))
             return FALSE;
         return TRUE;
     }
@@ -4495,16 +4527,15 @@ static bool _journey_kind_for_key(char key, bool quest_exit, _journey_kind_t *ki
     return TRUE;
 }
 
-/* Is there any feature on the current map matching this journey key? */
+/* Is there any feature on the current map matching this journey key?
+ * Used by the journey prompt and picker, which accept either case. */
 bool journey_available(char key)
 {
     _journey_kind_t kind;
-    int letter, y, x;
+    char letter = _journey_input_key(key, FALSE);
+    int y, x;
 
-    if (rogue_like_commands && isalpha((unsigned char)key) && !isupper((unsigned char)key))
-        return FALSE;
-    if (!_journey_kind_for_key(key, FALSE, &kind)) return FALSE;
-    letter = tolower((unsigned char)key);
+    if (!letter || !_journey_kind_for_key(letter, FALSE, &kind)) return FALSE;
 
     for (y = 0; y < cur_hgt; y++)
         for (x = 0; x < cur_wid; x++)
@@ -4513,16 +4544,51 @@ bool journey_available(char key)
     return FALSE;
 }
 
-/* Is this one of the journey shortcut keys (including the h/j Home alias)?
- * In the roguelike keyset the shortcuts are the uppercase forms, since
- * lowercase letters are movement there. */
-bool journey_key(char key)
+/* TRUE when the only matching journey target on the current map is the
+ * square underfoot.  This is how stair shortcuts report that you are
+ * standing on the only detected stair (the underfoot square is skipped by
+ * the travel search, so it needs its own availability message). */
+bool journey_underfoot_only(char key)
 {
     _journey_kind_t kind;
+    char letter = _journey_input_key(key, FALSE);
+    int y, x, matches = 0;
 
-    if (rogue_like_commands && isalpha((unsigned char)key) && !isupper((unsigned char)key))
+    if (!letter || !_journey_kind_for_key(letter, FALSE, &kind) || !kind.stairs)
         return FALSE;
-    return _journey_key_kind(tolower((unsigned char)key), &kind);
+
+    for (y = 0; y < cur_hgt; y++)
+        for (x = 0; x < cur_wid; x++)
+            if (_journey_grid_match(letter, &kind, &cave[y][x]))
+            {
+                matches++;
+                if ((y != py) || (x != px))
+                    return FALSE;
+            }
+    return (matches == 1);
+}
+
+/* Is this one of the journey shortcut keys (including the Home aliases)?
+ * During travel targeting in the roguelike keyset the shortcuts are the
+ * uppercase forms, since lowercase letters are movement there; the journey
+ * prompt and picker accept either case (see journey_key_any()). */
+static bool _journey_key(char key, bool travel_mode)
+{
+    _journey_kind_t kind;
+    char letter = _journey_input_key(key, travel_mode);
+
+    if (!letter) return FALSE;
+    return _journey_key_kind(letter, &kind);
+}
+
+bool journey_key(char key)
+{
+    return _journey_key(key, TRUE);
+}
+
+bool journey_key_any(char key)
+{
+    return _journey_key(key, FALSE);
 }
 
 /* Glyph and colour of the first feature matching the journey key on the
@@ -4548,21 +4614,19 @@ static bool _journey_target_glyph(char key, bool quest_exit, byte *attr, char *c
     return FALSE;
 }
 
-bool journey_find(char key, int *x_ptr, int *y_ptr)
+static bool _journey_find(char key, bool travel_mode, int *x_ptr, int *y_ptr)
 {
     static int last_qy = -1;
     static int last_qx = -1;
     _journey_kind_t kind;
-    int letter;
+    char letter = _journey_input_key(key, travel_mode);
     int best_y = 0, best_x = 0;
     int best = TRAVEL_UNABLE;
     int y, x;
 
-    /* Roguelike keyset: lowercase letters are movement, so journey keys
-     * must be uppercase there.  Original keyset accepts either case. */
-    if (rogue_like_commands && isalpha((unsigned char)key) && !isupper((unsigned char)key))
-        return FALSE;
-    letter = tolower((unsigned char)key);
+    /* Roguelike travel targeting leaves lowercase letters to cursor
+     * movement; the journey prompt and picker accept either case. */
+    if (!letter) return FALSE;
     if (!_journey_key_kind(letter, &kind)) return FALSE;
 
     /* The previous quest-jump target is only skipped while it still shows an
@@ -4635,8 +4699,19 @@ bool journey_find(char key, int *x_ptr, int *y_ptr)
     return TRUE;
 }
 
+bool journey_find(char key, int *x_ptr, int *y_ptr)
+{
+    return _journey_find(key, TRUE, x_ptr, y_ptr);
+}
+
+bool journey_find_any(char key, int *x_ptr, int *y_ptr)
+{
+    return _journey_find(key, FALSE, x_ptr, y_ptr);
+}
+
 /* Journey key map shown by the ? list, in the same order and with the same
- * tile glyphs as the ] object list; the 'h' entry also covers 'j' (Home). */
+ * tile glyphs as the ] object list; the 's' entry also covers the Home
+ * alias 'j' in either keyset. */
 static const struct {
     char key;
     char glyph;
@@ -4650,28 +4725,83 @@ static const struct {
     { 'y', '5', FALSE, "Alchemy Shop" },
     { 'm', '6', FALSE, "Magic Shop" },
     { 'b', '7', FALSE, "Black Market" },
-    { 'h', '8', FALSE, "Home" },
+    { 's', '8', FALSE, "Home" },
     { 'o', '9', FALSE, "Bookstore" },
-    { 's', '0', FALSE, "Mushroom Store" },
+    { 'h', '0', FALSE, "Mushroom Store" },
     { 'u', 'M', FALSE, "Museum" },
     { 'l', '+', FALSE, "Healer" },
     { 'p', '+', FALSE, "Trump Tower" },
     { 'i', '+', FALSE, "Inn" },
     { 'c', '+', FALSE, "Casino" },
     { 'r', '+', FALSE, "Reforging" },
-    { 'q', '>', FALSE, "Nearest quest" },
-    { '>', '>', FALSE, "Nearest Stairs Down" },
-    { '<', '<', FALSE, "Nearest Stairs Up" },
+    { 'q', '+', FALSE, "Quest Target" },
+    { '>', '>', FALSE, "Stairs Down" },
+    { '<', '<', FALSE, "Stairs Up" },
     { '<', '<', TRUE, "Quest Exit" }
 };
 #define _N_JOURNEY_KEYS ((int)(sizeof(_journey_key_list) / sizeof(_journey_key_list[0])))
 #define _JOURNEY_COLS 3
 #define _JOURNEY_ROWS ((_N_JOURNEY_KEYS + _JOURNEY_COLS - 1) / _JOURNEY_COLS)
 
+/* Display label for a journey key, shared by the ? list and the failure
+ * messages so the wording stays consistent.  Returns NULL for keys that
+ * are not journey keys. */
+cptr journey_label(char key)
+{
+    char letter = _journey_input_key(key, FALSE);
+    int i;
+
+    if (!letter) return NULL;
+    for (i = 0; i < _N_JOURNEY_KEYS; i++)
+        if (_journey_key_list[i].key == letter ||
+            (letter == 'j' && _journey_key_list[i].key == 's'))
+            return _journey_key_list[i].label;
+    return NULL;
+}
+
+/* Report why a journey key did not travel.  Called after returning to the
+ * dungeon map (the picker hides messages), so failures are reported by the
+ * caller.  The quest flavour line is special-cased; everything else uses
+ * the shared label so wording stays consistent. */
+void journey_report_failure(char key)
+{
+    cptr label = journey_label(key);
+
+    if (journey_underfoot_only(key))
+        msg_print("You're standing on the only one you can see!");
+    else if (journey_available(key))
+        msg_format("You can't seem to reach the nearest <color:g>%s</color>.",
+            label ? label : "target");
+    else if (tolower((unsigned char)key) == 'q')
+        msg_print("You don't know of any unfinished business nearby!");
+    else
+        msg_format("You don't see a <color:g>%s</color> nearby.",
+            label ? label : "target");
+}
+
+/* Draw a bracketed key label for a detected target, colouring the trigger
+ * letters orange; undetected targets stay fully grey. */
+static void _journey_draw_keylab(char *keylab, int row, int x, byte attr)
+{
+    char *open = strchr(keylab, '[');
+    char *close = strchr(keylab, ']');
+    char *p;
+
+    c_put_str(attr, keylab, row, x);
+    if (open && close && close > open)
+    {
+        /* Trigger letters are orange; the separator in multi-key aliases
+         * (the '/' in [s/j]) keeps the base colour. */
+        for (p = open + 1; p < close; p++)
+            Term_putstr(x + (int)(p - keylab), row, 1,
+                (*p == '/') ? attr : TERM_ORANGE, p);
+    }
+}
+
 /* Pick a journey target from the full key list, laid out in three
  * column-major columns.  Targets with no match on the current map are shown
- * greyed out with their standard glyph, and a journey letter travels
- * directly without leaving the list.  Returns the chosen letter, or 0 on
+ * greyed out with their standard glyph, and a journey key travels
+ * directly without leaving the list.  Returns the chosen key, or 0 on
  * Esc. */
 char journey_choose_list(void)
 {
@@ -4680,73 +4810,80 @@ char journey_choose_list(void)
 
     screen_save();
     Term_clear();
-    c_put_str(TERM_WHITE, "Journey targets", 2, 4);
-    c_put_str(TERM_L_GREEN, "Press a journey letter to travel; Esc to cancel.", 3, 4);
+    c_put_str(TERM_WHITE, "Please choose a journey target:", 2, 4);
 
     for (i = 0; i < _N_JOURNEY_KEYS; i++)
     {
         byte attr;
         char glyph;
-        char buf[40];
-        char keylab[8];
+        char keylab[12];
         int  klen;
+        bool is_home;
+        char display_key = _journey_key_list[i].key;
 
         col = i / _JOURNEY_ROWS;
-        row = 5 + (i % _JOURNEY_ROWS);
+        row = 4 + (i % _JOURNEY_ROWS);
         x = 6 + col * 25 - ((col == 2) ? 1 : 0);
-        if (_journey_key_list[i].key == 'h')
-            strcpy(keylab, "[h/j] ");
+        if (rogue_like_commands && isalpha((unsigned char)display_key))
+            display_key = toupper((unsigned char)display_key);
+        is_home = (_journey_key_list[i].key == 's');
+        /* The Home alias label is wider than the other centre-column keys,
+         * so it sits one column left to keep its ']', glyph and label on
+         * the same grid lines as the rest of the column. */
+        if (is_home) x--;
+        if (is_home)
+            strcpy(keylab, rogue_like_commands ? "[S/J] " : "[s/j] ");
         else if (col == 1)
-            /* Centre-column brackets (except Home's wider h/j) sit one space
-             * in, centred underneath it. */
-            sprintf(keylab, " [%c] ", _journey_key_list[i].key);
+            /* Centre-column brackets sit one space in, centred underneath
+             * the Home alias label above them. */
+            sprintf(keylab, " [%c] ", display_key);
         else
-            sprintf(keylab, "[%c] ", _journey_key_list[i].key);
+            sprintf(keylab, "[%c] ", display_key);
         klen = strlen(keylab);
 
         if (_journey_target_glyph(_journey_key_list[i].key,
                 _journey_key_list[i].quest_exit, &attr, &glyph))
         {
-            c_put_str(TERM_WHITE, keylab, row, x);
+            _journey_draw_keylab(keylab, row, x, TERM_WHITE);
             c_put_str(attr, format("%c", glyph), row, x + klen);
-            c_put_str(TERM_WHITE, format(" %s", _journey_key_list[i].label), row, x + klen + 1);
+            c_put_str(TERM_WHITE, format(" %s%s", _journey_key_list[i].label,
+                is_home ? " " : ""), row, x + klen + 1);
         }
         else
         {
-            sprintf(buf, "%s%c %s", keylab,
-                _journey_key_list[i].glyph, _journey_key_list[i].label);
-            c_put_str(TERM_SLATE, buf, row, x);
+            c_put_str(TERM_SLATE, keylab, row, x);
+            c_put_str(TERM_SLATE, format("%c %s%s", _journey_key_list[i].glyph,
+                _journey_key_list[i].label, is_home ? " " : ""), row, x + klen);
         }
     }
     /* The third column only fills six rows, so its last-row slot hosts the
      * go-back hint. */
-    c_put_str(TERM_ORANGE, "[Esc] ", 5 + _JOURNEY_ROWS - 1, 6 + 2 * 25 - 1);
-    c_put_str(TERM_L_GREEN, "Go back", 5 + _JOURNEY_ROWS - 1, 6 + 2 * 25 + 5);
+    c_put_str(TERM_WHITE, "[", 4 + _JOURNEY_ROWS - 1, 6 + 2 * 25 - 1);
+    c_put_str(TERM_ORANGE, "Esc", 4 + _JOURNEY_ROWS - 1, 6 + 2 * 25);
+    c_put_str(TERM_WHITE, "] ", 4 + _JOURNEY_ROWS - 1, 6 + 2 * 25 + 3);
+    c_put_str(TERM_L_GREEN, "Go back", 4 + _JOURNEY_ROWS - 1, 6 + 2 * 25 + 5);
     Term_fresh();
 
     for (;;)
     {
+        char letter;
+
         ch = inkey();
         if (ch == ESCAPE)
         {
             ch = 0;
             break;
         }
-        if (rogue_like_commands && isalpha((unsigned char)ch) && !isupper((unsigned char)ch))
-            continue;
         ch = tolower((unsigned char)ch);
+        letter = _journey_input_key(ch, FALSE);
+        if (!letter) continue;
         for (i = 0; i < _N_JOURNEY_KEYS; i++)
         {
-            if (_journey_key_list[i].key == ch ||
-                (ch == 'j' && _journey_key_list[i].key == 'h'))
+            if (_journey_key_list[i].key == letter ||
+                (letter == 'j' && _journey_key_list[i].key == 's'))
             {
-                if (journey_available(ch))
-                {
-                    screen_load();
-                    return ch;
-                }
-                bell();
-                break;
+                screen_load();
+                return ch;
             }
         }
     }

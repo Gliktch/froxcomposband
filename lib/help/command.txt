@@ -101,7 +101,7 @@ Press <color:keypress>?</color> for commands to use in the help interface itself
    p  Command your pets                    P  Browse magic list (Peruse)
    <color:y>q  Quaff a potion</color>                       Q  Quit (commit suicide)
    <color:y>r  Read a scroll</color>                        <color:y>R  Rest for a period</color>
-   s  Search for traps/doors               S  Jam a door (Spike)
+   s  Search for traps/doors               S  Spike (jam) a door or Shortcut move
    <color:y>t  Fire an arrow etc.</color>                   T  Take off equipment
    u  (walk - north east)                  U  (run - north east)
    v  Throw an item                        V  Version info

@@ -109,7 +109,7 @@ static int _death_dump_screen_prompt(bool *quick, bool *silent)
         put_str("Toggle quick restart mode with [q]: ", row + 4, 2);
         c_put_str(TERM_ORANGE, "q", row + 4, 34);
         c_put_str(*quick ? TERM_L_GREEN : TERM_RED, *quick ? "ON" : "OFF", row + 4, 38);
-        put_str("To continue to the next death screen, press [n].", row + 6, 2);
+        put_str("To continue to the next death screen, press [n], or tap [Esc] twice.", row + 6, 2);
         c_put_str(TERM_ORANGE, "n", row + 6, 47);
         put_str("Still in denial? Or can't bear to leave without checking out that one last", row + 8, 2);
         put_str("bit of loot to see what you died for? Or simply want to smack that big meanie", row + 9, 2);

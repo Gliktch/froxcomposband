@@ -3466,6 +3466,44 @@ int doc_display_help_aux(cptr file_name, cptr topic, rect_t display)
         }
     }
 
+    /* Synthetic topic: the V command output followed by the credits text */
+    if (streq(file_name, "version_credits.txt"))
+    {
+        char    path[1024];
+        FILE   *fp;
+        vec_ptr lines;
+        doc_ptr doc;
+        int     i;
+        int     result;
+
+        lines = vec_alloc((vec_free_f)string_free);
+        version_info_lines(lines);
+
+        doc = doc_alloc(MIN(80, display.cx));
+        for (i = 0; i < vec_length(lines); i++)
+        {
+            string_ptr s = vec_get(lines, i);
+            doc_insert(doc, string_buffer(s));
+            doc_newline(doc);
+        }
+        vec_free(lines);
+
+        /* Blank line between the version output and the credits */
+        doc_newline(doc);
+
+        path_build(path, sizeof(path), ANGBAND_DIR_FILE, "credits.txt");
+        fp = my_fopen(path, "r");
+        if (fp)
+        {
+            doc_read_file(doc, fp);
+            my_fclose(fp);
+        }
+
+        result = doc_display_aux(doc, "Version Info and Credits", 0, display);
+        doc_free(doc);
+        return result;
+    }
+
     sprintf(caption, "Help file '%s'", file_name);
     path_build(path, sizeof(path), ANGBAND_DIR_HELP, file_name);
     fp = my_fopen(path, "r");

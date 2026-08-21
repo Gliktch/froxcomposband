@@ -11,6 +11,7 @@
 /* Purpose: Interface commands */
 
 #include "angband.h"
+#include "c-string.h"
 #include "equip.h"
 #include "int-map.h"
 #include "z-doc.h"
@@ -6303,9 +6304,9 @@ void do_cmd_note(void)
 
 
 /*
- * Mention the current version
+ * Collect the lines shown by the V command, one string per line.
  */
-void do_cmd_version(void)
+void version_info_lines(vec_ptr lines)
 {
     cptr xtra = "";
     if (VERSION_IS_DEVELOPMENT)
@@ -6315,15 +6316,30 @@ void do_cmd_version(void)
 /*        if (VER_PATCH == 0) xtra = " (Alpha)"; */
         if (VER_MAJOR != 7) xtra = " (Beta)";
     }
-    msg_format("You are playing <color:B>FroxComposband</color> <color:r>%d.%d.%s.%d%s</color>.",
-        VER_MAJOR, VER_MINOR, VER_PATCH, VER_EXTRA, xtra);
+    vec_add(lines, string_alloc_format(
+        "You are playing <color:B>FroxComposband</color> <color:r>%d.%d.%s.%d%s</color>.",
+        VER_MAJOR, VER_MINOR, VER_PATCH, VER_EXTRA, xtra));
     if (arg_protected_session || arg_webclient)
-        msg_print("Currently running in Protected Session mode.");
+        vec_add(lines, string_copy_s("Currently running in Protected Session mode."));
     if (1)
     {
         rect_t r = ui_map_rect();
-        msg_format("Map display is %dx%d.", r.cx, r.cy);
+        vec_add(lines, string_alloc_format("Map display is %dx%d.", r.cx, r.cy));
     }
+}
+
+/*
+ * Mention the current version
+ */
+void do_cmd_version(void)
+{
+    vec_ptr lines = vec_alloc((vec_free_f)string_free);
+    int i;
+
+    version_info_lines(lines);
+    for (i = 0; i < vec_length(lines); i++)
+        msg_print(string_buffer(vec_get(lines, i)));
+    vec_free(lines);
 }
 
 

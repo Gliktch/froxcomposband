@@ -1011,6 +1011,7 @@ extern void notes_expire_floor(int dungeon_id, int depth, int floor_id);
 extern void notes_expire_dungeon_floors(int dungeon_id);
 extern bool notes_on_new_birth(void);
 extern void do_cmd_version(void);
+extern void version_info_lines(vec_ptr lines);
 extern void do_cmd_feeling(void);
 extern void do_cmd_save_screen(void);
 extern void do_cmd_save_screen_doc(void);

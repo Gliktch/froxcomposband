@@ -27,4 +27,4 @@
     <link:editor_contents.txt> The Mogaminator
     <link:subwin.txt> Subwindows
 
-    <color:y>(?) Help System Commands</color>
+    <link:version_credits.txt> Version Info and Credits

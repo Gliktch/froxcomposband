@@ -3849,7 +3849,18 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
             int drop_x = cave_have_flag_bold(y, x, FF_PROJECT) ? x : prev_x;
             bool exploded = FALSE;
 
-            if ((arrow.name2 == EGO_AMMO_EXPLODING) && (!hit_connected) && (randint1(100) <= break_chance))
+            /* A missed exploding shot detonates on the miss square for
+             * certain over lava, and never over deep water where there is no
+             * ground to hit; otherwise it uses the miss breakage chance. */
+            {
+                cave_type *ground = &cave[drop_y][drop_x];
+                bool on_deep_water = have_flag(f_info[ground->feat].flags, FF_WATER)
+                    && have_flag(f_info[ground->feat].flags, FF_DEEP);
+                bool on_lava = have_flag(f_info[ground->feat].flags, FF_LAVA);
+
+            if ((arrow.name2 == EGO_AMMO_EXPLODING) && (!hit_connected)
+                && !on_deep_water
+                && (randint1(100) <= (on_lava ? 100 : break_chance)))
             {
                 /* A missed exploding shot shatters and detonates on the miss square */
                 u16b flg = (PROJECT_STOP | PROJECT_JUMP | PROJECT_KILL | PROJECT_GRID);
@@ -3859,6 +3870,7 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
                 sound(SOUND_EXPLODE);
                 project(0, 3, drop_y, drop_x, dmg, GF_MISSILE, flg);
                 exploded = TRUE;
+            }
             }
 
             /* The miss-break roll above already decided a missed exploding

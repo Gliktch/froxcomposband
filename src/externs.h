@@ -1580,6 +1580,7 @@ extern s32b obj_android_exp(object_type *o_ptr);
 extern bool can_player_destroy_object(object_type *o_ptr);
 extern s16b lookup_kind(int tval, int sval);
 extern void object_wipe(object_type *o_ptr);
+extern cptr ammo_word(int tval);
 extern void object_prep(object_type *o_ptr, int k_idx);
 extern void object_copy(object_type *o_ptr, object_type *j_ptr);
 extern void object_mention(object_type *o_ptr);

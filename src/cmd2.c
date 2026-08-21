@@ -3554,6 +3554,8 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
                     if (arrow.name2 == EGO_AMMO_EXPLODING)
                     {
                         u16b flg = (PROJECT_STOP | PROJECT_JUMP | PROJECT_KILL | PROJECT_GRID);
+                        cmsg_format(TERM_L_RED, "The %s explodes!",
+                            ammo_word(arrow.tval));
                         sound(SOUND_EXPLODE); /* No explode sound - use breath fire instead */
                         project(0, 3, ny, nx, tdam, GF_MISSILE, flg);
                         break;
@@ -3852,6 +3854,8 @@ void do_cmd_fire_aux2(obj_ptr bow, obj_ptr arrows, int sx, int sy, int tx, int t
                 /* A missed exploding shot shatters and detonates on the miss square */
                 u16b flg = (PROJECT_STOP | PROJECT_JUMP | PROJECT_KILL | PROJECT_GRID);
                 int dmg = damroll(arrow.dd, arrow.ds) + arrow.to_d + bow->to_d + p_ptr->shooter_info.to_d;
+                cmsg_format(TERM_L_RED, "The %s hits the ground and detonates!",
+                    ammo_word(arrow.tval));
                 sound(SOUND_EXPLODE);
                 project(0, 3, drop_y, drop_x, dmg, GF_MISSILE, flg);
                 exploded = TRUE;

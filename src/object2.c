@@ -4158,6 +4158,15 @@ static bool _find_adjacent_ammo_stack_drop(object_type *j_ptr, int y, int x, int
     return TRUE;
 }
 
+/* The everyday noun for a piece of ammo, used by the breakage and detonation
+ * messages ("The arrow breaks.", "The bolt hits the ground and detonates!"). */
+cptr ammo_word(int tval)
+{
+    if (tval == TV_BOLT) return "bolt";
+    if (tval == TV_SHOT) return "shot";
+    return "arrow";
+}
+
 s16b drop_near(object_type *j_ptr, int chance, int y, int x)
 {
     int i, k, d, s;
@@ -4207,9 +4216,14 @@ s16b drop_near(object_type *j_ptr, int chance, int y, int x)
     /* Handle normal "breakage" */
     if (!object_is_artifact(j_ptr) && (randint0(100) < chance))
     {
-        /* Message */
-        cmsg_format(TERM_L_RED, "The %s disappear%s.",
-               o_name, plural ? "" : "s");
+        /* Ammo breaks with its own type-specific message; exploding ego
+         * ammo is announced by its detonation messages instead.  Other
+         * items keep the generic disappearance wording. */
+        if (obj_is_ammo(j_ptr) && j_ptr->name2 != EGO_AMMO_EXPLODING)
+            cmsg_format(TERM_L_RED, "The %s breaks.", ammo_word(j_ptr->tval));
+        else if (!obj_is_ammo(j_ptr))
+            cmsg_format(TERM_L_RED, "The %s disappear%s.",
+                o_name, plural ? "" : "s");
 
 
         /* Debug */

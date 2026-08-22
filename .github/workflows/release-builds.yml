@@ -59,6 +59,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux'
     needs: prepare-help
     runs-on: ubuntu-latest
+    container: ubuntu:20.04
     steps:
       - uses: actions/checkout@v4
 
@@ -70,8 +71,8 @@ jobs:
 
       - name: Install Linux packaging dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y dpkg-dev libncurses-dev rsync
+          apt-get update
+          apt-get install -y build-essential dpkg-dev libncurses-dev rsync
 
       - name: Build standalone Linux release
         run: |
@@ -100,8 +101,8 @@ jobs:
 
       - name: Smoke test Debian package install
         run: |
-          sudo dpkg -i "dist/froxcomposband-${RELEASE_TAG}-linux-x86_64.deb"
-          sudo cat /var/log/froxcomposband/install-test.log
+          dpkg -i "dist/froxcomposband-${RELEASE_TAG}-linux-x86_64.deb"
+          cat /var/log/froxcomposband/install-test.log
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4

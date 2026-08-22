@@ -308,6 +308,8 @@ static errr term_win_nuke(term_win *s, int w, int h)
 }
 
 
+
+
 /*
  * Initialize a "term_win" (using the given window size)
  */
@@ -2304,6 +2306,9 @@ errr Term_resize(int w, int h)
     /* Ignore illegal changes */
     if ((w < 1) || (h < 1)) return (-1);
 
+    /* Cap at the supported maximum */
+    if (w > TERM_MAX_DIM) w = TERM_MAX_DIM;
+    if (h > TERM_MAX_DIM) h = TERM_MAX_DIM;
 
     /* Ignore non-changes */
     if ((Term->wid == w) && (Term->hgt == h) && (arg_bigtile == use_bigtile))
@@ -2581,6 +2586,9 @@ errr term_init(term *t, int w, int h, int k)
 {
     int y;
 
+    /* Cap at the supported maximum */
+    if (w > TERM_MAX_DIM) w = TERM_MAX_DIM;
+    if (h > TERM_MAX_DIM) h = TERM_MAX_DIM;
 
     /* Wipe it */
     (void)WIPE(t, term);

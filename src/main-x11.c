@@ -3180,6 +3180,10 @@ static errr term_data_init(term_data *td, int i)
 		if (rows < 24) rows = 24;
 	}
 
+	/* Cap at the supported maximum */
+	if (cols > TERM_MAX_DIM) cols = TERM_MAX_DIM;
+	if (rows > TERM_MAX_DIM) rows = TERM_MAX_DIM;
+
 	/* Window specific inner border offset (ox) */
 	sprintf(buf, "ANGBAND_X11_IBOX_%d", i);
 	str = getenv(buf);

@@ -1061,6 +1061,8 @@ static void load_prefs_aux(int i)
     /* Window size */
     td->cols = GetPrivateProfileInt(sec_name, "NumCols", td->cols, ini_file);
     td->rows = GetPrivateProfileInt(sec_name, "NumRows", td->rows, ini_file);
+    if (td->cols > TERM_MAX_DIM) td->cols = TERM_MAX_DIM;
+    if (td->rows > TERM_MAX_DIM) td->rows = TERM_MAX_DIM;
     normsize.x = td->cols; normsize.y = td->rows;
 
     /* Window size */
@@ -3885,6 +3887,10 @@ LRESULT FAR PASCAL AngbandWndProc(HWND hWnd, UINT uMsg,
                     uint cols = (LOWORD(lParam) - td->size_ow1) / td->tile_wid;
                     uint rows = (HIWORD(lParam) - td->size_oh1) / td->tile_hgt;
 
+                    /* Cap at the supported maximum */
+                    if (cols > TERM_MAX_DIM) cols = TERM_MAX_DIM;
+                    if (rows > TERM_MAX_DIM) rows = TERM_MAX_DIM;
+
                     /* New size */
                     if ((td->cols != cols) || (td->rows != rows))
                     {
@@ -4075,6 +4081,10 @@ LRESULT FAR PASCAL AngbandListProc(HWND hWnd, UINT uMsg,
 
             cols = (LOWORD(lParam) - td->size_ow1) / td->tile_wid;
             rows = (HIWORD(lParam) - td->size_oh1) / td->tile_hgt;
+
+            /* Cap at the supported maximum */
+            if (cols > TERM_MAX_DIM) cols = TERM_MAX_DIM;
+            if (rows > TERM_MAX_DIM) rows = TERM_MAX_DIM;
 
             /* New size */
             if ((td->cols != cols) || (td->rows != rows))

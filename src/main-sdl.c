@@ -1818,6 +1818,10 @@ static void ResizeWin(term_window* win, int w, int h)
     win->cols = (w - (win->border * 2)) / win->tile_wid;
     win->rows = (h - win->border - win->title_height) / win->tile_hgt;
 
+    /* Cap at the supported maximum */
+    if (win->cols > TERM_MAX_DIM) win->cols = TERM_MAX_DIM;
+    if (win->rows > TERM_MAX_DIM) win->rows = TERM_MAX_DIM;
+
     /* Calculate the width & height */
     win->width = (win->cols * win->tile_wid) + (win->border * 2);
     win->height = (win->rows * win->tile_hgt) + win->border + win->title_height;

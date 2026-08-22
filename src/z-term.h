@@ -154,6 +154,11 @@ struct term_win
 
 typedef struct term term;
 
+/* Maximum supported window dimension: term size fields are byte-sized, so
+ * keep requested sizes under 256 with a little headroom for off-by-one cursor
+ * positions and sentinel values. */
+#define TERM_MAX_DIM 250
+
 struct term
 {
     vptr user;

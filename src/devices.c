@@ -1143,14 +1143,26 @@ static cptr _do_potion(int sval, int mode)
             virtue_add(VIRTUE_ENLIGHTENMENT, 1);
             if (p_ptr->exp < PY_MAX_EXP)
             {
-                s32b ee = _potion_power((p_ptr->exp / 2) + 10);
+                s32b ee = _potion_power(p_ptr->exp / 2);
+                s32b min = _potion_power(2000);
                 s32b max = _potion_power(100000);
                 if (mut_present(MUT_FAST_LEARNER))
                 {
                     ee = ee * 5/3;
+                    min = min * 5/3;
                     max = max * 5/3;
                 }
-                if (ee > max) ee = max;
+                if (p_ptr->lev >= 33)
+                    ee = max;
+                else
+                {
+                    s32b five = _potion_power(exp_requirement(MIN(p_ptr->lev + 5, PY_MAX_LEVEL)) - p_ptr->exp);
+                    if (mut_present(MUT_FAST_LEARNER))
+                        five = five * 5/3;
+                    if (ee > five) ee = five;
+                    if (ee > max) ee = max;
+                    if (ee < min) ee = min;
+                }
                 msg_print("You feel more experienced.");
                 gain_exp(ee);
                 device_noticed = TRUE;

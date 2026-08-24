@@ -1220,6 +1220,12 @@ static int _draw_monster_list(_mon_list_ptr list, int top, rect_t rect, int mode
                 Term_putch(rect.x, rect.y + i, TERM_WHITE, ' ');
         }
     }
+    if (!i && rect.cy > 0)
+    {
+        Term_erase(rect.x, rect.y, rect.cx);
+        c_put_str(TERM_WHITE, "You see no monsters.", rect.y, rect.x);
+        i++;
+    }
     return i;
 }
 
@@ -1823,7 +1829,7 @@ void _fix_monster_list_aux(void)
 
     Term_get_size(&display_rect.cx, &display_rect.cy);
 
-    if ((list->ct_total) && (display_rect.cx >= (use_bigtile ? 3 : 2)/* Hugo broke the game */))
+    if (display_rect.cx >= (use_bigtile ? 3 : 2)/* Hugo broke the game */)
         ct = _draw_monster_list(list, 0, display_rect, MON_LIST_SUBWINDOW);
 
     for (i = ct; i < display_rect.cy; i++)
@@ -3065,7 +3071,7 @@ void _fix_object_list_aux(void)
 
     Term_get_size(&display_rect.cx, &display_rect.cy);
 
-    if ((list->ct_total + list->ct_feature) && (display_rect.cx >= (use_bigtile ? 3 : 2)))
+    if (display_rect.cx >= (use_bigtile ? 3 : 2))
         ct = _draw_obj_list(list, 0, display_rect);
 
     for (i = ct; i < display_rect.cy; i++)

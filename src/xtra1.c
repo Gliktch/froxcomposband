@@ -3088,6 +3088,8 @@ static void _display_spell_subwindow(doc_ptr doc)
         _display_spellbook(doc);
     else if (has_book_spellcasting && !has_nonbook)
         doc_insert(doc, "No spellbook selected.\n");
+    else if (!has_book_spellcasting && !has_nonbook)
+        doc_insert(doc, "You don't know any spells.\n");
 }
 
 static void fix_spell(void)
@@ -3142,6 +3144,9 @@ static void _fix_message_aux(void)
     if (messages_wrap_width <= 150)
         doc_width = MIN(doc_width, messages_wrap_width);
     doc = doc_alloc(doc_width);
+
+    if (!msg_count())
+        doc_insert(doc, "Messages will appear here.\n");
 
     for (i = MIN(h, msg_count() - 1); i >= 0; i--)
     {
@@ -3307,6 +3312,15 @@ static void fix_monster(void)
             doc_sync_term(doc, doc_range_all(doc), doc_pos_create(0, 0));
             doc_free(doc);
         }
+        else
+        {
+            int y;
+            for (y = 0; y < Term->hgt; y++)
+                Term_erase(0, y, 255);
+            prt("After interacting with a", 0, 0);
+            prt("monster, its known details", 1, 0);
+            prt("will appear here.", 2, 0);
+        }
         /* Fresh */
         Term_fresh();
 
@@ -3337,8 +3351,16 @@ static void fix_object(void)
         /* Activate */
         Term_activate(angband_term[j]);
 
-        /* Display monster race info */
-        if (p_ptr->object_kind_idx) display_koff(p_ptr->object_kind_idx);
+        /* Display object recall info */
+        if (p_ptr->object_kind_idx)
+            display_koff(p_ptr->object_kind_idx);
+        else
+        {
+            Term_clear();
+            prt("After interacting with an", 0, 0);
+            prt("object, its known details", 1, 0);
+            prt("will appear here.", 2, 0);
+        }
 
         /* Fresh */
         Term_fresh();

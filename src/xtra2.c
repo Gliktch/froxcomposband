@@ -4528,6 +4528,7 @@ static int target_set_aux(int y, int x, int mode, cptr info)
     s16b recall_refs[40];
     int recall_ct = 0;
     int recall_idx = -1;
+    int dy = 0, dx = 0, d = 0;
 
     /* Hack -- under the player */
     if (player_bold(y, x))
@@ -4771,6 +4772,10 @@ static int target_set_aux(int y, int x, int mode, cptr info)
 
     /* Show objects on this grid. If multiple, show a list. If the
      * list won't fit on the screen, <CR> scrolls the list */
+    /* Target range, matching the blank-square and feature readout */
+    dy = (py > y) ? (py - y) : (y - py);
+    dx = (px > x) ? (px - x) : (x - px);
+    d  = (dy > dx) ? (dy + (dx>>1)) : (dx + (dy>>1));
     if (obj_ct == 1)
     {
         obj_ptr obj = inv_obj(inv, 1);
@@ -4785,8 +4790,8 @@ static int target_set_aux(int y, int x, int mode, cptr info)
 
         object_desc(name, obj, 0);
 
-        sprintf(out_val, "%s%s%s%s%s [r,/,%s]",
-            s1, s2, s3, name, suffix, info);
+        sprintf(out_val, "%s%s%s%s%s [r,/,%s] (Rng %d)",
+            s1, s2, s3, name, suffix, info, d);
 
         while (1)
         {
@@ -4820,8 +4825,8 @@ static int target_set_aux(int y, int x, int mode, cptr info)
         if (boring)
         {
             /* Display rough information about items */
-            sprintf(out_val, "%s%s%sa pile of %d items [r,/,x,%s]",
-                s1, s2, s3, obj_ct, info);
+            sprintf(out_val, "%s%s%sa pile of %d items [r,/,x,%s] (Rng %d)",
+                s1, s2, s3, obj_ct, info, d);
 
             while (1)
             {
@@ -4867,8 +4872,8 @@ static int target_set_aux(int y, int x, int mode, cptr info)
                 doc_range_middle_lines(doc, top, top + lines),
                 doc_pos_create(r.x, r.y));
 
-            sprintf(out_val, "%s%s%sa pile of %d items [r,/,Enter,%s]",
-                s1, s2, s3, obj_ct, info);
+            sprintf(out_val, "%s%s%sa pile of %d items [r,/,Enter,%s] (Rng %d)",
+                s1, s2, s3, obj_ct, info, d);
             prt(out_val, 0, 0);
             query = inkey();
             screen_load();

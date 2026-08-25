@@ -934,9 +934,6 @@ static bool detect_feat_flag(int range, int flag, bool known)
                         c_ptr->info |= CAVE_IN_DETECT;
 
                     c_ptr->info &= ~CAVE_UNSAFE;
-
-                    /* Redraw */
-                    lite_spot(y, x);
                 }
             }
 

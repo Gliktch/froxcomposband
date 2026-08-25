@@ -519,7 +519,9 @@ void cmsg_print(byte color, cptr msg)
             cmsg_add(color, msg);
     }
 
-    if (!suppress_main_messages || _msg_force_display)
+    /* Ignore the main-view suppression while dead so death-flow messages
+     * such as the character-dump success are not hidden. */
+    if (!suppress_main_messages || _msg_force_display || p_ptr->is_dead)
         msg_line_display(color, msg);
 
     if (auto_more_state == AUTO_MORE_SKIP_ONE)

@@ -1927,38 +1927,8 @@ void display_news(void)
  * Note that the "graf-xxx.prf" file must be loaded separately,
  * if needed, in the first (?) pass through "TERM_XTRA_REACT".
  */
-void init_angband(void)
+void init_angband_data(void)
 {
-    int fd = -1;
-    char buf[1024];
-
-    /*** Verify the "news" file ***/
-
-    /* Build the filename */
-    path_build(buf, sizeof(buf), ANGBAND_DIR_FILE, "news.txt");
-
-
-    /* Attempt to open the file */
-    fd = fd_open(buf, O_RDONLY);
-
-    /* Failure */
-    if (fd < 0)
-    {
-        char why[1024];
-
-        /* Message */
-        snprintf(why, sizeof(why), "Cannot access file '%.1000s'!", buf);
-
-
-        /* Crash and burn */
-        init_angband_aux(why);
-    }
-
-    /* Close it */
-    (void)fd_close(fd);
-
-    msg_on_startup();
-
     /*** Initialize some arrays ***/
 
     /* Initialize misc. values */
@@ -2044,6 +2014,141 @@ void init_angband(void)
     /* Initialize some other arrays */
     note("[Initializing arrays... (alloc)]");
     if (init_alloc()) quit("Cannot initialize alloc stuff");
+}
+
+
+/*
+ * Free the array, name, text, and tag pools of one info family
+ */
+static void free_info(header *head, void **info, char **name, char **text, char **tag)
+{
+    /* Free the array and pools */
+    if (head->info_ptr) C_KILL(head->info_ptr, head->info_size, char);
+    if (head->name_ptr) C_KILL(head->name_ptr, FAKE_NAME_SIZE, char);
+    if (head->text_ptr) C_KILL(head->text_ptr, FAKE_TEXT_SIZE, char);
+    if (head->tag_ptr)  C_KILL(head->tag_ptr,  FAKE_TAG_SIZE,  char);
+
+    /* Forget the globals */
+    if (info) *info = NULL;
+    if (name) *name = NULL;
+    if (text) *text = NULL;
+    if (tag)  *tag  = NULL;
+
+    /* Reset the header */
+    head->info_ptr = NULL;
+    head->name_ptr = NULL;
+    head->text_ptr = NULL;
+    head->tag_ptr  = NULL;
+    head->info_num = 0;
+    head->info_len = 0;
+}
+
+
+/*
+ * Free all game data arrays so they can be parsed fresh
+ *
+ * Player preferences (options, macros, keymaps, autopick) are rebuilt from
+ * the savefile and reloaded pref files during the restart flow, so they are
+ * not preserved here.
+ */
+void free_angband_data(void)
+{
+    int i;
+
+    /* Free the quests while r_info is still valid */
+    quests_cleanup();
+
+    /* Free the per-race spell data before the race array */
+    if (r_info)
+    {
+        for (i = 0; i < max_r_idx; i++)
+            if (r_info[i].spells) mon_spells_free(r_info[i].spells);
+    }
+
+    /* Free the info families (array plus name/text/tag pools) */
+    free_info(&f_head, (void **)&f_info, &f_name, NULL, &f_tag);
+    free_info(&k_head, (void **)&k_info, &k_name, &k_text, NULL);
+    free_info(&a_head, (void **)&a_info, &a_name, &a_text, NULL);
+    free_info(&e_head, (void **)&e_info, &e_name, &e_text, NULL);
+    free_info(&b_head, (void **)&b_info, &b_name, NULL, &b_tag);
+    free_info(&r_head, (void **)&r_info, &r_name, &r_text, NULL);
+    free_info(&d_head, (void **)&d_info, &d_name, &d_text, NULL);
+    free_info(&s_head, (void **)&s_info, NULL, NULL, NULL);
+    free_info(&m_head, (void **)&m_info, NULL, NULL, NULL);
+
+    /* Free the random name sections */
+    free_name_sections();
+
+    /* Free the wilderness and its scratch cave */
+    free_wilderness();
+
+    /* Free the allocation tables */
+    if (alloc_race_table) C_KILL(alloc_race_table, alloc_race_size, alloc_entry);
+    if (alloc_kind_table) C_KILL(alloc_kind_table, alloc_kind_size, alloc_entry);
+
+    /* Free the init_other arrays */
+    if (o_list) C_KILL(o_list, max_o_idx, object_type);
+    if (m_list) C_KILL(m_list, max_m_idx, monster_type);
+    if (pack_info_list) C_KILL(pack_info_list, max_pack_info_idx, pack_info_t);
+    if (max_dlv) C_KILL(max_dlv, max_d_idx, s16b);
+    if (dungeon_flags) C_KILL(dungeon_flags, max_d_idx, u32b);
+    for (i = 0; i < MAX_HGT; i++)
+        if (cave[i]) C_KILL(cave[i], MAX_WID, cave_type);
+
+    /* Free the macros (rebuilt from the reloaded pref files) */
+    for (i = 0; i < macro__num; i++)
+    {
+        if (macro__pat && macro__pat[i]) z_string_free(macro__pat[i]);
+        if (macro__act && macro__act[i]) z_string_free(macro__act[i]);
+    }
+    if (macro__pat) C_KILL(macro__pat, MACRO_MAX, cptr);
+    if (macro__act) C_KILL(macro__act, MACRO_MAX, cptr);
+    if (macro__cmd) C_KILL(macro__cmd, MACRO_MAX, bool);
+    if (macro__buf) C_KILL(macro__buf, 1024, char);
+    macro__num = 0;
+
+    /* Free the quark strings */
+    quark_free();
+}
+
+
+/*
+ * Initialize the game and load the default pref files (startup only)
+ */
+void init_angband(void)
+{
+    int fd = -1;
+    char buf[1024];
+
+    /*** Verify the "news" file ***/
+
+    /* Build the filename */
+    path_build(buf, sizeof(buf), ANGBAND_DIR_FILE, "news.txt");
+
+
+    /* Attempt to open the file */
+    fd = fd_open(buf, O_RDONLY);
+
+    /* Failure */
+    if (fd < 0)
+    {
+        char why[1024];
+
+        /* Message */
+        snprintf(why, sizeof(why), "Cannot access file '%.1000s'!", buf);
+
+
+        /* Crash and burn */
+        init_angband_aux(why);
+    }
+
+    /* Close it */
+    (void)fd_close(fd);
+
+    msg_on_startup();
+
+    /* Initialize the game data arrays */
+    init_angband_data();
 
 #ifdef ALLOW_SPOILERS
     /* Initialize help files */

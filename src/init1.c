@@ -2111,11 +2111,11 @@ static errr _parse_room_type(char *buf, room_ptr room)
     return 0;
 }
 
+/* Current entry (file scope so init_v_info can reset it on re-parse) */
+static room_ptr room = NULL;
+
 static errr parse_v_info(char *buf, int options)
 {
-    /* Current entry */
-    static room_ptr room = NULL;
-
     /* Default letters for all rooms and vaults */
     if (buf[0] == 'L' && buf[1] == ':' && !room)
     {
@@ -2168,6 +2168,7 @@ static errr parse_v_info(char *buf, int options)
 
 errr init_v_info(int options)
 {
+    room = NULL; /* reset for re-parse */
     if (room_info) vec_free(room_info); /* double initialization?? */
     room_info = vec_alloc((vec_free_f)room_free);
     if (room_letters) int_map_free(room_letters);
@@ -5404,4 +5405,3 @@ errr parse_edit_file(cptr name, parser_f parser, int options)
     my_fclose(fp);
     return err;
 }
-

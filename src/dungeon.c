@@ -6816,6 +6816,31 @@ quick_restart_loop:
             z_string_free(screen_dump);
             screen_dump = NULL;
         }
+
+        /* Rebuild all game data so no character state carries over */
+        {
+            u32b saved_flag[8];
+            u32b saved_mask[8];
+
+            /* Preserve the player's options across the data rebuild */
+            for (i = 0; i < 8; i++)
+            {
+                saved_flag[i] = option_flag[i];
+                saved_mask[i] = option_mask[i];
+            }
+
+            /* Free the old data and parse it fresh */
+            free_angband_data();
+            init_angband_data();
+
+            /* Restore the player's options */
+            for (i = 0; i < 8; i++)
+            {
+                option_flag[i] = saved_flag[i];
+                option_mask[i] = saved_mask[i];
+            }
+        }
+
         goto quick_restart_loop;
     }
 

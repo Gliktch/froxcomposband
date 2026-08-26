@@ -1315,6 +1315,9 @@ extern cptr err_str[PARSE_ERROR_MAX];
 extern errr init_buildings(void);
 extern s16b f_tag_to_index_in_init(cptr str);
 extern void init_angband(void);
+extern void init_angband_data(void);
+extern void free_angband_data(void);
+extern void free_wilderness(void);
 extern void display_news(void);
 
 /* load.c */
@@ -1934,6 +1937,7 @@ extern sint macro_find_exact(cptr pat);
 extern char inkey(void);
 extern cptr quark_str(s16b num);
 extern void quark_init(void);
+extern void quark_free(void);
 extern s16b quark_add(cptr str);
 
 extern void screen_save(void);

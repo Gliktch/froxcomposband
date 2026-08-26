@@ -727,6 +727,9 @@ static int _smith_absorb(object_type *o_ptr)
     string_ptr  spy_before = NULL;
     string_ptr  spy_after = NULL;
 
+    /* Do not leak flags known from an earlier absorption */
+    C_WIPE(_spy_known_flags, OF_ARRAY_SIZE, u32b);
+
     if (object_is_known(o_ptr))
     {
         obj_flags_known(o_ptr, _spy_known_flags);

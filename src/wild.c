@@ -1920,6 +1920,22 @@ errr init_wilderness(void)
     return 0;
 }
 
+/*
+ * Free the wilderness and scratch cave arrays allocated by init_wilderness()
+ */
+void free_wilderness(void)
+{
+    int i;
+
+    if (wilderness)
+    {
+        C_KILL(wilderness[0], max_wild_x * max_wild_y, wilderness_type);
+        C_KILL(wilderness, max_wild_y, wilderness_type_ptr);
+    }
+    for (i = 0; i < MAX_HGT; i++)
+        if (_cave[i]) C_KILL(_cave[i], MAX_WID, s16b);
+}
+
 
 static void init_terrain_table(int terrain, s16b feat_global, cptr fmt, ...)
 {

@@ -2457,6 +2457,23 @@ void quark_init(void)
 
 
 /*
+ * Free the quark array
+ */
+void quark_free(void)
+{
+    int i;
+
+    /* Free the strings */
+    for (i = 1; i < quark__num; i++)
+        z_string_free(quark__str[i]);
+
+    /* Free the array */
+    C_KILL(quark__str, QUARK_MAX, cptr);
+    quark__num = 0;
+}
+
+
+/*
  * Add a new "quark" to the set of quarks.
  */
 s16b quark_add(cptr str)

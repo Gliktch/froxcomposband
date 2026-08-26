@@ -19,5 +19,6 @@ typedef enum
  */
 extern size_t randname_make(randname_type name_type, size_t min, size_t max, char *word_buf, size_t buflen, const char ***wordlist);
 extern errr name_parser(void);
+extern void free_name_sections(void);
 
 #endif /* RANDNAME_H */

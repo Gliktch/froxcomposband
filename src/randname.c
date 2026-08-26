@@ -325,3 +325,23 @@ errr name_parser(void)
     /* Result */
     return (err);
 }
+
+/*
+ * Free the random name sections allocated by name_parser()
+ */
+void free_name_sections(void)
+{
+    int i;
+
+    if (!name_sections) return;
+    for (i = 0; i < RANDNAME_NUM_TYPES; i++)
+    {
+        int j;
+
+        if (!name_sections[i]) continue;
+        for (j = 0; name_sections[i][j]; j++)
+            z_string_free((char *)name_sections[i][j]);
+        C_KILL(name_sections[i], j + 1, const char *);
+    }
+    C_KILL(name_sections, RANDNAME_NUM_TYPES, const char **);
+}

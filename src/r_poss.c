@@ -30,6 +30,9 @@ struct _history_s
 };
 
 static _history_ptr _history = NULL;
+/* Cached index of the last body whose race data we built; reset on birth so
+ * quick-restart data rebuilds cannot leave stale pool pointers behind. */
+static int _last_r_idx = -1;
 
 static int _history_count(void)
 {
@@ -167,6 +170,7 @@ static int _calc_level(int l)
 
 void possessor_on_birth(void)
 {
+    _last_r_idx = -1;
     _history_on_birth();
 }
 
@@ -1176,18 +1180,17 @@ void possessor_get_flags(u32b flgs[OF_ARRAY_SIZE])
  **********************************************************************/
 void possessor_init_race_t(race_t *race_ptr, int default_r_idx)
 {
-    static int last_r_idx = -1;
     int        r_idx = p_ptr->current_r_idx, i;
 
     if (!r_idx) /* Birthing menus. p_ptr->prace not chosen yet. _birth() not called yet. */
         r_idx = default_r_idx; 
 
-    if (r_idx != last_r_idx)
+    if (r_idx != _last_r_idx)
     {
         monster_race *r_ptr;
     
         if (p_ptr->current_r_idx == r_idx) /* Birthing menus. current_r_idx = 0 but r_idx = default_r_idx. */
-            last_r_idx = r_idx;            /* BTW, the game really needs a "current state" concept ... */
+            _last_r_idx = r_idx;           /* BTW, the game really needs a "current state" concept ... */
 
         r_ptr = &r_info[r_idx];
 
@@ -1207,8 +1210,6 @@ void possessor_init_race_t(race_t *race_ptr, int default_r_idx)
         if (!race_ptr->life)
             race_ptr->life = 100;
     
-        race_ptr->equip_template = mon_get_equip_template();
-
         for (i = 0; i < MAX_STATS; i++)
             race_ptr->stats[i] = r_ptr->body.stats[i];
 
@@ -1216,8 +1217,6 @@ void possessor_init_race_t(race_t *race_ptr, int default_r_idx)
         race_ptr->extra_skills = r_ptr->body.extra_skills;
 
         race_ptr->pseudo_class_idx = r_ptr->body.class_idx;
-
-        race_ptr->subname = mon_name(r_idx);
 
         race_ptr->flags = RACE_IS_MONSTER;
         if (r_ptr->flags3 & RF3_UNDEAD)
@@ -1227,6 +1226,10 @@ void possessor_init_race_t(race_t *race_ptr, int default_r_idx)
         if (r_ptr->flags3 & RF3_DEMON)
             race_ptr->flags |= RACE_IS_DEMON | RACE_IS_NONLIVING;
     }
+    /* Always refresh pointers into the current info pools; the data is rebuilt
+     * on quick restart while the cached body index may be unchanged. */
+    race_ptr->subname = mon_name(r_idx);
+    race_ptr->equip_template = mon_get_equip_template();
     if (birth_hack || spoiler_hack)
     {
         race_ptr->subname = NULL;

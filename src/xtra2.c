@@ -808,6 +808,7 @@ static bool _kind_is_utility(int k_idx)
             return TRUE;
         case SV_SCROLL_IDENTIFY:
         case SV_SCROLL_STAR_IDENTIFY:
+        case SV_SCROLL_UNDERSTANDING:
 			return easy_id ? FALSE : TRUE;
         }
         break;

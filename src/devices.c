@@ -2494,6 +2494,7 @@ static int _choose_random_p(effect_p p)
         if (!_effect_info[i].type) break;
         if (!_effect_info[i].rarity) continue;
         if (p && !p(_effect_info[i].type)) continue;
+        if (easy_id && (_effect_info[i].type == EFFECT_IDENTIFY || _effect_info[i].type == EFFECT_IDENTIFY_FULL)) continue;
 
         tot += MAX(255 / _effect_info[i].rarity, 1);
     }
@@ -2506,6 +2507,7 @@ static int _choose_random_p(effect_p p)
         if (!_effect_info[i].type) break;
         if (!_effect_info[i].rarity) continue;
         if (p && !p(_effect_info[i].type)) continue;
+        if (easy_id && (_effect_info[i].type == EFFECT_IDENTIFY || _effect_info[i].type == EFFECT_IDENTIFY_FULL)) continue;
 
         n -= MAX(255 / _effect_info[i].rarity, 1);
         if (n <= 0) return i;
@@ -2525,6 +2527,7 @@ static int _choose_random(int bias)
         if (!_effect_info[i].type) break;
         if (_effect_info[i].level < object_level / 3) continue;
         if (bias && !(_effect_info[i].bias & bias)) continue;
+        if (easy_id && (_effect_info[i].type == EFFECT_IDENTIFY || _effect_info[i].type == EFFECT_IDENTIFY_FULL)) continue;
         if (!_effect_info[i].rarity) continue;
 
         tot += MAX(255 / _effect_info[i].rarity, 1);
@@ -2538,6 +2541,7 @@ static int _choose_random(int bias)
         if (!_effect_info[i].type) break;
         if (_effect_info[i].level < object_level / 3) continue;
         if (bias && !(_effect_info[i].bias & bias)) continue;
+        if (easy_id && (_effect_info[i].type == EFFECT_IDENTIFY || _effect_info[i].type == EFFECT_IDENTIFY_FULL)) continue;
         if (!_effect_info[i].rarity) continue;
 
         n -= MAX(255 / _effect_info[i].rarity, 1);
@@ -2847,8 +2851,7 @@ static void _device_pick_effect(object_type *o_ptr, device_effect_info_ptr table
         if ((mode & AM_GOOD) && !(entry->flags & _DROP_GOOD)) continue;
         if ((mode & AM_GREAT) && !(entry->flags & _DROP_GREAT)) continue;
         if ((mode & AM_STOCK_TOWN) && !(entry->flags & _STOCK_TOWN)) continue;
-		if (easy_id && entry->type == EFFECT_IDENTIFY_FULL) continue;
-		if (easy_lore && entry->type == EFFECT_PROBING) continue;
+		if (easy_id && (entry->type == EFFECT_IDENTIFY || entry->type == EFFECT_IDENTIFY_FULL)) continue;
 
         entry->prob = 64 / rarity;
         tot += entry->prob;

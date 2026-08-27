@@ -14,10 +14,10 @@ The birth options can only be accessed while creating a new character (press <co
   <indent>
 
 <topic:easy_id><color:U>Easy Identify</color> <color:D>(easy_id)</color>
-With this option enabled, all objects are automatically fully identified on walkover, and items, spells and town services of Identify/*Identify* become unnecessary.
+With this option enabled, all objects are automatically fully identified on walkover, so Identify and *Identify* scrolls, staves and identify item activations no longer generate.
 
 <topic:easy_lore><color:U>Easy Lore</color> <color:D>(easy_lore)</color>
-With this option enabled, the player will be born with complete knowledge of monster lore, including the various attacks and nasty surprises that many monsters usually offer to the uninitiated. This is a bit of a spoiler option, but is available for those who don't enjoy learning each of the many monsters present in the game. <color:U>Easy Lore</color> also renders a few aspects of the game non-functional or pointless, including the ability to <color:keyword>Probe</color> monsters to learn about them as you encounter them, and the <color:keyword>Research Monster</color> town service to learn about monsters before you see them (for a price, of course).
+With this option enabled, the player will be born with complete knowledge of monster lore, including the various attacks and nasty surprises that many monsters usually offer to the uninitiated. This is a bit of a spoiler option, but is available for those who don't enjoy learning each of the many monsters present in the game. <color:U>Easy Lore</color> makes the <color:keyword>Research Monster</color> town service redundant, since every race is already fully known, but <color:keyword>Probe</color> remains useful: it reveals details about individual monsters, such as a pet's current experience and its progress toward the next evolution.
 
 <topic:easy_damage><color:U>Easy monster health and damage information</color> <color:D>(easy_damage)</color>
 Also known as "Fnord-mode", this option allows the player to see the exact damage delivered by each attack, along with various other pieces of exact combat information that would otherwise be hidden. If percentage status bars are enabled, <color:U>Easy monster health and damage information</color> also upgrades them to show exact monster and player percentages together with fuller monster status indicators. This is a powerful easy-mode, and using it gives a score penalty.

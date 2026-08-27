@@ -2702,10 +2702,10 @@ device_effect_info_t staff_effect_table[] =
     {EFFECT_LITE_AREA,              1,   3,     1,  30,    10,  0, _STOCK_TOWN},
     {EFFECT_DETECT_GOLD,            5,   4,     1,  30,    10,  0, _STOCK_TOWN},
     {EFFECT_DETECT_OBJECTS,         5,   4,     1,  30,    10,  0, _STOCK_TOWN},
-    {EFFECT_DETECT_INVISIBLE,       5,   4,     1,  30,    10,  0, 0},
+    {EFFECT_DETECT_INVISIBLE,       5,   4,     1,  30,    10,  0, _STOCK_TOWN},
     {EFFECT_DETECT_TRAPS,           5,   5,     1,  30,    10,  0, _STOCK_TOWN},
     {EFFECT_DETECT_DOOR_STAIRS,     5,   5,     1,  30,    10,  0, _STOCK_TOWN},
-    {EFFECT_DETECT_EVIL,            7,   5,     1,  30,    10,  0, 0},
+    {EFFECT_DETECT_EVIL,            7,   5,     1,  30,    10,  0, _STOCK_TOWN},
     {EFFECT_HASTE_MONSTERS,        10,   5,     1,  30,    50, 10, 0},
     {EFFECT_SUMMON_ANGRY_MONSTERS, 10,   5,     1,  30,    50, 10, 0},
     {EFFECT_IDENTIFY,              10,   4,     1,   0,    10,  0, _STOCK_TOWN | _COMMON},
@@ -2717,18 +2717,18 @@ device_effect_info_t staff_effect_table[] =
     {EFFECT_STARLITE,              20,  10,     1,  50,    33,  0, 0},
     {EFFECT_EARTHQUAKE,            20,  10,     2,   0,    10,  0, 0},
     {EFFECT_HEAL,                  20,  10,     2,  70,    33,  0,  _COMMON}, /* Cure Wounds for ~50hp */
-    {EFFECT_CURING,                25,  12,     1,  70,    10,  0, 0}, /* Curing no longer heals */
+    {EFFECT_CURING,                25,  12,     1,  70,    10,  0, _STOCK_TOWN}, /* Curing no longer heals */
     {EFFECT_SUMMON_HOUNDS,         27,  25,     2,   0,    10,  0, 0},
     {EFFECT_SUMMON_HYDRAS,         27,  25,     3,   0,    10,  0, 0},
     {EFFECT_SUMMON_ANTS,           27,  20,     2,   0,    10,  0, 0},
-    {EFFECT_PROBING,               30,  15,     3,  70,    10,  0, 0},
+    {EFFECT_PROBING,               30,  15,     3,  70,    10,  0, _STOCK_TOWN},
     {EFFECT_TELEPATHY,             30,  16,     2,   0,    10,  0, 0},
     {EFFECT_SUMMON_MONSTERS,       32,  30,     2,   0,    33,  0, 0},
     {EFFECT_ANIMATE_DEAD,          35,  17,     2,  70,    33,  0, 0},
     {EFFECT_SLOWNESS,              40,  19,     3,  70,    50, 10, 0},
     {EFFECT_SPEED,                 40,  19,     2,   0,    10,  0, _COMMON},
     {EFFECT_IDENTIFY_FULL,         40,  20,     3,   0,    10,  0, _COMMON},
-    {EFFECT_REMOVE_CURSE,          40,  20,     4,   0,    10,  0, 0},
+    {EFFECT_REMOVE_CURSE,          30,  20,     4,   0,    10,  0, _STOCK_TOWN},
     {EFFECT_DISPEL_DEMON,          45,  10,     2,   0,    50, 10, 0},
     {EFFECT_DISPEL_UNDEAD,         45,  10,     2,   0,    50, 10, 0},
     {EFFECT_DISPEL_LIFE,           50,  12,     3,   0,    50, 10, 0},
@@ -2787,11 +2787,12 @@ static int _rand_normal(int mean, int pct)
     return result;
 }*/
 
-static int _effect_rarity(device_effect_info_ptr entry, int level)
+static int _effect_rarity(device_effect_info_ptr entry, int level, bool flat)
 {
     int r = entry->rarity;
     if (!r) return 0;
     if (entry->max_depth && entry->max_depth < level) return 0;
+    if (flat) return r;
     if (entry->flags & _RARE)
     {
         int n = entry->counts.found + entry->counts.bought;
@@ -2839,7 +2840,7 @@ static void _device_pick_effect(object_type *o_ptr, device_effect_info_ptr table
         if (!entry->type) break;
 
         entry->prob = 0;
-        rarity = _effect_rarity(entry, level);
+        rarity = _effect_rarity(entry, level, (mode & AM_STOCK_TOWN) != 0);
 
         if (!rarity) continue;
         if (entry->level > device_level(o_ptr)) continue;

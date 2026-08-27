@@ -445,6 +445,13 @@ static int _mod_lvl(int lvl)
     return lvl;
 }
 
+/* Magic shop staves scale with character level, ramping from the town base
+ * up to level 30 by clvl 20 so mid-level staff effects can be stocked. */
+static int _magic_staff_stock_lvl(void)
+{
+    return MIN(30, 15 + (p_ptr->lev * 3) / 4);
+}
+
 static void _discount(obj_ptr obj)
 {
     int discount = 0;
@@ -989,6 +996,14 @@ static bool _magic_create(obj_ptr obj, u32b mode)
     }
     else
         k_idx = _get_k_idx(_magic_stock_p, _mod_lvl(20));
+
+    if (k_info[k_idx].tval == TV_STAFF)
+    {
+        /* The clvl ramp is a floor: dungeon-town shops keep their depth-scaled
+         * stock level, but are never worse than the surface town's. */
+        int lvl = MAX(_mod_lvl(15), _magic_staff_stock_lvl());
+        return _create(obj, k_idx, lvl, mode);
+    }
     return _create(obj, k_idx, _mod_lvl(15), mode);
 }
 

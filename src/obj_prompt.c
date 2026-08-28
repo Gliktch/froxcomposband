@@ -295,7 +295,9 @@ static void _context_make(obj_prompt_context_ptr context)
         if (inv)
         {
             int ct = inv_count(inv, obj_exists);
-            if (!ct)
+            /* Keep an empty Equipment tab when this body has slots and the
+             * prompt is unfiltered, so empty slots stay visible. */
+            if (!ct && !(inv_loc(inv) == INV_EQUIP && equip_max() && !context->prompt->filter))
                 inv_free(inv);
             else
             {

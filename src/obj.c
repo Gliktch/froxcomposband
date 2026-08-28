@@ -1027,7 +1027,9 @@ static void _item_screen(int top_loc, bool inspect)
 
     prompt.prompt = string_buffer(s);
     prompt.error = "You have nothing to examine.";
-    prompt.filter = obj_exists;
+    /* A null filter keeps empty equipment slots visible in the Equipment tab;
+     * obj_prompt coerces null to obj_exists for the other tabs. */
+    prompt.filter = NULL;
     prompt.where[0] = INV_PACK;
     prompt.where[1] = INV_EQUIP;
     prompt.where[2] = INV_QUIVER;

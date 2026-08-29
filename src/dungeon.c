@@ -2076,9 +2076,6 @@ static void process_world_aux_timeout(void)
     if (p_ptr->tim_transcendence)
         set_tim_transcendence(p_ptr->tim_transcendence - 1, TRUE);
 
-    if (p_ptr->tim_quick_walk)
-        set_tim_quick_walk(p_ptr->tim_quick_walk - 1, TRUE);
-
     if (p_ptr->tim_inven_prot)
         set_tim_inven_prot(p_ptr->tim_inven_prot - 1, TRUE);
 

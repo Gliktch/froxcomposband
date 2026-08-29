@@ -417,7 +417,6 @@ void reset_tim_flags(void)
     p_ptr->tim_sustain_chr = 0;
     p_ptr->tim_hold_life = 0;
     p_ptr->tim_transcendence = 0;
-    p_ptr->tim_quick_walk = 0;
     p_ptr->tim_inven_prot = 0;
     p_ptr->tim_inven_prot2 = 0;
     p_ptr->tim_device_power = 0;
@@ -795,14 +794,6 @@ bool disenchant_player(void)
                 return result;
             }
             break;
-        case 27:
-            if (p_ptr->tim_quick_walk)
-            {
-                (void)set_tim_quick_walk(0, TRUE);
-                result = TRUE;
-                return result;
-            }
-            break;
         case 28:
             if ((p_ptr->tim_inven_prot) || (p_ptr->tim_inven_prot2))
             {
@@ -939,7 +930,6 @@ void dispel_player(void)
     set_tim_sustain_chr(0, TRUE);
     set_tim_hold_life(0, TRUE);
     set_tim_transcendence(0, TRUE);
-    set_tim_quick_walk(0, TRUE);
     set_tim_inven_prot(0, TRUE);
     set_tim_inven_prot2(0, TRUE);
     set_tim_device_power(0, TRUE);
@@ -7886,47 +7876,6 @@ bool set_tim_slay_sentient(int v, bool do_dec)
     p_ptr->update |= (PU_BONUS);
     handle_stuff();
     return (TRUE);
-}
-
-bool set_tim_quick_walk(int v, bool do_dec)
-{
-    bool notice = FALSE;
-
-    /* Hack -- Force good values */
-    v = (v > 10000) ? 10000 : (v < 0) ? 0 : v;
-
-    if (p_ptr->is_dead) return FALSE;
-
-    /* Open */
-    if (v)
-    {
-        if (p_ptr->tim_quick_walk)
-        {
-            if (p_ptr->tim_quick_walk > v && !do_dec) return FALSE;
-        }
-        else
-        {
-            msg_print("You move with great haste.");
-            notice = TRUE;
-        }
-    }
-    /* Shut */
-    else
-    {
-        if (p_ptr->tim_quick_walk)
-        {
-            msg_print("You are no longer walking quickly.");
-            notice = TRUE;
-        }
-    }
-
-    p_ptr->tim_quick_walk = v;
-    if (!notice) return FALSE;
-    if (disturb_state) disturb(0, 0);
-    p_ptr->redraw |= PR_STATUS;
-    p_ptr->update |= PU_BONUS;
-    handle_stuff();
-    return TRUE;
 }
 
 bool set_tim_inven_prot(int v, bool do_dec)

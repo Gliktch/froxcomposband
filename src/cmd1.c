@@ -5479,6 +5479,10 @@ void move_player(int dir, bool do_pickup, bool break_trap)
                 /* Closed doors */
                 if (easy_open && is_closed_door(feat) && easy_open_door(y, x, dir))
                 {
+                    /* The door action is a standalone turn even though the
+                     * player stays in place. */
+                    energy_use = 100;
+
                     /* Hack. Try to deduce what happened since easy_open_door hides this.
                        Try to repeat attempting to unlock the door, but do a quick check
                        for jammed doors so we don't waste 99 turns. Also, only make
@@ -6568,7 +6572,7 @@ void run_step(int dir)
     }
 
     /* Take time */
-    energy_use = 100;
+    energy_use = walking_energy_use(FALSE);
 
     /* Move the player, using the "pickup" flag */
 #ifdef ALLOW_EASY_DISARM /* TNB */
@@ -6580,6 +6584,9 @@ void run_step(int dir)
     move_player(find_current, always_pickup, FALSE);
 
 #endif /* ALLOW_EASY_DISARM -- TNB */
+
+    Term_xtra(TERM_XTRA_DELAY, delay_time());
+    Term_fresh();
 
     if (ongelma)
     {
@@ -6728,7 +6735,7 @@ void travel_step(void)
         return;
     }
 
-    energy_use = 100;
+    energy_use = walking_energy_use(FALSE);
 
     for (i = 0; i < 8; i++)
     {
@@ -6778,7 +6785,15 @@ void travel_step(void)
         ongelma = TRUE;
     }
     travel.dir = dir;
-    move_player(dir, always_pickup, easy_disarm);
+#ifdef ALLOW_EASY_DISARM /* TNB */
+
+    move_player(dir, FALSE, FALSE);
+
+#else /* ALLOW_EASY_DISARM -- TNB */
+
+    move_player(dir, always_pickup, FALSE);
+
+#endif /* ALLOW_EASY_DISARM -- TNB */
     Term_xtra(TERM_XTRA_DELAY, delay_time());
     Term_fresh();
     travel.run = old_run;

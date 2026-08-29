@@ -751,7 +751,7 @@ static void rd_extra(savefile_ptr file)
     p_ptr->tim_sustain_chr = savefile_read_s16b(file);
     p_ptr->tim_hold_life = savefile_read_s16b(file);
     p_ptr->tim_transcendence = savefile_read_s16b(file);
-    p_ptr->tim_quick_walk = savefile_read_s16b(file);
+    (void)savefile_read_s16b(file); /* reserved: former tim_quick_walk slot */
     p_ptr->tim_inven_prot = savefile_read_s16b(file);
     if (!savefile_is_older_than(file, 7,0,6,6)) p_ptr->tim_inven_prot2 = savefile_read_s16b(file);
     else p_ptr->tim_inven_prot2 = 0;

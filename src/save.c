@@ -814,7 +814,8 @@ static void wr_extra(savefile_ptr file)
     savefile_write_s16b(file, p_ptr->tim_sustain_chr);
     savefile_write_s16b(file, p_ptr->tim_hold_life);
     savefile_write_s16b(file, p_ptr->tim_transcendence);
-    savefile_write_s16b(file, p_ptr->tim_quick_walk);
+    /* Reserved save slot: former tim_quick_walk, always zero. */
+    savefile_write_s16b(file, 0);
     savefile_write_s16b(file, p_ptr->tim_inven_prot);
     savefile_write_s16b(file, p_ptr->tim_inven_prot2);
     savefile_write_s16b(file, p_ptr->tim_device_power);

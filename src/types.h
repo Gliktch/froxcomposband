@@ -1214,7 +1214,6 @@ struct player_type
     s16b tim_sustain_chr;
     s16b tim_hold_life;
     s16b tim_transcendence;
-    s16b tim_quick_walk;
     s16b tim_inven_prot;
     s16b tim_inven_prot2;
     s16b tim_device_power;
@@ -2172,4 +2171,3 @@ typedef struct b_race_group_s {
     cptr name;
     int ids[B_MAX_RACES_PER_GROUP];
 } b_race_group_t, *b_race_group_ptr;
-

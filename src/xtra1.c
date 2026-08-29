@@ -586,7 +586,6 @@ static void prt_stat(int stat)
 #define BAR_MAUL 138
 #define BAR_KILLING_SPREE 139
 #define BAR_TUNNEL 140
-#define BAR_QUICK_WALK 141
 #define BAR_INVEN_PROT 142
 #define BAR_INVEN_PROT2 143
 #define BAR_WEAPONMASTERY 144
@@ -1312,7 +1311,6 @@ static void prt_status(void)
     if (p_ptr->tim_sustain_chr) ADD_FLG(BAR_SUSTAIN_CHR);
     if (p_ptr->tim_hold_life) ADD_FLG(BAR_HOLD_LIFE);
     if (p_ptr->tim_transcendence) ADD_FLG(BAR_TRANSCENDENCE);
-    if (p_ptr->tim_quick_walk) ADD_FLG(BAR_QUICK_WALK);
     if (p_ptr->tim_inven_prot2) ADD_FLG(BAR_INVEN_PROT2);
     else if (p_ptr->tim_inven_prot) ADD_FLG(BAR_INVEN_PROT);
     if (p_ptr->tim_device_power) ADD_FLG(BAR_DEVICE_POWER);
@@ -4591,8 +4589,6 @@ void calc_bonuses(void)
     if (p_ptr->tim_sustain_con) p_ptr->sustain_con = TRUE;
     if (p_ptr->tim_sustain_chr) p_ptr->sustain_chr = TRUE;
     if (p_ptr->tim_hold_life) p_ptr->hold_life++;
-    if (p_ptr->tim_quick_walk) p_ptr->quick_walk = TRUE;
-
     if (p_ptr->special_attack & ATTACK_ACID)
     {
         add_flag(p_ptr->weapon_info[0].flags, OF_BRAND_ACID);

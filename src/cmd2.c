@@ -2318,37 +2318,59 @@ void do_cmd_spike(void)
 /*
  * Support code for the "Walk" and "Jump" commands
  */
+/*
+ * Walking-energy cost of one movement step, starting from a 100-energy base
+ * (scaled for wild-mode tiles) and applying the same modifiers that used to
+ * live only in do_cmd_walk_aux().  on_world_map selects the world-map
+ * estimate: it always uses wilderness-tile scaling and excludes the
+ * ACTION_QUICK_WALK and ACTION_STALK modifiers because entering the world map
+ * cancels those actions.  Local movement passes FALSE; wild-mode scaling
+ * still comes from p_ptr->wild_mode, and the action modifiers still apply.
+ */
+int walking_energy_use(bool on_world_map)
+{
+    int energy = 100;
+
+    /* Hack -- In small scale wilderness it takes MUCH more time to move */
+    if (p_ptr->wild_mode || on_world_map) energy *= ((MAX_HGT + MAX_WID) / 2);
+
+    if (!p_ptr->riding)
+    {
+        if (mut_present(MUT_LIMP)) energy += (energy / 9);
+
+        if (!on_world_map)
+        {
+            if (p_ptr->action == ACTION_QUICK_WALK)
+                energy = (p_ptr->pclass == CLASS_NINJA_LAWYER) ?
+                    energy * (60-(p_ptr->lev/2)) / 100 : energy * (45-(p_ptr->lev/2)) / 100;
+            if (p_ptr->action == ACTION_STALK)
+                energy = energy * (150 - p_ptr->lev) / 100;
+        }
+        if (weaponmaster_get_toggle() == TOGGLE_SHADOW_STANCE)
+            energy = energy * (45-(p_ptr->lev/2)) / 100;
+
+        if (p_ptr->quick_walk)
+            energy = energy * 60 / 100;
+        if (p_ptr->mystic_fast_walk)
+            energy = energy * 60 / 100;
+
+        if (personality_is_(PERS_CRAVEN)) energy = energy * 21 / 25;
+
+        if (prace_is_(RACE_MON_GOLEM))
+            energy *= 2;
+    }
+
+    return energy;
+}
+
 static void do_cmd_walk_aux(int dir, bool pickup)
 {
     /* Take a turn */
-    energy_use = 100;
+    energy_use = walking_energy_use(FALSE);
 
     if ((dir != 5) && (p_ptr->special_defense & KATA_MUSOU))
     {
         set_action(ACTION_NONE);
-    }
-
-    /* Hack -- In small scale wilderness it takes MUCH more time to move */
-    if (p_ptr->wild_mode) energy_use *= ((MAX_HGT + MAX_WID) / 2);
-    if (!p_ptr->riding)
-    {
-        if (mut_present(MUT_LIMP)) energy_use += (energy_use / 9);
-
-        if (p_ptr->action == ACTION_QUICK_WALK) energy_use = (p_ptr->pclass == CLASS_NINJA_LAWYER) ? 
-             energy_use * (60-(p_ptr->lev/2)) / 100 : energy_use * (45-(p_ptr->lev/2)) / 100;
-        if (p_ptr->action == ACTION_STALK) energy_use = energy_use * (150 - p_ptr->lev) / 100;
-        if (weaponmaster_get_toggle() == TOGGLE_SHADOW_STANCE)
-            energy_use = energy_use * (45-(p_ptr->lev/2)) / 100;
-
-        if (p_ptr->quick_walk)
-            energy_use = energy_use * 60 / 100;
-        if (p_ptr->mystic_fast_walk)
-            energy_use = energy_use * 60 / 100;
-
-        if (personality_is_(PERS_CRAVEN)) energy_use = energy_use * 21 / 25;
-
-        if (prace_is_(RACE_MON_GOLEM))
-            energy_use *= 2;
     }
 
     move_player(dir, pickup, FALSE);
@@ -4039,10 +4061,12 @@ static bool travel_flow_aux(int y, int x, int n, bool wall)
     if (!in_bounds(y, x)) return wall;
     if (!(c_ptr->info & CAVE_AWARE)) return wall;
 
-    /* Don't travel thru traps ... code will attempt a disarm, but this
-     * can be dangerous for some players. Often, there is an alternate
-     * route around the trap anyway ... */
-    if (is_known_trap(c_ptr)) return wall;
+    /* Don't travel through traps that can't be safely ignored ... code would
+     * attempt a disarm, but this can be dangerous for some players.  Often,
+     * there is an alternate route around the trap anyway.  Known traps the
+     * player can already walk over safely (levitation, anti-teleport, or
+     * relevant immunity) stay passable, matching ordinary movement. */
+    if (is_known_trap(c_ptr) && !trap_can_be_ignored(c_ptr->feat)) return wall;
 
     n += _travel_flow_bonus(f_ptr);
 
@@ -4121,6 +4145,10 @@ void travel_begin(int mode, int x, int y)
     int i;
     int dx, dy, sx, sy;
     feature_type *f_ptr;
+
+    /* Moving on journeys cancels Musou, matching run and walk. */
+    if (p_ptr->special_defense & KATA_MUSOU)
+        set_action(ACTION_NONE);
 
     travel.mode = mode;
     travel.run = 0;

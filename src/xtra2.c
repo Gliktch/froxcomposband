@@ -4484,34 +4484,6 @@ static bool _target_wild_keys(char *info)
     return TRUE;
 }
 
-/* Persistent walking-energy cost of one world-map tile, mirrored from
- * do_cmd_walk_aux: the base tile cost is 100 * (MAX_HGT+MAX_WID)/2 energy,
- * with race, personality, mutation, action and stance modifiers applied.
- * Timed effects (haste, the timed quick-walk buff) are deliberately left
- * out because they wear off on the first world-map step. */
-static int _target_wild_walk_energy(void)
-{
-    int energy = 100 * ((MAX_HGT + MAX_WID) / 2);
-
-    if (!p_ptr->riding)
-    {
-        if (mut_present(MUT_LIMP)) energy += energy / 9;
-        if (p_ptr->action == ACTION_QUICK_WALK)
-            energy = (p_ptr->pclass == CLASS_NINJA_LAWYER) ?
-                energy * (60 - (p_ptr->lev / 2)) / 100 :
-                energy * (45 - (p_ptr->lev / 2)) / 100;
-        if (p_ptr->action == ACTION_STALK)
-            energy = energy * (150 - p_ptr->lev) / 100;
-        if (weaponmaster_get_toggle() == TOGGLE_SHADOW_STANCE)
-            energy = energy * (45 - (p_ptr->lev / 2)) / 100;
-        if (mut_present(MUT_FLEET_OF_FOOT)) energy = energy * 60 / 100;
-        if (p_ptr->mystic_fast_walk) energy = energy * 60 / 100;
-        if (personality_is_(PERS_CRAVEN)) energy = energy * 21 / 25;
-        if (prace_is_(RACE_MON_GOLEM)) energy *= 2;
-    }
-    return energy;
-}
-
 static int target_set_aux(int y, int x, int mode, cptr info)
 {
     cave_type *c_ptr = &cave[y][x];
@@ -5015,7 +4987,13 @@ static int target_set_aux(int y, int x, int mode, cptr info)
              * distance is about d/4 miles.  The travel time uses the
              * persistent unbuffed speed (100000 game turns per day) and
              * ignores terrain penalties. */
-            turns = (long)d * _target_wild_walk_energy()
+            /* Persistent walking-energy cost of one world-map tile, shared
+             * with the movement commands via walking_energy_use().  Timed
+             * effects (haste, slow, lightspeed) are deliberately left out
+             * because they wear off on the first world-map step, and the
+             * Quick Walk / Stalk actions are excluded because entering the
+             * world map cancels them. */
+            turns = (long)d * walking_energy_use(TRUE)
                 / SPEED_TO_ENERGY(base_speed);
             minutes = turns * 1440 / 100000;
 

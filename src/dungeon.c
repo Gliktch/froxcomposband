@@ -4638,6 +4638,16 @@ static bool monster_tsuri(int r_idx)
  * must come first just in case somebody manages to corrupt
  * the savefiles by clever use of menu commands or something.
  */
+static int last_auto_step_cost = 0;
+
+/* A new player command is starting; clear the previous action's readout. */
+void energy_cost_clear(void)
+{
+    energy_cost_hack = 0;
+    last_auto_step_cost = 0;
+    p_ptr->redraw |= PR_EFFECTS;
+}
+
 static void process_player(void)
 {
     int i;
@@ -4971,6 +4981,7 @@ static void process_player(void)
     while (p_ptr->energy_need <= 0)
     {
         int _start_energy = p_ptr->energy_need;
+        bool auto_move_step = FALSE;
         p_ptr->sutemi = FALSE;
         p_ptr->counter = FALSE;
         monsters_damaged_hack = FALSE;
@@ -5076,6 +5087,7 @@ static void process_player(void)
         else if (running)
         {
             /* Take a step */
+            auto_move_step = TRUE;
             run_step(0);
         }
 
@@ -5083,6 +5095,7 @@ static void process_player(void)
         else if (travel.run)
         {
             /* Take a step */
+            auto_move_step = TRUE;
             travel_step();
         }
 
@@ -5222,6 +5235,8 @@ static void process_player(void)
                 if (show_energy_cost)
                 {
                     energy_cost_hack = p_ptr->energy_need - _start_energy;
+                    last_auto_step_cost = (auto_move_step || running || travel.run)
+                        ? energy_cost_hack : 0;
                     p_ptr->redraw |= PR_EFFECTS;
                 }
             }
@@ -5240,6 +5255,8 @@ static void process_player(void)
                     if (_cost != energy_cost_hack)
                     {
                         energy_cost_hack = _cost;
+                        last_auto_step_cost = (auto_move_step || running || travel.run)
+                            ? _cost : 0;
                         p_ptr->redraw |= PR_EFFECTS;
                     }
                 }
@@ -5342,9 +5359,9 @@ static void process_player(void)
         else
         {
             player_turn--;
-            if ((show_energy_cost) && (p_ptr->playing))
+            if ((show_energy_cost) && (p_ptr->playing) && (auto_move_step))
             {
-                energy_cost_hack = 0;
+                energy_cost_hack = last_auto_step_cost;
                 p_ptr->redraw |= PR_EFFECTS;
             }
         }

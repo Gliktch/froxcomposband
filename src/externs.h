@@ -211,6 +211,7 @@ extern s16b shuffling_hack_hp;
 extern byte poison_warning_hack;
 extern byte energy_need_hack;
 extern s16b energy_cost_hack;
+extern void energy_cost_clear(void);
 extern s32b od_xtra_context;
 extern bool atlantis_hack;
 extern bool spawn_hack;

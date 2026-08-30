@@ -3753,6 +3753,10 @@ void request_command(int shopping)
             if (!shopping && command_menu && ((cmd == '\r') || (cmd == '\n') || (cmd == 'x') || (cmd == 'X'))
                 && !keymap_act[mode][(byte)(cmd)])
                 cmd = inkey_from_menu();
+
+            /* A real keypress starts a new player command, so the previous
+             * action's energy readout should no longer linger. */
+            energy_cost_clear();
         }
 
         /* Clear top line

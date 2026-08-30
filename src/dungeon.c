@@ -6847,6 +6847,9 @@ quick_restart_loop:
             free_angband_data();
             init_angband_data();
 
+            /* Reapply the base pref macros/keymaps freed by the rebuild. */
+            load_base_pref_files();
+
             /* Restore the player's options */
             for (i = 0; i < 8; i++)
             {

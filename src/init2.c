@@ -2018,6 +2018,25 @@ void init_angband_data(void)
 
 
 /*
+ * Load the base preference files that define the system macro/keymap set.
+ * The quick-restart path rebuilds game data but must reapply these just like
+ * a fresh startup, since the data rebuild frees the macro arrays.
+ */
+void load_base_pref_files(void)
+{
+    char buf[1024];
+
+    /* Access the "basic" pref file */
+    strcpy(buf, "pref.prf");
+    process_pref_file(buf);
+
+    /* Access the "basic" system pref file */
+    sprintf(buf, "pref-%s.prf", ANGBAND_SYS);
+    process_pref_file(buf);
+}
+
+
+/*
  * Free the array, name, text, and tag pools of one info family
  */
 static void free_info(header *head, void **info, char **name, char **text, char **tag)
@@ -2161,18 +2180,7 @@ void init_angband(void)
     /* Initialize feature info */
     note("[Initializing user pref files...]");
 
-
-    /* Access the "basic" pref file */
-    strcpy(buf, "pref.prf");
-
-    /* Process that file */
-    process_pref_file(buf);
-
-    /* Access the "basic" system pref file */
-    sprintf(buf, "pref-%s.prf", ANGBAND_SYS);
-
-    /* Process that file */
-    process_pref_file(buf);
+    load_base_pref_files();
 
     /* Done */
     note("[Initialization complete]");

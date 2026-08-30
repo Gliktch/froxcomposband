@@ -1319,6 +1319,7 @@ extern s16b f_tag_to_index_in_init(cptr str);
 extern void init_angband(void);
 extern void init_angband_data(void);
 extern void free_angband_data(void);
+extern void load_base_pref_files(void);
 extern void free_wilderness(void);
 extern void display_news(void);
 

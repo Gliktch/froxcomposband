@@ -603,7 +603,7 @@ errr process_pref_file_command(char *buf)
                 int os = option_info[i].o_set;
                 int ob = option_info[i].o_bit;
 
-                if ((p_ptr->playing || character_xtra) &&
+                if ((character_generated || character_xtra) &&
                     (OPT_PAGE_BIRTH == option_info[i].o_page) && !p_ptr->wizard)
                 {
                     msg_format("Birth options can not changed! '%s'", buf);

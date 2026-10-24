@@ -1,5 +1,7 @@
 # FroxComposband
 
+Edit 24/10: Sorry for the delays guys, life's been kicking my ass the past few weeks - but I've got most of both 7.3.3 final AND v8.0 beta finished, just need to be able to get my head in the game for a few more days solid work and they'll both be out :)  Watch this space!
+
 ## Disclaimer
 
 FroxComposband may ruin your social life, work productivity, or daily exercise

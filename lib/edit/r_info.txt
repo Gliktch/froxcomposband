@@ -8509,6 +8509,9 @@ B:EXPLODE:SHARDS(75d2)
 F:NO_QUEST | FORCE_SLEEP | FORCE_MAXHP | UNIQUE | REFLECTING |
 F:EMPTY_MIND | COLD_BLOOD | BASH_DOOR | RES_FIRE | RES_COLD | RES_ELEC | RES_POIS
 F:NO_FEAR | NO_CONF | NO_SLEEP | NONLIVING | RES_TELE | NASTY_GLYPH
+D:This is the left hand of Yoshikage Kira's Stand, 'Killer Queen.' It
+D:relentlessly pursues its prey, tracking them by their body heat. 'Killer
+D:Queen's "Sheer Heart Attack" never fails to take down its target...'
 
 N:532:Dagashi
 G:p:y
@@ -15706,6 +15709,7 @@ F:POS_SUST_STR | POS_SUST_INT | POS_SUST_WIS | POS_SUST_DEX | POS_SUST_CON | POS
 P:Copy:Sprite:Rogue
 P:Life:10
 P:Body:Babble
+D:A slime encased in hard metal.
 
 N:872:The Yamata-no-Orochi
 G:M:v
@@ -15726,6 +15730,9 @@ P:Copy:Half-Titan:Mauler
 P:Body:Hydra5
 S:FREQ_40 |
 S:BR_FIRE | BR_NEXUS | BR_CHAOS | BR_POISON | BR_DISENCHANT | BR_PLASMA | BR_NUKE | BR_DARK
+D:A legendary serpent dwelling in the Land of Izumo, possessing eight heads and
+D:eight tails. If denied a sacrifice, it unleashes floods that wipe out the
+D:entire population.
 
 N:873:Combat-Echizen "Because it's time"
 G:p:R
@@ -15852,6 +15859,10 @@ P:Copy:Vampire:Rogue
 P:Body:Vampire
 S:1_IN_4 |
 S:SCARE | S_KIN | WORLD | TELE_TO | DETECT_MONSTERS | MAPPING | IDENTIFY
+D:Dio, transformed into an immortal vampire by the power of the Stone Mask, views
+D:the adventurer merely as prey. Beware of 'The World'!
+D:'I don't know the true nature of his Stand, but I know for certain it can only
+D:be used at close range.'
 
 N:879:Ohmu
 G:w:g
@@ -15864,6 +15875,7 @@ F:FORCE_MAXHP | ONLY_GOLD | DROP_2D2 | DROP_3D2 |
 F:DROP_CORPSE | POS_SEE_INVIS | POS_GAIN_AC
 P:Copy:Half-Titan:Mauler
 P:Body:Chthonian
+D:A swarm of enraged Ohmu charges forward, scattering toxic miasma in their wake.
 
 N:880:Richard Wong, Master of Time
 G:p:w
@@ -15885,6 +15897,10 @@ S:BA_WATER | TELE_OTHER |
 S:DISPEL_MAGIC | ANTI_MAGIC | WORLD | PSY_SPEAR
 P:Copy:Dark-Elf:Time-Lord
 P:Speed:+15
+D:A psychic who freely manipulates time and space. Calm and composed, he always
+D:wears a confident smile. Yet, beneath that mask lies a cold-blooded soul that
+D:stops at nothing to satisfy its own desires. He is calculating in all things,
+D:never revealing his true intentions.
 
 N:881:Locke, the Superman
 G:p:G
@@ -15904,6 +15920,10 @@ S:TELE_SELF | BLIND | PARALYZE | BLINK | HEAL | HASTE |
 S:TELE_TO | CONFUSE | BO_MANA | BRAIN_SMASH | PSY_SPEAR(1d130+150)
 P:Copy:Half-Titan:Monk
 O:DROP_WARRIOR
+D:'That's right! Superman Locke!'
+D:'You know who I am?'
+D:'Of course! Ageless, immortal, and the greatest esper in history!'
+D:(Yuki Hijiri, *Superman Locke: The Red Serpent*)
 
 
 N:882:Layzark, the Emperor
@@ -15926,6 +15946,11 @@ S:BA_NETHER(10d10+180) | BA_DARK | BA_CHAOS(10d10+130) |
 S:S_MONSTER | S_DEMON | S_KIN
 P:Copy:Demigod:Mage
 O:DROP_MAGE
+D:Seeking only to battle other superhumans as a superhuman herself, she disguised
+D:herself as an emperor and attempted to destroy Earth.
+D:'In short, one morning we woke up to find that Dinar had become the sacred
+D:territory of Emperor Leizark.'
+D:(Yuki Hijiri, *Superman Locke: Cosmic Game*)
 
 N:883:Zombified Serpent of Chaos
 G:J:D
@@ -15954,6 +15979,8 @@ S:FREQ_35 |
 S:S_MONSTER | BR_CHAOS | BA_CHAOS(10d10+254) | ROCKET(600) | S_CYBER | S_KIN |
 S:BR_NETHER | BR_MANA | S_HI_UNDEAD | S_HI_DRAGON | S_UNIQUE | BRAIN_SMASH(200)
 S:BR_NUKE | BR_DISINTEGRATE | HAND_DOOM | DISPEL_MAGIC | ANTI_MAGIC
+D:Resurrected from the depths of hell to exact revenge on the one who destroyed
+D:him!
 
 N:884:Noxious fume
 G:#:y
@@ -16542,6 +16569,8 @@ P:Body:Demogorgon
 S:FREQ_25 | BA_DARK | BO_NETHER(5d5+180) | BR_NETHER | BR_DARK | BR_NUKE
 S:BR_POISON | HAND_DOOM |
 S:BLIND | CONFUSE | SCARE | S_HI_DEMON | S_KIN | DISPEL_MAGIC | ANTI_MAGIC
+D:A terrifying demon whose very name brings ruin; he is said to be a commander of
+D:the armies of hell.
 
 N:921:Internet Exploder
 G:e:B
@@ -16558,6 +16587,8 @@ P:Copy:Snotling:Tourist
 P:Body:Eye2
 S:1_IN_3 |
 S:PARALYZE | BLIND | CONFUSE | SCARE | SLOW
+D:It is Bull Gates' ultimate weapon—a terrifying entity capable of bringing ruin
+D:to the entire world.
 
 N:922:Electric rat
 G:r:b
@@ -16573,6 +16604,8 @@ P:Copy:Snotling:Rogue
 P:Body:Scrawny
 S:1_IN_5 |
 S:BR_ELEC | BO_ELEC
+D:It has an adorable appearance, but if you let your guard down, you might be in
+D:for a shocking surprise.
 
 N:923:Yukionna
 G:p:w
@@ -16585,6 +16618,12 @@ F:FEMALE | RES_COLD | DROP_1D2 | NONLIVING | AURA_COLD |
 P:Copy:Dunadan:Warrior-Mage
 S:1_IN_5
 S:BR_COLD | BO_COLD | BA_COLD
+D:Minokichi woke up because snow was falling heavily onto his face. The door to
+D:the hut had been forced open, and by the light of the snow, he could see a
+D:woman—dressed entirely in white—inside. She was leaning over Mosaku and
+D:breathing onto him; her breath looked like glittering white smoke.
+D:(Ghost Stories and Strange Tales – Lafcadio Hearn, translated by Michitoshi
+D:Tashiro; Kadokawa Bunko)
 
 # Description in English by Nick Keulmann
 N:924:Goomba
@@ -16608,6 +16647,8 @@ B:HIT:HURT(2d7)
 F:DROP_60 | ANIMAL | FRIENDS | ONLY_GOLD
 F:DROP_SKELETON | DROP_CORPSE
 P:Copy:Human:Warrior
+D:They always appear in a group. In other words, it’s a veritable army of Nikko
+D:monkeys...
 
 N:926:Tsuchinoko
 G:J:u
@@ -16620,6 +16661,7 @@ B:CRUSH:HURT(5d8):HURT(5d8, 20%)
 F:ANIMAL | DROP_SKELETON | DROP_CORPSE
 P:Copy:Human:Rogue
 P:Body:Snake
+D:It is said that a reward of $1,000 awaits anyone who captures it.
 
 # Description in English by Nick Keulmann
 N:927:Mario
@@ -16693,6 +16735,12 @@ S:BLIND | PARALYZE | HEAL | HASTE |
 S:TELE_TO | CONFUSE | BO_MANA | BRAIN_SMASH | PSY_SPEAR(1d130+150)
 P:Copy:Demigod:Mystic
 O:DROP_WARRIOR
+D:"It's no use! You alone... cannot defeat us. Do you know why? What kind of
+D:esper do you think the ‘Guardian of the Book’ chose to create a clone?"
+D:"!?"
+D:"Naturally, he chose the strongest esper in history! That is to say—you, Locke
+D:the Superman."
+D:(Yuki Hijiri, Locke the Superman: "Red Serpent")
 
 N:931:Caldarm the Third
 G:p:D
@@ -16711,6 +16759,12 @@ S:FREQ_40 |
 S:TELE_SELF | BLINK | BLINK_OTHER | HEAL | HASTE |
 S:BO_MANA | BRAIN_SMASH | PSY_SPEAR(1d158+150) | BA_CHAOS(10d10+158) | S_SPECIAL
 P:Copy:Demigod:Monk
+D:They manufactured a clone of Locke the Superman in an attempt to counter Locke
+D:himself and Liger I.
+D:"How often I have wished that record had never been found. But there is no
+D:turning back now. I bear a responsibility to all of humanity across the galaxy.
+D:For I am Galactic Emperor Kal-Dahm I!"
+D:(Yuki Hijiri, *Locke the Superman*: "Guardian of the Book")
 
 N:932:Banor=Rupart
 G:p:v
@@ -16731,6 +16785,10 @@ S:CONFUSE | BO_MANA | BRAIN_SMASH | PSY_SPEAR(1d142+150) |
 S:BA_NETHER(10d10+192) | BA_DARK | BA_CHAOS(10d10+142) |
 S:S_MONSTER | S_DEMON | S_KIN | SPECIAL
 P:Copy:Demigod:Paladin
+D:"I was originally two people. I fused them... into one. To oversee the 'Drum'
+D:project. This method allows one's lifespan to be extended eightfold. And one's
+D:power increases eightfold, too."
+D:(Yuki Hijiri, *Locke the Superman*: "Guardian of the Book")
 
 N:933:Banor the Prince Regent
 G:p:b
@@ -16751,6 +16809,9 @@ S:CONFUSE | BO_MANA | BRAIN_SMASH | PSY_SPEAR(1d142+150) |
 S:BA_NETHER(10d10+192) | BA_DARK | BA_CHAOS(10d10+142) |
 S:S_MONSTER | S_DEMON | S_KIN | SPECIAL
 P:Copy:Demigod:Paladin
+D:"So they called him 'His Excellency the Regent,' Duke Barnol, was it? 'Regent,'
+D:eh? The Empire hasn't had a regent in centuries."
+D:(Yuki Hijiri, *Locke the Superman*: "Guardian of the Book")
 
 N:934:Rupart the General
 G:p:r
@@ -16769,6 +16830,9 @@ S:FREQ_25 |
 S:BLIND | HEAL |
 S:TELE_TO | CONFUSE | BO_MANA | BRAIN_SMASH | PSY_SPEAR(1d142+150) | SPECIAL
 P:Copy:Demigod:Paladin
+D:"So... you are the 'Guardian of the Book.' I see." "Too bad for you. I am
+D:Rupert. Also known as... Duke Barnol."
+D:(Yuki Hijiri, *Locke the Superman*: "Guardian of the Book")
 
 N:935:Druaga
 G:h:v
@@ -16786,6 +16850,9 @@ F:EVIL | RES_FIRE | NO_CONF | NO_SLEEP
 P:Copy:Dark-Elf:Chaos-Warrior
 S:FREQ_25 |
 S:S_DEMON | BA_CHAOS | BO_PLASMA | BR_FIRE | BR_PLASMA
+D:It has four legs and nine arms. It wears a tall golden crown with horns
+D:protruding from the sides. Its body is blue, and it possesses fangs. It is said
+D:to be the entity that sealed away the goddess Ishtar.
 
 N:936:Kenshirou the Fist of the North Star
 G:p:W
@@ -16805,6 +16872,9 @@ S:CAUSE_4 | TELE_TO
 P:Copy:Half-Titan:Monk
 P:Body:Monk
 P:Speed:+10
+D:He is the successor to the Hokuto Shinken (North Star Divine Fist) style, a
+D:martial art passed down to only one heir. In an era where might was thought to
+D:rule all, he lives for love and fights for the sake of love.
 
 N:937:Lems the Cyborg
 G:g:W
@@ -16825,6 +16895,11 @@ P:Stats:2:0:0:0:1:0
 P:Life:105
 P:Body:Monk
 P:Speed:+7
+D:Cybers were humans whose bodies had been augmented by machinery, but they
+D:suffered from a flaw: the destabilization of their mental balance. Remus—whose
+D:brain alone had been converted into a Cyber—was no exception to this.
+D:"Th...that isn't Re...mus. It's a mon...ster."
+D:(Yuki Hijiri, *Locke the Superman*: "Cyber Genocide")
 
 # Description in English by Nick Keulmann
 N:938:White knight
@@ -17080,6 +17155,8 @@ F:NO_CONF | NO_SLEEP | NONLIVING
 F:POS_GAIN_AC
 P:Copy:Barbarian:Warrior
 P:Body:Beetle
+D:You will likely be left dumbfounded by the utter futility of magic against this
+D:monster. Rumor has it there's a Goomba inside...
 
 N:952:Kamikaze hound
 G:Z:V
@@ -17097,6 +17174,7 @@ P:ExtraSkills:0:-4:0:0:0:0:0:0
 P:SpellStat:Dex
 P:Body:Hound
 S:DETECT_MONSTERS
+D:A dog that looks like it's about to explode at any moment.
 
 N:953:Broken death sword
 G:|:D
@@ -17110,6 +17188,7 @@ F:NONLIVING | NO_FEAR | NASTY_GLYPH |
 F:STUPID | COLD_BLOOD | NO_CONF | NO_SLEEP |
 F:EVIL | RES_COLD | RES_FIRE | RES_ELEC | RES_POIS
 P:Body:Death-Sword
+D:A broken sword that roams about, thirsting for the blood of its prey.
 
 N:954:Orcish Artillery
 G:o:B
@@ -17260,6 +17339,8 @@ P:Copy:Half-Giant:Mystic
 P:Body:Monk
 P:Speed:+5
 S:FREQ_10 | BR_SHARDS | TELE_TO
+D:Ten-time consecutive Grand Champion of the Galaxy Bodybuilding Contest.
+D:His signature move is the 'Body-Build Cutter'.
 
 N:964:Shadower
 G:N:D
@@ -17283,6 +17364,9 @@ F:NO_CONF | NO_SLEEP | NO_FEAR
 S:1_IN_5 |
 S:BLIND | CONFUSE | SCARE | CAUSE_2 | BA_POISON |
 S:S_MONSTER(1d1)
+D:A strange creature disguised as a statue of a strange creature, which is itself
+D:disguised as an abandoned box; it lies in wait for foolish adventurers to
+D:wander within range of its poisonous claws.
 
 N:966:Luigi
 G:p:G
@@ -17298,6 +17382,7 @@ F:OPEN_DOOR | GOOD | CAN_SWIM | CAN_FLY |
 F:NO_CONF | NO_SLEEP | FRIENDLY | TAKE_ITEM |
 S:FREQ_25 | BA_FIRE | HASTE | JMP_FIRE
 P:Copy:Hobbit:Rogue
+D:Absolutely not a Mario knock-off! (Or so he claims).
 
 N:967:Jaian, the Boss of the Kids
 G:p:o
@@ -17313,6 +17398,7 @@ F:DROP_2D2 | ONLY_GOLD |
 F:OPEN_DOOR | BASH_DOOR | TAKE_ITEM | MOVE_BODY | RES_SOUN
 S:FREQ_10 | BR_SOUND
 P:Copy:Human:Bard
+D:"What's yours is mine. What's mine is mine."
 
 N:968:Bramd the Ice Dragon
 G:D:w
@@ -17333,8 +17419,8 @@ P:Stats:1:0:0:0:1:1
 P:Life:110
 P:Body:Dragon
 S:FREQ_25 | BRAIN_SMASH | BR_COLD | BA_COLD(1d180+20) | DETECT_OBJECTS 
-D:The oldest and wisest of the ancient dragons of Lodoss, it protects the land from
-D:its evil counterparts.
+D:The oldest and wisest of the ancient dragons of Lodoss, it protects the land
+D:from its evil counterparts.
 
 N:969:Eibra the Water Dragon
 G:D:b
@@ -17554,6 +17640,9 @@ P:Copy:Ogre:Warrior
 P:Stats:6:0:0:0:4:0
 S:BERSERK
 O:DROP_WARRIOR
+D:The leader of a band of vicious oni who make their lair on Mt. Oe in Tanba
+D:Province; they raid the capital of Kyoto to steal treasures and abduct young
+D:women.
 
 N:980:Coatl
 I:115:30d20:30:80:50:50
@@ -17602,6 +17691,8 @@ F:EVIL | UNDEAD | RES_COLD | RES_POIS | RES_NETH | NO_CONF | NO_SLEEP |
 P:Copy:Dunadan:Priest
 S:1_IN_5
 S:BLIND | PARALYZE | SCARE | CAUSE_4 | BO_NETHER | S_UNDEAD
+D:This ominous monster carries its own head under its arm and arrives to herald
+D:death.
 
 N:983:Hibagon
 G:Y:r
@@ -17613,6 +17704,8 @@ B:BITE:HURT(2d7)
 F:OPEN_DOOR | BASH_DOOR | WILD_MOUNTAIN | ANIMAL
 F:DROP_CORPSE
 P:Copy:Human:Warrior
+D:A mysterious animal—'monkey-like but larger than a monkey'—that appears in the
+D:Mt. Hiba area of Hiroshima Prefecture.
 
 N:984:Nue
 G:H:y
@@ -17626,6 +17719,10 @@ F:BASH_DOOR | WILD_MOUNTAIN |
 F:POS_GAIN_AC
 P:Copy:Human:Warrior
 P:Body:Dragon
+D:A bizarre creature with the head of a monkey, the body of a tanuki, the tail
+D:of a snake, and the limbs of a tiger; its cry was said to resemble that of a
+D:White's thrush. It has a highly unusual appearance and an aura that makes it
+D:unapproachable.
 
 N:985:Unicorn
 G:q:W
@@ -17641,6 +17738,8 @@ F:NO_CONF | NO_SLEEP | RES_TELE | CAN_SWIM | RIDING
 F:DROP_CORPSE | POS_GAIN_AC | POS_SEE_INVIS
 P:Copy:Kutar:Rogue
 P:Body:Unicorn
+D:A white horse with a single horn on its forehead; it is said to open its heart
+D:only to maidens.
 
 N:986:Nekomata
 G:f:u
@@ -17655,6 +17754,8 @@ P:Copy:Kutar:Rogue
 P:Body:Hound
 S:1_IN_3 |
 S:SCARE | CAUSE_2 | S_MONSTER(1d1)
+D:It is said that when a cat grows old, it gains high intelligence and a split
+D:tail, transforming into a *nekomata*.
 
 N:987:Nine-tailed fox
 G:f:w
@@ -17696,6 +17797,11 @@ P:Body:Giant Bird
 S:FREQ_25 |
 S:SCARE | BRAIN_SMASH | DRAIN_MANA |
 S:BR_FIRE | BR_LITE | BR_SOUND | HEAL | S_ANGEL
+D:A legendary sacred bird. It is said to possess the front of a wild goose, the
+D:back of a *qilin*, the chin of a swallow, the beak of a rooster, the neck of a
+D:snake, the tail of a fish, the forehead of a stork, the throat of a mandarin
+D:duck, the back of a tortoise shell, and five-colored plumage, all adorned with
+D:dragon-like patterns.
 
 N:989:Kirin
 G:q:y
@@ -17715,6 +17821,8 @@ P:Copy:Archon:Paladin
 P:Body:Unicorn
 S:1_IN_6 |
 S:BLIND | SHRIEK | DISPEL_MAGIC | ANTI_MAGIC | INVULN | S_ANGEL | HEAL
+D:A sacred, four-legged beast with a horn, dragon scales, an ox's tail, and
+D:horse's hooves; it is said to appear when a ruler governs with benevolence.
 
 N:990:Pegasus
 G:q:w
@@ -17728,6 +17836,7 @@ F:DROP_2D2 | ANIMAL | NO_SLEEP | CAN_FLY | RIDING
 F:DROP_CORPSE | POS_GAIN_AC |
 P:Copy:Kutar:Warrior
 P:Body:Horse
+D:A winged white horse that gallops through the heavens.
 
 N:991:Sleipnir, the Odin's Steed
 G:q:o
@@ -17899,11 +18008,11 @@ P:Life:110
 P:Body:Dragon
 S:FREQ_30 | BR_LITE | BR_DARK | BR_SOUND | BR_CONFUSION | BR_SHARDS |
 S:BLIND | CONFUSE | SCARE | S_HI_DRAGON | DETECT_OBJECTS 
-D:Bahamut the Platinum Dragon has been described both as the King of All Good Dragons,
-D:and more accurately, as a glorious and resplendent deity in his own right. He is ever
-D:watchful for the cause of lawful good and sits unsleepingly in his palace on Mount
-D:Celestia, the Seven Heavens. Bahamut is the protector of all good dragons and a
-D:fierce opponent of evil.
+D:Bahamut the Platinum Dragon has been described both as the King of All Good
+D:Dragons, and more accurately, as a glorious and resplendent deity in his own
+D:right. He is ever watchful for the cause of lawful good and sits unsleepingly
+D:in his palace on Mount Celestia, the Seven Heavens. Bahamut is the protector of
+D:all good dragons and a fierce opponent of evil.
 
 N:1001:Suke-san, the Mitsukuni's Warder
 G:p:s
@@ -17947,7 +18056,7 @@ F:INVISIBLE | COLD_BLOOD | PASS_WALL | RES_NETH
 F:UNDEAD | NO_SLEEP | NO_QUEST
 F:POS_SEE_INVIS | POS_HOLD_LIFE
 P:Copy:Hobbit:Warrior
-D:He has only three hair. He is careless, but kind, and always a bit hungry.
+D:He has only three hairs. He is careless, but kind, and always a bit hungry.
 
 N:1004:Pip, the Braver from Another World
 G:p:u
@@ -17964,6 +18073,12 @@ F:NO_CONF | NO_SLEEP | FRIENDLY | TAKE_ITEM |
 S:1_IN_5 |
 S:BA_FIRE | PARALYZE | BO_FIRE | HEAL
 P:Copy:Human:Tourist
+D:A warrior summoned (or so he claims) from another world by the great wizard
+D:Merlin.
+D:'The young man carries a suspicious-looking sword—like a shortened
+D:Excalibur—and mutters incomprehensible things about lightning bolts and
+D:fireballs.'
+D:(J.H. Brennan, trans. Yoshihiro Masaki: *Sorcerer of the Dark Castle*)
 
 N:1005:Ansalom, the Dark Wizard
 G:p:D
@@ -17983,6 +18098,12 @@ S:TRAPS | BO_PLASMA | BO_NETHER
 S:BA_DARK | S_HOUND
 P:Copy:Human:High-Mage
 O:DROP_MAGE
+D:A wizard who commits every conceivable evil act: withering crops, stealing
+D:pigs, drying up irrigation canals, and kidnapping the queen.
+D:“Carelessly pasted there is a picture of a man who looks utterly
+D:villainous—black hair, black beard, black eyes, and clad in black robes,
+D:holding a magic wand.”
+D:(J.H. Brennan, trans. Yoshihiro Masaki: *Sorcerer of the Dark Castle*)
 
 N:1006:High-elven ranger
 G:h:G
@@ -18189,6 +18310,9 @@ S:CAUSE_3 | TELE_TO
 P:Copy:Demigod:Monk
 P:Body:Monk
 P:Speed:+10
+D:Raoh is the adoptive older brother of Kenshiro—successor to the Hokuto Shinken
+D:style—and is himself a master of the art. In a turbulent, dark era, he sought
+D:to forge a new age based on his own convictions.
 
 N:1019:Kokuo, Raou's Steed
 G:q:D
@@ -18203,6 +18327,7 @@ F:RES_POIS | NO_CONF | NO_SLEEP | RIDING
 F:DROP_CORPSE | POS_GAIN_AC
 P:Copy:Dunadan:Warrior
 P:Body:Horse
+D:This massive, black, wild-spirited steed is truly a mount worthy of Raoh.
 
 N:1020:Kutar
 G:h:u
@@ -18249,7 +18374,8 @@ S:TELE_TO | BO_MANA
 D:He looks like brawny human being apparently.
 D:However, unlike man, it has the tail of a monkey.
 D:This tail proves he is a Saiyan.
-D:A Saiyan's fighting power is far superior to human's and will bring many destruction.
+D:A Saiyan's fighting power is far superior to human's and will bring many
+D:destruction.
 P:Copy:Human:Beastmaster
 
 N:1023:Hand grenade
@@ -18497,6 +18623,7 @@ S:TRAPS | BLINK
 P:Copy:Hobbit:Rogue
 P:Speed:+10
 O:DROP_ROGUE
+D:Watch out! By the time you see it, you are already surrounded by traps.
 
 N:1037:Knight templar
 G:p:w
@@ -18564,6 +18691,7 @@ W:20:1:999:0:0:0
 F:CHAMELEON | WILD_WOOD | DROP_1D2 | DROP_CORPSE | DROP_SKELETON | ANIMAL |
 F:CAN_FLY | RES_FIRE | RES_COLD | RES_ELEC | RES_ACID | RES_POIS |
 #TODO: Possessor?
+D:A creature said to alter its appearance to match its surroundings.
 
 N:1041:Chameleon Lord
 G:R:v
@@ -18573,6 +18701,8 @@ F:UNIQUE | NO_QUEST | ESCORT | DROP_GOOD |
 F:CHAMELEON | DROP_3D2 | DROP_CORPSE | DROP_SKELETON | ANIMAL |
 F:CAN_FLY | RES_FIRE | RES_COLD | RES_ELEC | RES_ACID | RES_POIS
 #TODO: Possessor?
+D:Chameleons are said to change their appearance to match their surroundings, and
+D:the King is no exception.
 
 N:1042:Narwhal
 G:l:w
@@ -18648,6 +18778,7 @@ P:Stats:-3:0:0:0:0:0
 P:Body:Vortex7
 S:1_IN_6 |
 S:BR_DISINTEGRATE
+D:You can see the surrounding objects disintegrating into a spiral pattern.
 
 N:1046:Ulfang the Black
 G:p:U
@@ -18992,6 +19123,9 @@ P:Body:Dragon
 S:FREQ_20 | BR_TIME | BR_NEXUS | BR_GRAVITY | BR_INERTIA
 S:TELE_SELF | BLINK | TELE_OTHER | TELE_LEVEL | HASTE | SLOW
 S:PARALYZE | S_DRAGON | DETECT_OBJECTS 
+D:I have never encountered a being quite like this before.
+D:"The surrounding space and time appear distorted, making it hard to tell for
+D:sure, but it vaguely looks like there is a gigantic dragon there."
 
 N:1065:Octopus of Kshitigarbha
 G:l:w
@@ -19007,6 +19141,15 @@ F:POS_GAIN_AC
 P:Copy:Kobold:Warrior
 P:Body:Octopus
 S:FREQ_15 | BR_DARK
+D:It is a massive swarm of octopuses summoned by the Octopus Monk—an incarnation
+D:of the Bodhisattva Jizo.
+D:'...Then, suddenly, a thunderous roar erupted from the seashore. From the
+D:waters, a swarm of thousands upon thousands of octopuses—large and
+D:small—surged toward the enemy army, spewing clouds of ink from their mouths.
+D:In an instant, the area was plunged into darkness as deep as a moonless night.
+D:Perhaps choking on the toxic fumes spewed by the octopuses, soldiers tumbled
+D:wildly from their horses or collapsed head over heels, falling one after
+D:another...'
 
 N:1066:Great Bile Wyrm
 G:D:s
@@ -19085,6 +19228,7 @@ F:REFLECTING | RES_FIRE | RES_COLD | RES_ACID |
 F:OPEN_DOOR | BASH_DOOR | REGENERATE |
 S:FREQ_15 | BR_DISINTEGRATE
 P:Copy:Demigod:Mauler
+D:He is the last survivor of the Skookum tribe, a clan that has since perished.
 
 N:1070:Trench Wurm
 G:w:D
@@ -19861,6 +20005,7 @@ F:POS_SUST_STR | POS_SUST_INT | POS_SUST_WIS | POS_SUST_DEX | POS_SUST_CON | POS
 P:Copy:Sprite:Rogue
 P:Life:10
 P:Body:Babble
+D:It is a slime encased in hard metal.
 
 N:1111:Arthur Pendragon
 G:p:r
@@ -22115,7 +22260,8 @@ F:ANIMAL | RIDING | WILD_SHORE
 F:DROP_CORPSE | POS_GAIN_AC
 P:Copy:Human:Mauler
 P:Body:Elephant
-D:This ridiculous looking creature has a large sail-like fin extending down its back.
+D:This ridiculous looking creature has a large sail-like fin extending down its
+D:back.
 
 #A gesture torward corvids
 

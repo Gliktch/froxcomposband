@@ -1163,7 +1163,7 @@ static errr Term_wipe_gcu(int x, int y, int n)
    wmove(td->win, y, x);
 
    /* Clear to end of line */
-   if (x + n >= 80)
+   if (x + n >= td->r.cx)
    {
       wclrtoeol(td->win);
    }
@@ -1274,8 +1274,11 @@ static errr term_data_init(term_data *td)
    /* Initialize the term */
    term_init(t, td->r.cx, td->r.cy, 256);
 
-   /* Avoid the bottom right corner */
-   t->icky_corner = TRUE;
+   /* Allow drawing on the bottom right corner: modern curses handles
+    * writes to that cell correctly (it temporarily disables autowrap),
+    * while setting this flag would silently skip the last cell, e.g.
+    * hiding the '+' corner of the full map border. */
+   t->icky_corner = FALSE;
 
    /* Erase with "white space" */
    t->attr_blank = TERM_WHITE;

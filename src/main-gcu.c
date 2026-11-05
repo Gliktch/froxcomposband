@@ -1113,8 +1113,13 @@ static int save_palette(void)
         while (scan < len)
         {
             if (buf[scan] == '\007') { seen++; scan++; }
-            else if ((buf[scan] == '\033') && (scan + 1 < len) &&
-                     (buf[scan+1] == '\\')) { seen++; scan += 2; }
+
+            /* Keep a trailing ESC for the next read in case an ST
+             * terminator arrives split across reads */
+            else if ((buf[scan] == '\033') && (scan + 1 == len)) break;
+
+            else if ((buf[scan] == '\033') && (buf[scan+1] == '\\'))
+                { seen++; scan += 2; }
             else scan++;
         }
 

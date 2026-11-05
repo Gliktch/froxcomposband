@@ -1094,15 +1094,16 @@ static int save_palette(void)
     fflush(stdout);
 
     /* Collect the replies, stopping as soon as all of them have arrived;
-     * each reply is counted by its terminator (BEL or ST). The short
-     * timeout once data started flowing covers an ST split across reads */
+     * each reply is counted by its terminator (BEL or ST). A full second
+     * of silence ends the wait, so terminals that answer slowly or not at
+     * all still fall back cleanly */
     while (len < (int)sizeof(buf))
     {
         struct pollfd pfd;
         pfd.fd = 0;
         pfd.events = POLLIN;
 
-        if (poll(&pfd, 1, seen ? 200 : 1000) <= 0) break;
+        if (poll(&pfd, 1, 1000) <= 0) break;
 
         i = read(0, buf + len, sizeof(buf) - len);
         if (i <= 0) break;

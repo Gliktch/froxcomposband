@@ -405,6 +405,9 @@ static int _max_color = MAX_COLOR;
 /* Original palette contents ("rgb:xx/xx/xx"), saved at startup */
 static char saved_palette[MAX_COLOR][48];
 
+/* Software flag -- the original palette was saved and can be restored */
+static int palette_saved = FALSE;
+
 /* Defined below */
 static void restore_palette(void);
 
@@ -789,7 +792,7 @@ static void Term_nuke_gcu(term *t)
 
 #ifdef GCU_FIX_PALETTE
    /* Give the terminal its original colors back */
-   if (can_fix_palette) restore_palette();
+   if (palette_saved) restore_palette();
 #endif
 
    /* Exit curses */
@@ -1074,7 +1077,7 @@ static int save_palette(void)
     struct termios oldtty;
     struct termios newtty;
     static char buf[8192];
-    int len = 0, i, n;
+    int len = 0, scan = 0, seen = 0, i, n;
 
     if (tcgetattr(0, &oldtty) != 0) return FALSE;
 
@@ -1090,19 +1093,31 @@ static int save_palette(void)
         fprintf(stdout, "\033]4;%d;?\007", GCU_PAL_BASE + i);
     fflush(stdout);
 
-    /* Collect the replies (give up after one second of silence) */
+    /* Collect the replies, stopping as soon as all of them have arrived;
+     * each reply is counted by its terminator (BEL or ST). The short
+     * timeout once data started flowing covers an ST split across reads */
     while (len < (int)sizeof(buf))
     {
         struct pollfd pfd;
         pfd.fd = 0;
         pfd.events = POLLIN;
 
-        if (poll(&pfd, 1, 1000) <= 0) break;
+        if (poll(&pfd, 1, seen ? 200 : 1000) <= 0) break;
 
         i = read(0, buf + len, sizeof(buf) - len);
         if (i <= 0) break;
 
         len += i;
+
+        while (scan < len)
+        {
+            if (buf[scan] == '\007') { seen++; scan++; }
+            else if ((buf[scan] == '\033') && (scan + 1 < len) &&
+                     (buf[scan+1] == '\\')) { seen++; scan += 2; }
+            else scan++;
+        }
+
+        if (seen >= MAX_COLOR) break;
     }
 
     /* Restore the terminal settings */
@@ -1184,15 +1199,23 @@ static errr Term_xtra_gcu_react(void)
         int i;
         for (i = 0; i < MAX_COLOR; i++)
         {
-            init_color(GCU_PAL_BASE + i,
-                       (angband_color_table[i][1] * 1000) / 255,
-                       (angband_color_table[i][2] * 1000) / 255,
-                       (angband_color_table[i][3] * 1000) / 255);
-            init_pair(i + 1, GCU_PAL_BASE + i, bg_color);
+            if ((init_color(GCU_PAL_BASE + i,
+                            (angband_color_table[i][1] * 1000) / 255,
+                            (angband_color_table[i][2] * 1000) / 255,
+                            (angband_color_table[i][3] * 1000) / 255) == ERR) ||
+                (init_pair(i + 1, GCU_PAL_BASE + i, bg_color) == ERR))
+            {
+                /* Terminal rejected the redefinition -- fall back to the
+                 * fixed palette mapping below (and restore our slots on
+                 * exit, since some of them may already be overwritten) */
+                can_fix_palette = FALSE;
+                break;
+            }
             colortable[i] = COLOR_PAIR(i + 1) | A_NORMAL;
         }
     }
-    else if (COLORS == 256 || COLORS == 88)
+
+    if (!can_fix_palette && (COLORS == 256 || COLORS == 88))
     {
         /* CTK: I snagged this color handling from current Vanilla */
         /* If we have more than 16 colors, find the best matches. These numbers
@@ -1469,7 +1492,7 @@ static void hook_quit(cptr str)
 
 #ifdef GCU_FIX_PALETTE
         /* Give the terminal its original colors back */
-        if (can_fix_palette) restore_palette();
+        if (palette_saved) restore_palette();
 #endif
 
        /* Exit curses */
@@ -1582,7 +1605,11 @@ errr init_gcu(int argc, char *argv[])
                        (COLOR_PAIRS > MAX_COLOR));
 
     /* Only clobber the palette if we can restore it later */
-    if (can_fix_palette) can_fix_palette = save_palette();
+    if (can_fix_palette)
+    {
+        palette_saved = save_palette();
+        can_fix_palette = palette_saved;
+    }
 #endif
 
 /*   _max_color = MAX(16, MIN(MAX_COLOR, COLORS));*/

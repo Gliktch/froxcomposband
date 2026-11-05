@@ -238,6 +238,7 @@ static term_data data[MAX_TERM_DATA];
  * POSIX stuff
  */
 #ifdef USE_TPOSIX
+# include <poll.h>
 # include <sys/ioctl.h>
 # include <termios.h>
 #endif
@@ -384,6 +385,33 @@ static int bg_color = COLOR_BLACK;
  * Local max_color
  */
 static int _max_color = MAX_COLOR;
+
+/*
+ * Exact color support -- redefine a block of terminal palette slots with the
+ * game's RGB colors via init_color() (OSC 4) instead of quantizing to the
+ * fixed 256-color palette. The original slot contents are queried from the
+ * terminal at startup and restored on exit; this needs POSIX termios for
+ * the raw query round-trip.
+ */
+#if defined(USE_TPOSIX)
+# define GCU_FIX_PALETTE
+#endif
+
+#ifdef GCU_FIX_PALETTE
+
+/* First palette slot we redefine; keeps the basic ANSI colors intact */
+# define GCU_PAL_BASE 32
+
+/* Original palette contents ("rgb:xx/xx/xx"), saved at startup */
+static char saved_palette[MAX_COLOR][48];
+
+/* Defined below */
+static void restore_palette(void);
+
+#endif /* GCU_FIX_PALETTE */
+
+/* Software flag -- we are using exact (redefined) palette colors */
+static int can_fix_palette = FALSE;
 
 #endif
 
@@ -759,6 +787,11 @@ static void Term_nuke_gcu(term *t)
    /* Flush the curses buffer */
    (void)refresh();
 
+#ifdef GCU_FIX_PALETTE
+   /* Give the terminal its original colors back */
+   if (can_fix_palette) restore_palette();
+#endif
+
    /* Exit curses */
    endwin();
 
@@ -1026,6 +1059,118 @@ static int create_color(int i, int scale)
     return rgb;
 }
 
+#ifdef GCU_FIX_PALETTE
+
+/*
+ * Query the terminal for the current contents of the palette slots we plan
+ * to redefine, using "OSC 4 ; n ; ?" control sequences. The raw replies are
+ * stored verbatim so they can be replayed on exit.
+ *
+ * Returns TRUE only if every slot was saved (otherwise we must not touch
+ * the palette at all).
+ */
+static int save_palette(void)
+{
+    struct termios oldtty;
+    struct termios newtty;
+    static char buf[8192];
+    int len = 0, i, n;
+
+    if (tcgetattr(0, &oldtty) != 0) return FALSE;
+
+    /* Raw-ish reads with a non-blocking timeout */
+    newtty = oldtty;
+    newtty.c_lflag &= ~(ICANON | ECHO);
+    newtty.c_cc[VMIN] = 0;
+    newtty.c_cc[VTIME] = 0;
+    if (tcsetattr(0, TCSANOW, &newtty) != 0) return FALSE;
+
+    /* Ask each slot we plan to use for its current color */
+    for (i = 0; i < MAX_COLOR; i++)
+        fprintf(stdout, "\033]4;%d;?\007", GCU_PAL_BASE + i);
+    fflush(stdout);
+
+    /* Collect the replies (give up after one second of silence) */
+    while (len < (int)sizeof(buf))
+    {
+        struct pollfd pfd;
+        pfd.fd = 0;
+        pfd.events = POLLIN;
+
+        if (poll(&pfd, 1, 1000) <= 0) break;
+
+        i = read(0, buf + len, sizeof(buf) - len);
+        if (i <= 0) break;
+
+        len += i;
+    }
+
+    /* Restore the terminal settings */
+    tcsetattr(0, TCSANOW, &oldtty);
+
+    /* Parse the "ESC ] 4 ; n ; rgb:... (BEL | ST)" replies */
+    for (i = 0; i < MAX_COLOR; i++) saved_palette[i][0] = '\0';
+
+    n = 0;
+    i = 0;
+    while (i + 1 < len)
+    {
+        char tmp[64];
+        char payload[48];
+        int m = 0, slot;
+        cptr p;
+
+        /* Find the start of a reply */
+        if ((buf[i] != '\033') || (buf[i+1] != ']')) { i++; continue; }
+
+        /* Copy the payload up to the terminator (BEL or ST) */
+        p = buf + i + 2;
+        while (p < buf + len)
+        {
+            if (*p == '\007') break;
+            if ((*p == '\033') && ((p + 1 < buf + len)) && (*(p+1) == '\\')) break;
+            if (m < (int)sizeof(tmp) - 1) tmp[m++] = *p;
+            p++;
+        }
+
+        /* Incomplete reply at the end of the buffer -- drop it */
+        if (p == buf + len) break;
+
+        i = (int)(p - buf) + ((*p == '\033') ? 2 : 1);
+        tmp[m] = '\0';
+
+        if ((sscanf(tmp, "4;%d;%47s", &slot, payload) == 2) &&
+            (slot >= GCU_PAL_BASE) && (slot < GCU_PAL_BASE + MAX_COLOR) &&
+            !strncmp(payload, "rgb:", 4))
+        {
+            if (!saved_palette[slot - GCU_PAL_BASE][0]) n++;
+            strncpy(saved_palette[slot - GCU_PAL_BASE], payload, 47);
+            saved_palette[slot - GCU_PAL_BASE][47] = '\0';
+        }
+    }
+
+    /* Only trust the save if we got every single slot back */
+    return (n == MAX_COLOR);
+}
+
+/*
+ * Give the terminal its original palette back
+ */
+static void restore_palette(void)
+{
+    int i;
+
+    for (i = 0; i < MAX_COLOR; i++)
+    {
+        if (!saved_palette[i][0]) continue;
+        fprintf(stdout, "\033]4;%d;%s\033\\", GCU_PAL_BASE + i, saved_palette[i]);
+    }
+    fflush(stdout);
+}
+
+#endif /* GCU_FIX_PALETTE */
+
+
 /*
  * React to changes
  */
@@ -1033,7 +1178,21 @@ static errr Term_xtra_gcu_react(void)
 {
 
 #ifdef A_COLOR
-    if (COLORS == 256 || COLORS == 88)
+    if (can_fix_palette)
+    {
+        /* Send the exact RGB values by redefining palette slots */
+        int i;
+        for (i = 0; i < MAX_COLOR; i++)
+        {
+            init_color(GCU_PAL_BASE + i,
+                       (angband_color_table[i][1] * 1000) / 255,
+                       (angband_color_table[i][2] * 1000) / 255,
+                       (angband_color_table[i][3] * 1000) / 255);
+            init_pair(i + 1, GCU_PAL_BASE + i, bg_color);
+            colortable[i] = COLOR_PAIR(i + 1) | A_NORMAL;
+        }
+    }
+    else if (COLORS == 256 || COLORS == 88)
     {
         /* CTK: I snagged this color handling from current Vanilla */
         /* If we have more than 16 colors, find the best matches. These numbers
@@ -1308,6 +1467,11 @@ static void hook_quit(cptr str)
 	/* Unused */
 	(void)str;
 
+#ifdef GCU_FIX_PALETTE
+        /* Give the terminal its original colors back */
+        if (can_fix_palette) restore_palette();
+#endif
+
        /* Exit curses */
        endwin();
 }
@@ -1409,6 +1573,16 @@ errr init_gcu(int argc, char *argv[])
 #ifdef HAVE_USE_DEFAULT_COLORS
     /* Should we use curses' "default color" */
     if (use_default_colors() == OK) bg_color = -1;
+#endif
+
+#ifdef GCU_FIX_PALETTE
+    /* Can we redefine palette slots to show the exact game colors? */
+    can_fix_palette = (can_use_color && can_change_color() &&
+                       (COLORS >= (GCU_PAL_BASE + MAX_COLOR)) &&
+                       (COLOR_PAIRS > MAX_COLOR));
+
+    /* Only clobber the palette if we can restore it later */
+    if (can_fix_palette) can_fix_palette = save_palette();
 #endif
 
 /*   _max_color = MAX(16, MIN(MAX_COLOR, COLORS));*/
